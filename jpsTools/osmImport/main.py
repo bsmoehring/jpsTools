@@ -10,9 +10,9 @@ from xml.dom import minidom
 from constants import osm, jps, geometryAttribs
 import jpsElements
 import coords
+from config import Config
 
-outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
-inputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
+
 
 def main():
     
@@ -21,26 +21,34 @@ def main():
     for elem in Input.tree.iter():
         if elem.tag in [osm.Way, osm.Relation]:
             for tag in elem:
-                k = tag.get('k')
-                v = tag.get('v')
-                if k =='railway' and v =='platform':
-                    print elem.tag, elem.attrib.get(osm.Id), tag.attrib
-                    osm2jps(elem)
-                elif (k =='public_transport' and v == 'station') or (k == 'railway' and v == 'station'):
-                    osm2jps(elem)
+                k = tag.get(osm.Key)
+                v = tag.get(osm.Value)
+                try:
+                    if Config.tags[k] == v:
+                        osm2jps(elem)
+                except KeyError:
+                    pass
+                    
+                #===============================================================
+                # if k =='railway' and v =='platform':
+                #     print elem.tag, elem.attrib.get(osm.Id), tag.attrib
+                #===============================================================
+                    
+                #===============================================================
+                # elif (k =='public_transport' and v == 'station') or (k == 'railway' and v == 'station'):
+                #     osm2jps(elem)
+                #===============================================================
+            
                     
                   
     buildJpsXml()
-            
-    
-     
 
 class Input:
     '''
     class to store the input-xml as tree and all nodes of this file separately as nodes
     '''
     
-    tree = ET.parse(inputPath)
+    tree = ET.parse(Config().inputFile)
     nodes = {}
     for node in tree.iter(tag=osm.Node):
         key = node.attrib.get(osm.Id)
@@ -100,7 +108,7 @@ def buildJpsXml():
                     outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
                     #print vertex.attribs
        
-    geometry2jps(outGeometry, outputPath + 'test.xml')
+    geometry2jps(outGeometry, Config.outputFile)
        
     
 def prettify(elem):

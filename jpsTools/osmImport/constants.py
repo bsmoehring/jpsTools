@@ -26,6 +26,8 @@ class osm(object):
     Role = 'role'
     Outer = 'outer'
     Inner = 'inner'
+    Key = 'k'
+    Value = 'v'
         
 class jps(object):
     '''
