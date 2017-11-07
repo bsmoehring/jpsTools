@@ -3,8 +3,8 @@ Created on 07.11.2017
 
 @author: user
 '''
-from jpsConsistency import checkNeighbours
-from constants import osm, jps, geometryAttribs
+from jpsConsistency import checkNeighbours, addNode
+from constants import jps
 
 class Geometry:
     tag = jps.Geometry 
@@ -38,6 +38,14 @@ class Room:
     
     def addSubroom(self, subroom):
         self.subrooms.append(subroom)
+        
+    def getVertexes(self):
+        vertexes = []
+        for subroom in self.subrooms:
+            for polygon in subroom.polygons:
+                for vertex in polygon.vertexes:
+                    vertexes.append(vertex)
+        return vertexes
     
 class Subroom:
     
@@ -68,4 +76,8 @@ class Vertex:
         self.attribs = {}
         self.attribs[jps.PX] = x
         self.attribs[jps.PY] = y 
-        self.osmId = id
+        self.attribs[jps.OriginalId] = id
+        addNode(id)
+        
+    def getOriginalId(self):
+        return self.attribs[jps.OriginalId]
