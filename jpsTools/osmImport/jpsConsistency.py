@@ -4,6 +4,7 @@ Created on 07.11.2017
 @author: bsmoehring
 '''
 import jpsElements
+from constants import jps
 
 usedNodes = []
     
@@ -24,7 +25,31 @@ def checkNodeUseage(room):
             usedVertexIds.append(id)
     return usedVertexIds
 
-def handleDoubleUseage(room, usedVertexIds):
+def handleDoubleUseage(nRoom, usedVertexIds):
     
     pass
-    
+    #===========================================================================
+    # nRoomVertexCount = len(nRoom.getVertexes())
+    # 
+    # 
+    # for room in jpsElements.Geometry.rooms:
+    #     dNodesCount = 0
+    #     for vertex in room.getVertexes():
+    #         if vertex.getOriginalId() in usedVertexIds:
+    #             dNodesCount += 1
+    #     if dNodesCount == 0:
+    #         pass
+    #     elif dNodesCount == 1:
+    #         pass
+    #     elif dNodesCount == 2:
+    #         pass
+    #===========================================================================
+        
+        
+        
+        
+        
+        
+        
+        
+        
