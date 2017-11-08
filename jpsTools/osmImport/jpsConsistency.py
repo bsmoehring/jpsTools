@@ -4,18 +4,27 @@ Created on 07.11.2017
 @author: bsmoehring
 '''
 import jpsElements
-from constants import jps
 
 usedNodes = []
     
 def addNode(id):
-    usedNodes.append(id)
+    if id not in usedNodes:
+        usedNodes.append(id)
 
-def checkNeighbours(room):
+def checkNodeUseage(room):
     '''
-    checking if the vertexes of the newly added room are members of an already existing room
+    checking if the vertexes of the newly added room are members of an already existing room.
+    this is a quick check. 
     '''
-    newVertexList = []
+    usedVertexIds = []
     for vertex in room.getVertexes():
-        newVertexList.append(vertex.getOriginalId())
-    print newVertexList
+        id = vertex.getOriginalId()
+        if id in usedNodes:
+            print 'node:', id, 'is being used by multiple rooms.'
+            usedVertexIds.append(id)
+    return usedVertexIds
+
+def handleDoubleUseage(room, usedVertexIds):
+    
+    pass
+    

@@ -15,7 +15,7 @@ from config import Config
 
 
 def main():
-    
+
     coords.Transformation().setBounds(Input.tree.find(osm.Bounds))
     
     for elem in Input.tree.iter():
@@ -108,7 +108,7 @@ def buildJpsXml():
                     outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
                     #print vertex.attribs
        
-    geometry2jps(outGeometry, Config.outputFile)
+    geometry2jps(outGeometry)
        
     
 def prettify(elem):
@@ -119,19 +119,22 @@ def prettify(elem):
     reparsed = minidom.parseString(rough_string)
     return reparsed.toprettyxml(indent="  ")
 
-def geometry2jps(outGeometry, outputFilename):
+def geometry2jps(outGeometry):
     '''
     writes the ElementTree geometry to a xml file
     '''
     out = prettify(outGeometry)
     print out
-    if outputFilename.endswith('.xml'):
+    if Config.outputFile.endswith('.xml'):
         pass
     else:
-        outputFilename += '.xml' 
-    f = open(outputFilename, 'w')
-    f.write(out)
-    f.close()
+        Config.outputFile += '.xml' 
+    try:
+        f = open(Config.outputFile, 'w')
+        f.write(out)
+        f.close()
+    except Exception:
+        print 'output not written!'
     
-if __name__ == "__main__":
+if      __name__ == "__main__":
     main()

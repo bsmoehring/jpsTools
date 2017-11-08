@@ -4,7 +4,7 @@ Created on 07.11.2017
 @author: bsmoehring
 '''
 from pyproj import Proj
-from osmImport.constants import osm
+from constants import osm
 
 class Transformation(object):
     '''
