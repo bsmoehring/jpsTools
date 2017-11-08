@@ -19,6 +19,7 @@ class Config:
         # self.tags['public_transport'] = 'station'
         #=======================================================================
         self.tags['highway'] = 'steps'
+        self.tags['area'] = 'yes'
         
     def loadConfig(self, configFile):
         '''

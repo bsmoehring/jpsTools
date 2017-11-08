@@ -55,16 +55,17 @@ class Room:
         self.attribs[jps.OriginalId] = str(id)
         self.attribs['level'] = str(level)
         self.attribs[jps.Caption] = caption
-        self.subrooms = []
+        self.subrooms = {}
     
     def addSubroom(self, subroom):
-        self.subrooms.append(subroom)
+        subroom.attribs[jps.Id] = str(len(self.subrooms))
+        self.subrooms[subroom.attribs[jps.Id]] = subroom
         
     def getVertexes(self):
         vertexes = []
-        for subroom in self.subrooms:
-            for polygon in subroom.polygons:
-                for vertex in polygon.vertexes:
+        for subroom in self.subrooms.itervalues():
+            for polygon in subroom.polygons.itervalues():
+                for vertex in polygon.vertexes.itervalues():
                     vertexes.append(vertex)
         return vertexes
     
@@ -74,14 +75,14 @@ class Subroom:
     Each subroom is bounded by at least one crossing.JuPedSim[2017]
     '''
     
-    def __init__(self, id):
+    def __init__(self):
         self.tag = jps.Subroom
-        self.polygons = []
+        self.polygons = {}
         self.attribs = {}
-        self.attribs['id'] = str(id)
         
     def addPolygon(self, p):
-        self.polygons.append(p)
+        p.attribs[jps.Id] = str(len(self.polygons))
+        self.polygons[p.attribs[jps.Id]] = p
     
 class Polygon:
     '''
@@ -93,10 +94,10 @@ class Polygon:
         self.tag = jps.Polygon
         self.attribs = {}
         self.attribs[jps.Caption] = jps.Wall
-        self.vertexes = []
+        self.vertexes = {}
         
     def addVertex(self, vertex):
-        self.vertexes.append(vertex)
+        self.vertexes[vertex.attribs[jps.OriginalId]] = vertex
     
 class Vertex:
     '''
@@ -113,3 +114,6 @@ class Vertex:
         
     def getOriginalId(self):
         return self.attribs[jps.OriginalId]
+    
+    def getNeighborVertexes(self):
+        pass

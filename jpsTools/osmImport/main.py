@@ -8,26 +8,49 @@ import lxml.etree as ET
 from lxml.etree import SubElement, Element, tostring
 from constants import osm, jps, geometryAttribs
 import jpsElements
-import coords
+from coords import Transformation
 from config import Config
 
-
-
 def main():
-
-    coords.Transformation().setBounds(Input.tree.find(osm.Bounds))
     
+    t = Transformation(Input.tree.find(osm.Bounds))
+    
+    readOSM(t)
+                  
+    buildJpsXml()
+
+class Input:
+    '''
+    class to store the input-xml as tree and all nodes of this file separately as nodes
+    '''
+    tree = ET.parse(Config().inputFile)
+    nodes = {}
+    for node in tree.iter(tag=osm.Node):
+        key = node.attrib.get(osm.Id)
+        nodes[key] = node  
+
+def readOSM(t):
+    
+    elements = {}
     for elem in Input.tree.iter():
         if elem.tag in [osm.Way, osm.Relation]:
+            count = 0
+            convert = False
             for tag in elem:
                 k = tag.get(osm.Key)
                 v = tag.get(osm.Value)
                 try:
                     if Config.tags[k] == v:
-                        osm2jps(elem)
+                        convert = True
                 except KeyError:
                     pass
-                    
+                if tag.tag == osm.Member or tag.tag == osm.NodeRef:
+                    count += 1
+            if convert:
+                try: 
+                    elements[count].append(elem)
+                except KeyError:
+                    elements[count] = [elem]
                 #===============================================================
                 # if k =='railway' and v =='platform':
                 #     print elem.tag, elem.attrib.get(osm.Id), tag.attrib
@@ -38,47 +61,37 @@ def main():
                 #     osm2jps(elem)
                 #===============================================================
             
-                    
-                  
-    buildJpsXml()
-
-class Input:
-    '''
-    class to store the input-xml as tree and all nodes of this file separately as nodes
-    '''
+    for count in sorted(elements.iterkeys(), reverse=True): 
+        for elem in elements[count]:
+            osm2jps(elem, t)  
     
-    tree = ET.parse(Config().inputFile)
-    nodes = {}
-    for node in tree.iter(tag=osm.Node):
-        key = node.attrib.get(osm.Id)
-        nodes[key] = node  
     
-def osm2jps(elem):
+def osm2jps(elem, t):
     '''
     calling function to process element by its tag
     '''
     if elem.tag == osm.Way:
-        way2jps(elem)
+        way2jps(elem, t)
     if elem.tag == osm.Relation:
         for member in elem.iter(tag=osm.Member):
             if member.attrib.get(osm.Type) == osm.Way and member.attrib.get(osm.Role) == osm.Outer:
                 id = member.attrib.get(osm.Ref)
                 for way in Input.tree.iter(tag=osm.Way):
                     if way.attrib.get(osm.Id) == id:
-                        way2jps(way)
+                        way2jps(way, t)
     
-def way2jps(elem):
+def way2jps(elem, t):
     '''
     this method appends rooms as SubElements to the ElementTree geometry
     '''
     room = jpsElements.Room(elem.attrib.get(osm.Id), elem.attrib.get(osm.Level), 'hall')
-    sroom = jpsElements.Subroom(len(room.subrooms))
+    sroom = jpsElements.Subroom()
     poly = jpsElements.Polygon()
     for nd in elem.iter(tag=osm.NodeRef):
         node = Input.nodes[nd.get(osm.Ref)]
         lat = node.attrib.get(osm.Lat)
         lon = node.attrib.get(osm.Lon)
-        x, y = coords.Transformation().WGSToXY(lat, lon)
+        x, y = t.WGSToXY(lat, lon)
         vert = jpsElements.Vertex(x, y, node.get(osm.Id))
         poly.addVertex(vert)
     sroom.addPolygon(poly)
@@ -99,11 +112,11 @@ def buildJpsXml():
     outRooms = SubElement(outGeometry, jps.Rooms)
     for  room in jpsElements.Geometry().rooms:
         outRoom = SubElement(outRooms, jps.Room, room.attribs)
-        for subroom in room.subrooms:
+        for subroom in room.subrooms.itervalues():
             outSubroom = SubElement(outRoom, jps.Subroom, subroom.attribs)
-            for polygon in subroom.polygons:
+            for polygon in subroom.polygons.itervalues():
                 outPoly = SubElement(outSubroom, jps.Polygon, polygon.attribs)
-                for vertex in polygon.vertexes:
+                for vertex in polygon.vertexes.itervalues():
                     outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
                     #print vertex.attribs
        
