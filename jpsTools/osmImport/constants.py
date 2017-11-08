@@ -54,6 +54,6 @@ class geometryAttribs(object):
     attribs['version'] = '0.8' 
     attribs['caption'] = 'second life' 
     attribs['unit'] = 'm'
-    attribs['xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
-    attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'  
+    #attribs['xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
+    #attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'  
     

@@ -4,9 +4,8 @@ Created on 24.10.2017
 @author: bsmoehring
 '''
 
-import xml.etree.ElementTree as ET
-from xml.etree.ElementTree import SubElement, Element, tostring
-from xml.dom import minidom
+import lxml.etree as ET
+from lxml.etree import SubElement, Element, tostring
 from constants import osm, jps, geometryAttribs
 import jpsElements
 import coords
@@ -109,21 +108,12 @@ def buildJpsXml():
                     #print vertex.attribs
        
     geometry2jps(outGeometry)
-       
-    
-def prettify(elem):
-    '''
-    Return a pretty-printed XML string for the Element.
-    '''
-    rough_string = tostring(elem, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent="  ")
 
 def geometry2jps(outGeometry):
     '''
     writes the ElementTree geometry to a xml file
     '''
-    out = prettify(outGeometry)
+    out = tostring(outGeometry, pretty_print=True)
     print out
     if Config.outputFile.endswith('.xml'):
         pass
