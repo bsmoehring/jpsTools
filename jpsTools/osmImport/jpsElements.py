@@ -10,6 +10,7 @@ class Geometry:
     tag = jps.Geometry 
     rooms = []
     transitions = []
+    vertices = {}
     
     #=======================================================================
     # def __init__(self):
@@ -25,9 +26,9 @@ class Geometry:
         '''
         usedVertexIds = jpsConsistency.checkNodeUseage(room)
         if not usedVertexIds:
-            jpsConsistency.handleDoubleUseage(room, usedVertexIds)
+            jpsConsistency.handleDoubleUsage(room, usedVertexIds)
         self.rooms.append(room)
-        for vertex in room.getVertexes():
+        for vertex in room.getvertices():
             jpsConsistency.addNode(vertex.attribs[jps.OriginalId])
     
     def addTransition(self, transition):
@@ -61,13 +62,13 @@ class Room:
         subroom.attribs[jps.Id] = str(len(self.subrooms))
         self.subrooms[subroom.attribs[jps.Id]] = subroom
         
-    def getVertexes(self):
-        vertexes = []
+    def getvertices(self):
+        vertices = []
         for subroom in self.subrooms.itervalues():
             for polygon in subroom.polygons.itervalues():
-                for vertex in polygon.vertexes.itervalues():
-                    vertexes.append(vertex)
-        return vertexes
+                for vertexId in polygon.vertices:
+                    vertices.append(Geometry.vertices[vertexId])
+        return vertices
     
 class Subroom:
     '''
@@ -86,18 +87,18 @@ class Subroom:
     
 class Polygon:
     '''
-    polygon describes the walls as a sequence of vertexes. JuPedSim[2017]
+    polygon describes the walls as a sequence of vertices. JuPedSim[2017]
     '''
-    
     
     def __init__(self):
         self.tag = jps.Polygon
         self.attribs = {}
         self.attribs[jps.Caption] = jps.Wall
-        self.vertexes = {}
+        self.vertices = []
         
     def addVertex(self, vertex):
-        self.vertexes[vertex.attribs[jps.OriginalId]] = vertex
+        self.vertices.append(vertex.attribs[jps.OriginalId])
+        Geometry.vertices[vertex.attribs[jps.OriginalId]] = vertex
     
 class Vertex:
     '''
@@ -115,5 +116,5 @@ class Vertex:
     def getOriginalId(self):
         return self.attribs[jps.OriginalId]
     
-    def getNeighborVertexes(self):
+    def getNeighborvertices(self):
         pass

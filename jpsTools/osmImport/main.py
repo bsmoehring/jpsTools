@@ -5,29 +5,37 @@ Created on 24.10.2017
 '''
 
 import lxml.etree as ET
+import lxml.builder as builder
 from lxml.etree import SubElement, Element, tostring
 from constants import osm, jps, geometryAttribs
 import jpsElements
 from coords import Transformation
 from config import Config
+import logging
 
 def main():
+    
+    logging.info('Start')
     
     t = Transformation(Input.tree.find(osm.Bounds))
     
     readOSM(t)
                   
     buildJpsXml()
+    
+    logging.info('operation finished!')
 
 class Input:
     '''
     class to store the input-xml as tree and all nodes of this file separately as nodes
     '''
+    logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
     tree = ET.parse(Config().inputFile)
     nodes = {}
     for node in tree.iter(tag=osm.Node):
         key = node.attrib.get(osm.Id)
-        nodes[key] = node  
+        nodes[key] = node 
+    logging.info('Input loaded.') 
 
 def readOSM(t):
     
@@ -116,8 +124,9 @@ def buildJpsXml():
             outSubroom = SubElement(outRoom, jps.Subroom, subroom.attribs)
             for polygon in subroom.polygons.itervalues():
                 outPoly = SubElement(outSubroom, jps.Polygon, polygon.attribs)
-                for vertex in polygon.vertexes.itervalues():
-                    outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
+                for vertexId in polygon.vertices:
+                    v = jpsElements.Geometry().vertices[vertexId]
+                    outVertex = SubElement(outPoly, jps.Vertex, v.attribs)
                     #print vertex.attribs
        
     geometry2jps(outGeometry)
@@ -128,12 +137,12 @@ def geometry2jps(outGeometry):
     '''
     out = tostring(outGeometry, pretty_print=True)
     print out
-    if Config.outputFile.endswith('.xml'):
+    if Config.outputPath.endswith('.xml'):
         pass
     else:
-        Config.outputFile += '.xml' 
+        Config.outputPath += 'test.xml' 
     try:
-        f = open(Config.outputFile, 'w')
+        f = open(Config.outputPath, 'w')
         f.write(out)
         f.close()
     except Exception:
