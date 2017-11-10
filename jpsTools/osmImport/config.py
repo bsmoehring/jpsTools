@@ -5,7 +5,7 @@ Created on 07.11.2017
 '''
 
 class Config:
-    outputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/test.xml'
+    outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
     inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
     
