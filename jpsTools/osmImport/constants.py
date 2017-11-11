@@ -45,6 +45,12 @@ class jps(object):
     PY = 'py'
     Wall = 'wall'
     OriginalId = 'originalId'
+    Transition = 'transition' 
+    Type = 'type'
+    Room1 = 'room1_id'
+    Subroom1 = 'subroom1_id'
+    Room2 = 'room2_id'
+    Subroom2 = 'subroom2_id'
     
 class geometryAttribs(object):
     '''

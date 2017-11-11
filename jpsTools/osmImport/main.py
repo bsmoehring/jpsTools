@@ -5,7 +5,6 @@ Created on 24.10.2017
 '''
 
 import lxml.etree as ET
-import lxml.builder as builder
 from lxml.etree import SubElement, Element, tostring
 from constants import osm, jps, geometryAttribs
 import jpsElements
@@ -68,7 +67,8 @@ def readOSM(t):
                 # elif (k =='public_transport' and v == 'station') or (k == 'railway' and v == 'station'):
                 #     osm2jps(elem)
                 #===============================================================
-            
+    
+    #sort list to start with largest elements
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
             osm2jps(elem, t)  
@@ -116,17 +116,17 @@ def buildJpsXml():
     '''
     form an xml string from all geometry objects
     '''
-    outGeometry = Element(jps.Geometry, geometryAttribs().attribs)
+    outGeometry = Element(jpsElements.Geometry().tag, geometryAttribs().attribs)
     outRooms = SubElement(outGeometry, jps.Rooms)
     for  room in jpsElements.Geometry().rooms:
-        outRoom = SubElement(outRooms, jps.Room, room.attribs)
-        for subroom in room.subrooms.itervalues():
-            outSubroom = SubElement(outRoom, jps.Subroom, subroom.attribs)
-            for polygon in subroom.polygons.itervalues():
-                outPoly = SubElement(outSubroom, jps.Polygon, polygon.attribs)
-                for vertexId in polygon.vertices:
-                    v = jpsElements.Geometry().vertices[vertexId]
-                    outVertex = SubElement(outPoly, jps.Vertex, v.attribs)
+        outRoom = SubElement(outRooms, room.tag, room.attribs)
+        for subroom in room.subrooms:
+            outSubroom = SubElement(outRoom, subroom.tag, subroom.attribs)
+            for polygon in subroom.polygons:
+                print polygon
+                outPoly = SubElement(outSubroom, polygon.tag, polygon.attribs)
+                for vertex in polygon.vertices:
+                    outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
                     #print vertex.attribs
        
     geometry2jps(outGeometry)
