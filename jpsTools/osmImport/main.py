@@ -8,19 +8,19 @@ import lxml.etree as ET
 from lxml.etree import SubElement, Element, tostring
 from constants import osm, jps, geometryAttribs
 import jpsElements
-from coords import Transformation
 from config import Config
+import handler
 import logging
 
 def main():
     
     logging.info('Start')
     
-    t = Transformation(Input.tree.find(osm.Bounds))
-    
-    readOSM(t)
+    readOSM()
                   
-    buildJpsXml()
+    outgeometry = buildJPSTree()
+    
+    tree2xml(outgeometry)
     
     logging.info('operation finished!')
 
@@ -36,7 +36,7 @@ class Input:
         nodes[key] = node 
     logging.info('Input loaded.') 
 
-def readOSM(t):
+def readOSM():
     
     elements = {}
     for elem in Input.tree.iter():
@@ -47,7 +47,7 @@ def readOSM(t):
                 k = tag.get(osm.Key)
                 v = tag.get(osm.Value)
                 try:
-                    if Config.tags[k] == v:
+                    if v in Config.filterTags[k]:
                         convert = True
                 except KeyError:
                     pass
@@ -58,61 +58,14 @@ def readOSM(t):
                     elements[count].append(elem)
                 except KeyError:
                     elements[count] = [elem]
-                #===============================================================
-                # if k =='railway' and v =='platform':
-                #     print elem.tag, elem.attrib.get(osm.Id), tag.attrib
-                #===============================================================
-                    
-                #===============================================================
-                # elif (k =='public_transport' and v == 'station') or (k == 'railway' and v == 'station'):
-                #     osm2jps(elem)
-                #===============================================================
     
     #sort list to start with largest elements
+    eHandler = handler.ElementHandler()
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
-            osm2jps(elem, t)  
-    
-    
-def osm2jps(elem, t):
-    '''
-    calling function to process element by its tag
-    '''
-    if elem.tag == osm.Way:
-        way2jps(elem, t)
-    if elem.tag == osm.Relation:
-        for member in elem.iter(tag=osm.Member):
-            if member.attrib.get(osm.Type) == osm.Way and member.attrib.get(osm.Role) == osm.Outer:
-                id = member.attrib.get(osm.Ref)
-                for way in Input.tree.iter(tag=osm.Way):
-                    if way.attrib.get(osm.Id) == id:
-                        way2jps(way, t)
-    
-def way2jps(elem, t):
-    '''
-    this method appends rooms as SubElements to the ElementTree geometry
-    '''
-    room = jpsElements.Room(elem.attrib.get(osm.Id), elem.attrib.get(osm.Level), 'hall')
-    sroom = jpsElements.Subroom()
-    poly = jpsElements.Polygon()
-    for nd in elem.iter(tag=osm.NodeRef):
-        node = Input.nodes[nd.get(osm.Ref)]
-        lat = node.attrib.get(osm.Lat)
-        lon = node.attrib.get(osm.Lon)
-        x, y = t.WGSToXY(lat, lon)
-        vert = jpsElements.Vertex(x, y, node.get(osm.Id))
-        poly.addVertex(vert)
-    sroom.addPolygon(poly)
-    room.addSubroom(sroom)
-    jpsElements.Geometry().addRoom(room)
-    
-def rel2jps(elem):
-    '''
-    determining how to process elements within the relation
-    '''
-    pass
+            eHandler.handle(elem)  
 
-def buildJpsXml():
+def buildJPSTree():
     '''
     form an xml string from all geometry objects
     '''
@@ -129,9 +82,9 @@ def buildJpsXml():
                     outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
                     #print vertex.attribs
        
-    geometry2jps(outGeometry)
+    return outGeometry
 
-def geometry2jps(outGeometry):
+def tree2xml(outGeometry):
     '''
     writes the ElementTree geometry to a xml file
     '''

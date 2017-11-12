@@ -26,7 +26,7 @@ class Transformation(object):
         x, y = self.projection(lon, lat)
         x -= self.minx
         y -= self.miny
-        return str(x), str(y)
+        return x, y
         
         
         

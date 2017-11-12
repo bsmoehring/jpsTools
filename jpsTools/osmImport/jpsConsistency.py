@@ -3,10 +3,10 @@ Created on 07.11.2017
 
 @author: bsmoehring
 '''
-import jpsElements
 from constants import jps
 
 usedNodes = []
+polygons = {}
     
 def addNode(id):
     if id not in usedNodes:

@@ -104,11 +104,10 @@ class Vertex:
     '''
     tag = jps.Vertex
     
-    def __init__(self, x, y, id):
+    def __init__(self, x, y):
         self.attribs = {}
         self.attribs[jps.PX] = x
         self.attribs[jps.PY] = y 
-        self.attribs[jps.OriginalId] = id
         
     def getOriginalId(self):
         return self.attribs[jps.OriginalId]
