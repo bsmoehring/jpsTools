@@ -3,14 +3,19 @@ Created on 07.11.2017
 
 @author: bsmoehring
 '''
-import jpsElements
-from constants import jps
+from constants import jps, osm
+from shapely.geometry import Polygon, LineString
 
 usedNodes = []
+polygons = {}
     
 def addNode(id):
     if id not in usedNodes:
         usedNodes.append(id)
+
+def checkConsistency(poly, elem):
+    
+    pass
 
 def checkNodeUseage(room):
     '''

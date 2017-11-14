@@ -19,14 +19,18 @@ class Transformation(object):
         minlat = float(bounds.attrib.get(osm.MinLat))
         minlon = float(bounds.attrib.get(osm.MinLon))
         self.minx, self.miny = self.projection(minlon, minlat) 
-        print 'Boundaries (reference point x,y=0,0):', self.minx, self.miny   
+        print '---' 
+        print 'Boundaries (reference point x,y=0,0):', self.minx, self.miny  
+        
         
     def WGSToXY(self, lat, lon):
         
         x, y = self.projection(lon, lat)
         x -= self.minx
         y -= self.miny
-        return str(x), str(y)
+        round(x, 2)
+        round(y, 2)
+        return x, y
         
         
         

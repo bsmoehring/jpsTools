@@ -28,6 +28,7 @@ class osm(object):
     Inner = 'inner'
     Key = 'k'
     Value = 'v'
+    Tag = 'tag'
         
 class jps(object):
     '''
@@ -45,6 +46,12 @@ class jps(object):
     PY = 'py'
     Wall = 'wall'
     OriginalId = 'originalId'
+    Transition = 'transition' 
+    Type = 'type'
+    Room1 = 'room1_id'
+    Subroom1 = 'subroom1_id'
+    Room2 = 'room2_id'
+    Subroom2 = 'subroom2_id'
     
 class geometryAttribs(object):
     '''
@@ -54,6 +61,6 @@ class geometryAttribs(object):
     attribs['version'] = '0.8' 
     attribs['caption'] = 'second life' 
     attribs['unit'] = 'm'
-    #attribs['xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
+    #attribs['xml:nsxsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
     #attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'  
     

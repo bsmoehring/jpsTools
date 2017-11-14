@@ -8,18 +8,33 @@ class Config:
     outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
     inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
-    
-    tags = {}
+    stanardWidth = 2 #4 meters
+    filterTags = {}
+    areaTags = {}
     
     def __init__(self):
         
-        self.tags['railway'] = 'platform'
+        self.addFilterTag('railway', 'platform')
         #=======================================================================
-        # self.tags['railway'] = 'station'
-        # self.tags['public_transport'] = 'station'
+        # self.filterTags['railway'] = 'station'
+        # self.filterTags['public_transport'] = 'station'
         #=======================================================================
-        self.tags['highway'] = 'steps'
-        self.tags['area'] = 'yes'
+        self.addFilterTag('highway', 'steps')
+        self.addFilterTag('highway', 'footway')
+        
+        self.areaTags['area'] = 'yes'
+        
+    def addFilterTag(self, key, value):
+        if key in self.filterTags:
+            self.filterTags[key].append(value)
+        else:
+            self.filterTags[key] = [value]
+            
+    def addAreaTag(self, key, value):
+        if key in self.areaTags:
+            self.areaTags[key].append(value)
+        else:
+            self.areaTags[key] = [value]
         
     def loadConfig(self, configFile):
         '''
