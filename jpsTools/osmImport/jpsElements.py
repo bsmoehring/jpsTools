@@ -3,7 +3,7 @@ Created on 07.11.2017
 
 @author: user
 '''
-import jpsConsistency
+from osmImport import consistencyCheck
 from constants import jps
 
 class Geometry:
@@ -45,7 +45,7 @@ class Room:
     '''
     tag = jps.Room
     
-    def __init__(self, id, level, caption):
+    def __init__(self, id, level, caption='hall'):
         self.attribs = {}
         self.attribs[jps.Id] = str(len(Geometry().rooms))
         self.attribs[jps.OriginalId] = id
@@ -56,16 +56,6 @@ class Room:
     def addSubroom(self, subroom):
         subroom.attribs[jps.Id] = str(len(self.subrooms))
         self.subrooms.append(subroom)
-        
-    #===========================================================================
-    # def getvertices(self):
-    #     vertices = []
-    #     for subroom in self.subrooms.itervalues():
-    #         for polygon in subroom.polygons.itervalues():
-    #             for vertexId in polygon.vertices:
-    #                 vertices.append(Geometry.vertices[vertexId])
-    #     return vertices
-    #===========================================================================
     
 class Subroom:
     '''
@@ -131,5 +121,3 @@ class Transition:
         self.attribs[jps.Room2] = room2_id
         self.attribs[jps.Subroom2] = subroom2_id
         
-    
-    

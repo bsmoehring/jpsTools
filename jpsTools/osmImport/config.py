@@ -14,14 +14,27 @@ class Config:
     
     def __init__(self):
         
-        self.filterTags['railway'] = ['platform']
+        self.addFilterTag('railway', 'platform')
         #=======================================================================
         # self.filterTags['railway'] = 'station'
         # self.filterTags['public_transport'] = 'station'
         #=======================================================================
-        self.filterTags['highway'] = ['steps', 'footway']
+        self.addFilterTag('highway', 'steps')
+        self.addFilterTag('highway', 'footway')
         
         self.areaTags['area'] = 'yes'
+        
+    def addFilterTag(self, key, value):
+        if key in self.filterTags:
+            self.filterTags[key].append(value)
+        else:
+            self.filterTags[key] = [value]
+            
+    def addAreaTag(self, key, value):
+        if key in self.areaTags:
+            self.areaTags[key].append(value)
+        else:
+            self.areaTags[key] = [value]
         
     def loadConfig(self, configFile):
         '''

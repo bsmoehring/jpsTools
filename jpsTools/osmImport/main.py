@@ -46,13 +46,8 @@ def readOSM():
             for tag in elem:
                 k = tag.get(osm.Key)
                 v = tag.get(osm.Value)
-                try:
-                    if v in Config.filterTags[k]:
-                        convert = True
-                except KeyError:
-                    pass
-                if tag.tag == osm.Member or tag.tag == osm.NodeRef:
-                    count += 1
+                if k in Config.filterTags and v in Config.filterTags[k]:
+                    convert = True
             if convert:
                 try: 
                     elements[count].append(elem)
@@ -76,7 +71,6 @@ def buildJPSTree():
         for subroom in room.subrooms:
             outSubroom = SubElement(outRoom, subroom.tag, subroom.attribs)
             for polygon in subroom.polygons:
-                print polygon
                 outPoly = SubElement(outSubroom, polygon.tag, polygon.attribs)
                 for vertex in polygon.vertices:
                     outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
@@ -89,6 +83,7 @@ def tree2xml(outGeometry):
     writes the ElementTree geometry to a xml file
     '''
     out = tostring(outGeometry, pretty_print=True)
+    print '---'
     print out
     if Config.outputPath.endswith('.xml'):
         pass
