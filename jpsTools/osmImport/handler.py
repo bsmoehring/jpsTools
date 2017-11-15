@@ -99,7 +99,19 @@ class ElementHandler(object):
         
         return poly
     
-
+    def polygon2jps(self, elem, poly):
+        '''
+        translate polygon to jps Elements with required attributes of the osm element
+        '''
+        jpsRoom = jpsElements.Room(elem.attrib.get(osm.Id), elem.attrib.get(osm.Level))
+        jpsSubroom = jpsElements.Subroom()
+        jpsPoly = jpsElements.Polygon()
+        for coord in poly.exterior._get_coords():
+            jpsVertex = jpsElements.Vertex(str(coord[0]), str(coord[1]))
+            jpsPoly.addVertex(jpsVertex)
+        jpsSubroom.addPolygon(jpsPoly)
+        jpsRoom.addSubroom(jpsSubroom)
+        jpsElements.Geometry().addRoom(jpsRoom)
         
             
                 
