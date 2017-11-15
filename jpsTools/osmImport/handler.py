@@ -16,7 +16,7 @@ class ElementHandler(object):
     classdocs
     '''
 
-    def handle(self, elem):
+    def handle(self, elem, transform):
         print '---'
         print elem.attrib[osm.Id]
         wayRefs = []
@@ -42,26 +42,26 @@ class ElementHandler(object):
         if wayRefs:
             for way in Input.tree.iter(tag=osm.Way):
                 if way.attrib.get(osm.Id) in wayRefs:
-                    poly = self.way2polygon(way)
-                    polyNew = checkConsistency(way, poly)
+                    poly = self.way2polygon(way, transform)
+                    polyNew = checkConsistency(way, poly, transform)
                     self.polygon2jps(way, polyNew)
         else:
             print 'Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?'       
                 
-    def nodeRefs2XY(self, nodeRefs):
+    def nodeRefs2XY(self, nodeRefs, transform):
         XYList = []
         for nodeRef in nodeRefs:
             try:
                 node = Input.nodes[nodeRef]
                 lat = (node.attrib[osm.Lat])
                 lon = (node.attrib[osm.Lon])
-                x, y = Input.transform.WGSToXY(lat, lon)
+                x, y = transform.WGSToXY(lat, lon)
                 XYList.append((x, y))
             except KeyError:
                 print nodeRef, 'is not in the nodes list. ->OSM inconsistency?'
         return XYList
     
-    def way2polygon(self, way):
+    def way2polygon(self, way, transform):
         '''
         translate osm way to a shapely.geometry.polygon in order to to easily manipulate its shape.
         '''
@@ -78,7 +78,7 @@ class ElementHandler(object):
                     pass
             if child.tag == osm.NodeRef:
                 nodeRefs.append(child.attrib[osm.Ref])  
-        XYList = self.nodeRefs2XY(nodeRefs)
+        XYList = self.nodeRefs2XY(nodeRefs, transform)
         print 'NodeRefs:', nodeRefs
         print 'Coordinates:', XYList
         if area:
@@ -99,20 +99,7 @@ class ElementHandler(object):
         
         return poly
     
-    def polygon2jps(self, elem, poly):
-        '''
-        translate polygon to jps Elements with required attributes of the osm element
-        '''
-        print poly
-        jpsRoom = jpsElements.Room(elem.attrib.get(osm.Id), elem.attrib.get(osm.Level))
-        jpsSubroom = jpsElements.Subroom()
-        jpsPoly = jpsElements.Polygon()
-        for coord in poly.exterior._get_coords():
-            jpsVertex = jpsElements.Vertex(str(coord[0]), str(coord[1]))
-            jpsPoly.addVertex(jpsVertex)
-        jpsSubroom.addPolygon(jpsPoly)
-        jpsRoom.addSubroom(jpsSubroom)
-        jpsElements.Geometry().addRoom(jpsRoom)
+
         
             
                 

@@ -17,7 +17,9 @@ def main():
     
     logging.info('Start')
     
-    readOSM()
+    transform = Transformation(Input.tree.find(osm.Bounds))
+    
+    readOSM(transform)
                   
     outgeometry = buildJPSTree()
     
@@ -33,14 +35,12 @@ class Input:
     tree = ET.parse(Config().inputFile)
     nodes = {}
     
-    transform = Transformation(tree.find(osm.Bounds))
-    
     for node in tree.iter(tag=osm.Node):
         key = node.attrib.get(osm.Id)
         nodes[key] = node 
     logging.info('Input loaded.') 
 
-def readOSM():
+def readOSM(transform):
     
     elements = {}
     for elem in Input.tree.iter():
@@ -62,7 +62,7 @@ def readOSM():
     eHandler = handler.ElementHandler()
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
-            eHandler.handle(elem)  
+            eHandler.handle(elem, transform)  
 
 def buildJPSTree():
     '''
