@@ -10,7 +10,7 @@ from constants import osm
 from config import Config
 from shapely.geometry import Polygon, LineString
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
-from consistencyCheck import checkConsistency
+from consistency import checkConsistency
 
 class ElementHandler(object):
     '''
@@ -45,10 +45,11 @@ class ElementHandler(object):
         if wayRefs:
             for way in Input.tree.iter(tag=osm.Way):
                 if way.attrib.get(osm.Id) in wayRefs:
-                    self.way2polygon(way)
+                    poly = self.way2polygon(way)
+                    polyNew = checkConsistency(way, poly)
+                    self.polygon2jps(way, polyNew)
         else:
-            print 'Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?' 
-                
+            print 'Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?'       
                 
     def nodeRefs2XY(self, nodeRefs):
         XYList = []
@@ -99,11 +100,9 @@ class ElementHandler(object):
             #polygon from linestring
             poly = ls.buffer(Config.stanardWidth/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=Config.stanardWidth)
         
-        poly = checkConsistency(poly, way)
-        self.polygon2jps(poly, way)
-        
+        return poly
     
-    def polygon2jps(self, poly, elem):
+    def polygon2jps(self, elem, poly):
         '''
         translate polygon to jps Elements with required attributes of the osm element
         '''

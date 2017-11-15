@@ -6,6 +6,7 @@ Created on 07.11.2017
 from constants import jps, osm
 import shapely.geometry as Geo
 from input import Input
+import copy
 
 #osmId Node = [osmId Way]
 usedNodes = {}
@@ -29,13 +30,13 @@ def checkConsistency(elemNew, polyNew):
                 usedNodeWays[nodeId] = wayId
     
     #if len(wayIds) == 1:
-    for nodeId, wayId in usedNodeWays:
+    for nodeId, wayId in usedNodeWays.iteritems():
         polyOld = polygons[wayId]
         elemOld = elements[wayId]
-        poly = adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld)
+        #poly = adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld)
     
     #approved
-    #store osm nodes to usednodes    
+    #store osm nodes to usednodes   
     storeElement(elemNew, polyNew)
     
     return polyNew
@@ -61,7 +62,8 @@ def storeElement(elem, poly):
         else:
             usedNodes[osmIdNode] = [osmIdElem]
     polygons[osmIdElem] = poly  
-    elements[osmIdElem] = elem  
+    elements[osmIdElem] = elem 
+    print poly, 'BBB' 
 
 def checkNodeUseage(room):
     '''
@@ -76,10 +78,6 @@ def checkNodeUseage(room):
             usedVertexIds.append(id)
     return usedVertexIds
 
-def handleDoubleUsage(nRoom, usedVertexIds):
-    
-    pass
-    
      
     
     
