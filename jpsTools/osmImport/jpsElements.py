@@ -3,7 +3,6 @@ Created on 07.11.2017
 
 @author: user
 '''
-from osmImport import consistencyCheck
 from constants import jps
 
 class Geometry:

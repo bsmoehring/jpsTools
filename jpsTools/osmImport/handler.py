@@ -3,7 +3,6 @@ Created on 11.11.2017
 
 @author: user
 '''
-from coords import Transformation
 import jpsElements
 from main import Input
 from constants import osm
@@ -16,8 +15,6 @@ class ElementHandler(object):
     '''
     classdocs
     '''
-    def __init__(self):
-        self.transform = Transformation(Input.tree.find(osm.Bounds))
 
     def handle(self, elem):
         print '---'
@@ -58,7 +55,7 @@ class ElementHandler(object):
                 node = Input.nodes[nodeRef]
                 lat = (node.attrib[osm.Lat])
                 lon = (node.attrib[osm.Lon])
-                x, y = self.transform.WGSToXY(lat, lon)
+                x, y = Input.transform.WGSToXY(lat, lon)
                 XYList.append((x, y))
             except KeyError:
                 print nodeRef, 'is not in the nodes list. ->OSM inconsistency?'

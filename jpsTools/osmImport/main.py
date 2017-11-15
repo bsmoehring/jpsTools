@@ -9,6 +9,7 @@ from lxml.etree import SubElement, Element, tostring
 from constants import osm, jps, geometryAttribs
 import jpsElements
 from config import Config
+from coords import Transformation
 import handler
 import logging
 
@@ -31,6 +32,9 @@ class Input:
     logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
     tree = ET.parse(Config().inputFile)
     nodes = {}
+    
+    transform = Transformation(tree.find(osm.Bounds))
+    
     for node in tree.iter(tag=osm.Node):
         key = node.attrib.get(osm.Id)
         nodes[key] = node 
