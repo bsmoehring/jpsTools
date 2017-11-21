@@ -11,7 +11,8 @@ from config import Config
 from coords import Transformation
 from handler import ElementHandler
 import logging
-from input import Input
+from osmImport.data import Input
+from plot import plot
 
 def main():
     
@@ -26,6 +27,8 @@ def main():
     handler = ElementHandler(input, transform)
     
     readOSM(input, handler)
+    
+    plot(transform)
     
     translate2jps()
                   
@@ -65,7 +68,7 @@ def tree2xml(outGeometry):
     '''
     out = tostring(outGeometry, pretty_print=True)
     print '---'
-    print out
+    #print out
     if Config.outputPath.endswith('.xml'):
         pass
     else:
