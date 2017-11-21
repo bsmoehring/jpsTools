@@ -4,13 +4,13 @@ Created on 24.10.2017
 @author: bsmoehring
 '''
 
-import lxml.etree as ET
-from lxml.etree import SubElement, Element, tostring
-from constants import osm, jps, geometryAttribs
-import jpsElements
+from xml.etree import ElementTree as ET
+from lxml.etree import tostring 
+from constants import osm
+from jpsElements import translate2jps, buildJPSTree
 from config import Config
 from coords import Transformation
-import handler
+from handler import ElementHandler
 import logging
 
 def main():
@@ -19,7 +19,11 @@ def main():
     
     transform = Transformation(Input.tree.find(osm.Bounds))
     
-    readOSM(transform)
+    handler = ElementHandler(Input.tree, Input.allNodes)
+    
+    readOSM(handler, transform)
+    
+    translate2jps()
                   
     outgeometry = buildJPSTree()
     
@@ -33,14 +37,14 @@ class Input:
     '''
     logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
     tree = ET.parse(Config().inputFile)
-    nodes = {}
+    allNodes = {}
     
     for node in tree.iter(tag=osm.Node):
         key = node.attrib.get(osm.Id)
-        nodes[key] = node 
+        allNodes[key] = node 
     logging.info('Input loaded.') 
 
-def readOSM(transform):
+def readOSM(handler, transform):
     
     elements = {}
     for elem in Input.tree.iter():
@@ -59,28 +63,9 @@ def readOSM(transform):
                     elements[count] = [elem]
     
     #sort list to start with largest elements
-    eHandler = handler.ElementHandler()
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
-            eHandler.handle(elem, transform)  
-
-def buildJPSTree():
-    '''
-    form an xml string from all geometry objects
-    '''
-    outGeometry = Element(jpsElements.Geometry().tag, geometryAttribs().attribs)
-    outRooms = SubElement(outGeometry, jps.Rooms)
-    for  room in jpsElements.Geometry().rooms:
-        outRoom = SubElement(outRooms, room.tag, room.attribs)
-        for subroom in room.subrooms:
-            outSubroom = SubElement(outRoom, subroom.tag, subroom.attribs)
-            for polygon in subroom.polygons:
-                outPoly = SubElement(outSubroom, polygon.tag, polygon.attribs)
-                for vertex in polygon.vertices:
-                    outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
-                    #print vertex.attribs
-       
-    return outGeometry
+            handler.handle(elem, transform)  
 
 def tree2xml(outGeometry):
     '''

@@ -3,8 +3,6 @@ Created on 11.11.2017
 
 @author: user
 '''
-import jpsElements
-from main import Input
 from constants import osm
 from config import Config
 from shapely.geometry import Polygon, LineString
@@ -15,7 +13,10 @@ class ElementHandler(object):
     '''
     classdocs
     '''
-
+    def __init__(self, tree, nodes):
+        self.tree = tree
+        self.nodes = nodes
+        
     def handle(self, elem, transform):
         print '---'
         print elem.attrib[osm.Id]
@@ -40,11 +41,10 @@ class ElementHandler(object):
                         #no outer/inner
                         print member.attrib[osm.Ref], 'is tagged: ', member.attrib[osm.Role], '--> no procedure implemented yet.'
         if wayRefs:
-            for way in Input.tree.iter(tag=osm.Way):
+            for way in self.tree.iter(tag=osm.Way):
                 if way.attrib.get(osm.Id) in wayRefs:
                     poly = self.way2polygon(way, transform)
-                    polyNew = checkConsistency(way, poly, transform)
-                    self.polygon2jps(way, polyNew)
+                    checkConsistency(way, poly, transform)
         else:
             print 'Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?'       
                 
@@ -52,7 +52,7 @@ class ElementHandler(object):
         XYList = []
         for nodeRef in nodeRefs:
             try:
-                node = Input.nodes[nodeRef]
+                node = self.nodes[nodeRef]
                 lat = (node.attrib[osm.Lat])
                 lon = (node.attrib[osm.Lon])
                 x, y = transform.WGSToXY(lat, lon)
@@ -99,19 +99,7 @@ class ElementHandler(object):
         
         return poly
     
-    def polygon2jps(self, elem, poly):
-        '''
-        translate polygon to jps Elements with required attributes of the osm element
-        '''
-        jpsRoom = jpsElements.Room(elem.attrib.get(osm.Id), elem.attrib.get(osm.Level))
-        jpsSubroom = jpsElements.Subroom()
-        jpsPoly = jpsElements.Polygon()
-        for coord in poly.exterior._get_coords():
-            jpsVertex = jpsElements.Vertex(str(coord[0]), str(coord[1]))
-            jpsPoly.addVertex(jpsVertex)
-        jpsSubroom.addPolygon(jpsPoly)
-        jpsRoom.addSubroom(jpsSubroom)
-        jpsElements.Geometry().addRoom(jpsRoom)
+
         
             
                 

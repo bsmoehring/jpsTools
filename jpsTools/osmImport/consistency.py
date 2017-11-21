@@ -3,9 +3,8 @@ Created on 07.11.2017
 
 @author: bsmoehring
 '''
-from constants import osm
-from shapely.geometry import Point, Polygon, MultiPolygon
-from main import Input
+from constants import osm, shapely
+from shapely.geometry import Point, Polygon, MultiPolygon, LineString
 
 #osmId Node = [osmId Way]
 usedNodes = {}
@@ -15,6 +14,10 @@ polygons = {}
 elements = {}
 #osmId Way = [osmId Node]
 wayNodes = {}
+#osmId way = [polygon]
+polygonTrash = {}
+#transition
+transitions = {}
 
 def checkConsistency(elemNew, polyNew, transform):
     '''
@@ -24,8 +27,8 @@ def checkConsistency(elemNew, polyNew, transform):
     '''
     used = []
     for nd in elemNew.iter(tag = osm.NodeRef):
-        if nd not in used:
-            nodeId = nd.attrib[osm.Ref]
+        nodeId = nd.attrib[osm.Ref]
+        if nodeId not in used:
             if nodeId in usedNodes:
                 print nodeId, 'already in use by elements: ', usedNodes[nodeId]
                 used.append(nodeId)
@@ -36,6 +39,7 @@ def checkConsistency(elemNew, polyNew, transform):
             polyOld = polygons[wayId]
             elemOld = elements[wayId]
             polyNew = adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform)
+            getTransitions(polyNew, polyOld)
             print 'poly adjusted to: ', polyNew
     
     #approved
@@ -47,6 +51,10 @@ def checkConsistency(elemNew, polyNew, transform):
 def adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform):
     '''
     '''
+    
+    if polyNew.disjoint(polyOld):
+        print 'PROBLEM: polygons are supposed to be intersecting.'
+    
     #end of line?
     nodeRefsOld = wayNodes[elemOld.attrib[osm.Id]]
     nodeRefsNew = []
@@ -67,26 +75,21 @@ def adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform):
         
     #intersect
     intersect = polyNew.intersection(polyOld)
-    #Point
-    node = Input.nodes[nodeId]
-    x, y = transform.WGSToXY(node.attrib[osm.Lat], node.attrib[osm.Lon])
-    point = Point(x, y)
     
     if newEnd and oldEnd:
         pass
     elif newEnd and not oldEnd:
         polyNew = polyNew.difference(polyOld)
-        if polyNew.geom_type == 'MultiPolygon':
+        if polyNew.geom_type == shapely.MultiPolygon:
             polyNew = filterRelevantPoly(polyNew)
     elif not newEnd and oldEnd:
         polyOld = polyOld.difference(polyNew)
-        if polyOld.geom_type == 'MultiPolygon':
+        if polyOld.geom_type == shapely.MultiPolygon:
             polyOld = filterRelevantPoly(polyOld)
             polygons[elemOld.attrib[osm.Id]] = polyOld
     elif not newEnd and not oldEnd:
-        pass
-    
-    print intersect.intersects(point)
+        polyNew = polyNew.difference(polyOld)
+        
     return polyNew
 
 def storeElement(elem, poly):
@@ -102,6 +105,7 @@ def storeElement(elem, poly):
             usedNodes[osmIdNode].append(osmIdElem)
         else:
             usedNodes[osmIdNode] = [osmIdElem]
+            
     polygons[osmIdElem] = poly  
     elements[osmIdElem] = elem 
     wayNodes[osmIdElem] = nodeRefs
@@ -113,19 +117,33 @@ def checkNodeUseage(room):
     '''
     usedVertexIds = []
     for vertex in room.getvertices():
-        id = vertex.getOriginalId()
-        if id in usedNodes:
+        originalId = vertex.getOriginalId()
+        if originalId in usedNodes:
             print 'node:', id, 'is being used by multiple rooms.'
             usedVertexIds.append(id)
     return usedVertexIds
 
+def getTransitions(polyNew, polyOld):
+    '''
+    TODO get Transitions from two polygons
+    '''
+    transition = polyNew.intersection(polyOld)
+    if transition.geom_type == shapely.LineString:
+        print shapely.Polygon
+        print transition
+    else: 
+        print 'Other'
+        print transition
+        
 def filterRelevantPoly(multipoly):
     '''
     return largest Polygon from given Multipolygon.
-    Method should later be optimized.
+    Method should later be optimized!
+    USE CROSSES INSTEAD!
     '''    
     polygons = [polygon for polygon in multipoly]
     area = 0
+    
     for polygon in polygons:
         if polygon.area > area:
             area = polygon.area

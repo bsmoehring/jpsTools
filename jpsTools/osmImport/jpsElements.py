@@ -3,7 +3,67 @@ Created on 07.11.2017
 
 @author: user
 '''
-from constants import jps
+from constants import jps, osm, shapely, geometryAttribs
+from consistency import polygons, elements
+from lxml.etree import SubElement, Element
+
+#===============================================================================
+# #osmId Way = polygon
+# polygons = {}
+# #osmId Way = Way/Element
+# elements = {}
+# #osmId Way = [osmId Node]
+# wayNodes = {}
+#===============================================================================
+
+
+def translate2jps():
+    for osmId, poly in polygons.items():
+        if poly.geom_type == shapely.Polygon:
+            polygon2jps(elements[osmId], poly)
+        elif poly.geom_type == shapely.MultiPolygon:
+            for polygon in poly:
+                polygon2jps(elements[osmId], polygon)
+        
+
+def buildJPSTree():
+    '''
+    form an xml string from all geometry objects
+    '''
+    outGeometry = Element(Geometry().tag, geometryAttribs().attribs)
+    outRooms = SubElement(outGeometry, jps.Rooms)
+    for  room in Geometry().rooms:
+        outRoom = SubElement(outRooms, room.tag, room.attribs)
+        for subroom in room.subrooms:
+            outSubroom = SubElement(outRoom, subroom.tag, subroom.attribs)
+            for polygon in subroom.polygons:
+                outPoly = SubElement(outSubroom, polygon.tag, polygon.attribs)
+                for vertex in polygon.vertices:
+                    outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
+                    #print vertex.attribs
+       
+    return outGeometry
+
+def polygon2jps(elem, poly):
+    '''
+    translate polygon to jps Elements with required attributes of the osm element
+    '''
+    jpsRoom = Room(elem.attrib[osm.Id], getLevel(elem))
+    jpsSubroom = Subroom()
+    jpsPoly = Polygon()
+    for coord in poly.exterior._get_coords():
+        jpsVertex = Vertex(str(coord[0]), str(coord[1]))
+        jpsPoly.addVertex(jpsVertex)
+    jpsSubroom.addPolygon(jpsPoly)
+    jpsRoom.addSubroom(jpsSubroom)
+    Geometry().addRoom(jpsRoom)
+    
+def getLevel(elem):
+    for tag in elem.iter(tag=osm.Tag):
+        if tag.attrib[osm.Key] == osm.Level:
+            return tag.attrib[osm.Value]
+    print elem.attrib[osm.Id], 'has no tag level. Returning standard 0'
+    return '0'
 
 class Geometry:
     tag = jps.Geometry 

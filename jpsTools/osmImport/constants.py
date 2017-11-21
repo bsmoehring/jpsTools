@@ -53,6 +53,12 @@ class jps(object):
     Room2 = 'room2_id'
     Subroom2 = 'subroom2_id'
     
+class shapely():
+    
+    Polygon = 'Polygon'
+    MultiPolygon = 'MultiPolygon'
+    LineString = 'LineString'
+    
 class geometryAttribs(object):
     '''
     required attributes of the geometry element
