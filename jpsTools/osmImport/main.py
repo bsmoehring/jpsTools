@@ -4,7 +4,6 @@ Created on 24.10.2017
 @author: bsmoehring
 '''
 
-from xml.etree import ElementTree as ET
 from lxml.etree import tostring 
 from constants import osm
 from jpsElements import translate2jps, buildJPSTree
@@ -12,16 +11,21 @@ from config import Config
 from coords import Transformation
 from handler import ElementHandler
 import logging
+from input import Input
 
 def main():
     
+    logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
+    
     logging.info('Start')
     
-    transform = Transformation(Input.tree.find(osm.Bounds))
+    input = Input(Config.inputFile)
     
-    handler = ElementHandler(Input.tree, Input.allNodes)
+    transform = Transformation(input.tree.find(osm.Bounds))
     
-    readOSM(handler, transform)
+    handler = ElementHandler(input, transform)
+    
+    readOSM(input, handler)
     
     translate2jps()
                   
@@ -31,23 +35,11 @@ def main():
     
     logging.info('operation finished!')
 
-class Input:
-    '''
-    class to store the input-xml as tree and all nodes of this file separately as nodes
-    '''
-    logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
-    tree = ET.parse(Config().inputFile)
-    allNodes = {}
-    
-    for node in tree.iter(tag=osm.Node):
-        key = node.attrib.get(osm.Id)
-        allNodes[key] = node 
-    logging.info('Input loaded.') 
 
-def readOSM(handler, transform):
+def readOSM(input, handler):
     
     elements = {}
-    for elem in Input.tree.iter():
+    for elem in input.tree.iter():
         if elem.tag in [osm.Way, osm.Relation]:
             count = 0
             convert = False
@@ -65,7 +57,7 @@ def readOSM(handler, transform):
     #sort list to start with largest elements
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
-            handler.handle(elem, transform)  
+            handler.handle(elem)  
 
 def tree2xml(outGeometry):
     '''

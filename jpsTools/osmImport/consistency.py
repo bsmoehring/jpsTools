@@ -25,6 +25,7 @@ def checkConsistency(elemNew, polyNew, transform):
     if yes, the polygon and counterpolygons (polygons that share the node) are adjusted.
     polygon information is then stored.
     '''
+    
     used = []
     for nd in elemNew.iter(tag = osm.NodeRef):
         nodeId = nd.attrib[osm.Ref]
@@ -45,8 +46,6 @@ def checkConsistency(elemNew, polyNew, transform):
     #approved
     #store osm nodes to usednodes   
     storeElement(elemNew, polyNew)
-    
-    return polyNew
 
 def adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform):
     '''
@@ -77,7 +76,13 @@ def adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform):
     intersect = polyNew.intersection(polyOld)
     
     if newEnd and oldEnd:
-        pass
+        indexNew = nodeRefsNew.index(nodeId)
+        #=======================================================================
+        # LineString()
+        # indexOld = nodeRefsOld.index(nodeId)
+        # node = Input.allNodes[nd.attrib[osm.Ref]]
+        # [nd.attrib[osm.Ref]] = Point(transform.WGSToXY(node.attrib[osm.Lat], node.attrib[osm.Lon]))
+        #=======================================================================
     elif newEnd and not oldEnd:
         polyNew = polyNew.difference(polyOld)
         if polyNew.geom_type == shapely.MultiPolygon:

@@ -8,16 +8,18 @@ from config import Config
 from shapely.geometry import Polygon, LineString
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 from consistency import checkConsistency
+from input import Input
 
 class ElementHandler(object):
     '''
     classdocs
     '''
-    def __init__(self, tree, nodes):
-        self.tree = tree
-        self.nodes = nodes
+    def __init__(self, input, transform):
+        self.tree = input.tree
+        self.nodes = input.allNodes
+        self.transform = transform
         
-    def handle(self, elem, transform):
+    def handle(self, elem):
         print '---'
         print elem.attrib[osm.Id]
         wayRefs = []
@@ -43,19 +45,19 @@ class ElementHandler(object):
         if wayRefs:
             for way in self.tree.iter(tag=osm.Way):
                 if way.attrib.get(osm.Id) in wayRefs:
-                    poly = self.way2polygon(way, transform)
-                    checkConsistency(way, poly, transform)
+                    poly = self.way2polygon(way, self.transform)
+                    checkConsistency(way, poly, self.transform)
         else:
             print 'Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?'       
                 
-    def nodeRefs2XY(self, nodeRefs, transform):
+    def nodeRefs2XY(self, nodeRefs):
         XYList = []
         for nodeRef in nodeRefs:
             try:
                 node = self.nodes[nodeRef]
                 lat = (node.attrib[osm.Lat])
                 lon = (node.attrib[osm.Lon])
-                x, y = transform.WGSToXY(lat, lon)
+                x, y = self.transform.WGSToXY(lat, lon)
                 XYList.append((x, y))
             except KeyError:
                 print nodeRef, 'is not in the nodes list. ->OSM inconsistency?'
@@ -78,7 +80,7 @@ class ElementHandler(object):
                     pass
             if child.tag == osm.NodeRef:
                 nodeRefs.append(child.attrib[osm.Ref])  
-        XYList = self.nodeRefs2XY(nodeRefs, transform)
+        XYList = self.nodeRefs2XY(nodeRefs)
         print 'NodeRefs:', nodeRefs
         print 'Coordinates:', XYList
         if area:
