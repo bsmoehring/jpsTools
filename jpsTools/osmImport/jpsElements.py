@@ -4,7 +4,7 @@ Created on 07.11.2017
 @author: user
 '''
 from constants import jps, osm, shapely, geometryAttribs
-from consistency import polygons, elements
+from data import Output
 from lxml.etree import SubElement, Element
 
 #===============================================================================
@@ -18,12 +18,12 @@ from lxml.etree import SubElement, Element
 
 
 def translate2jps():
-    for osmId, poly in polygons.items():
+    for osmId, poly in Output.polygons.items():
         if poly.geom_type == shapely.Polygon:
-            polygon2jps(elements[osmId], poly)
+            polygon2jps(Output.elements[osmId], poly)
         elif poly.geom_type == shapely.MultiPolygon:
             for polygon in poly:
-                polygon2jps(elements[osmId], polygon)
+                polygon2jps(Output.elements[osmId], polygon)
         
 
 def buildJPSTree():

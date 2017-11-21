@@ -27,3 +27,20 @@ class Input(object):
         
         print self.tree
         print self.allNodes
+        
+class Output(object):
+    '''
+    class to store output data
+    '''
+    #osmId Node = [osmId Way]
+    usedNodes = {}
+    #osmId Way = polygon
+    polygons = {}
+    #osmId Way = Way/Element
+    elements = {}
+    #osmId Way = [osmId Node]
+    wayNodes = {}
+    #osmId way = [polygon]
+    polygonTrash = {}
+    #transition
+    transitions = {}

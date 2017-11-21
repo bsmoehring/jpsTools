@@ -5,19 +5,8 @@ Created on 07.11.2017
 '''
 from constants import osm, shapely
 from shapely.geometry import Point, Polygon, MultiPolygon, LineString
+from data import Output, Input
 
-#osmId Node = [osmId Way]
-usedNodes = {}
-#osmId Way = polygon
-polygons = {}
-#osmId Way = Way/Element
-elements = {}
-#osmId Way = [osmId Node]
-wayNodes = {}
-#osmId way = [polygon]
-polygonTrash = {}
-#transition
-transitions = {}
 
 def checkConsistency(elemNew, polyNew, transform):
     '''
@@ -30,15 +19,15 @@ def checkConsistency(elemNew, polyNew, transform):
     for nd in elemNew.iter(tag = osm.NodeRef):
         nodeId = nd.attrib[osm.Ref]
         if nodeId not in used:
-            if nodeId in usedNodes:
-                print nodeId, 'already in use by elements: ', usedNodes[nodeId]
+            if nodeId in Output.usedNodes:
+                print nodeId, 'already in use by elements: ', Output.usedNodes[nodeId]
                 used.append(nodeId)
     
     #if len(wayIds) == 1:
     for nodeId in used:
-        for wayId in usedNodes[nodeId]:
-            polyOld = polygons[wayId]
-            elemOld = elements[wayId]
+        for wayId in Output.usedNodes[nodeId]:
+            polyOld = Output.polygons[wayId]
+            elemOld = Output.elements[wayId]
             polyNew = adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform)
             getTransitions(polyNew, polyOld)
             print 'poly adjusted to: ', polyNew
@@ -55,7 +44,7 @@ def adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform):
         print 'PROBLEM: polygons are supposed to be intersecting.'
     
     #end of line?
-    nodeRefsOld = wayNodes[elemOld.attrib[osm.Id]]
+    nodeRefsOld = Output.wayNodes[elemOld.attrib[osm.Id]]
     nodeRefsNew = []
     for nd in elemNew.iter(tag = osm.NodeRef):
         nodeRefsNew.append(nd.attrib[osm.Ref])
@@ -91,7 +80,7 @@ def adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform):
         polyOld = polyOld.difference(polyNew)
         if polyOld.geom_type == shapely.MultiPolygon:
             polyOld = filterRelevantPoly(polyOld)
-            polygons[elemOld.attrib[osm.Id]] = polyOld
+            Output.polygons[elemOld.attrib[osm.Id]] = polyOld
     elif not newEnd and not oldEnd:
         polyNew = polyNew.difference(polyOld)
         
@@ -106,14 +95,14 @@ def storeElement(elem, poly):
     for nd in elem.iter(tag = osm.NodeRef):
         osmIdNode = nd.attrib[osm.Ref]
         nodeRefs.append(osmIdNode)
-        if osmIdNode in usedNodes:
-            usedNodes[osmIdNode].append(osmIdElem)
+        if osmIdNode in Output.usedNodes:
+            Output.usedNodes[osmIdNode].append(osmIdElem)
         else:
-            usedNodes[osmIdNode] = [osmIdElem]
+            Output.usedNodes[osmIdNode] = [osmIdElem]
             
-    polygons[osmIdElem] = poly  
-    elements[osmIdElem] = elem 
-    wayNodes[osmIdElem] = nodeRefs
+    Output.polygons[osmIdElem] = poly  
+    Output.elements[osmIdElem] = elem 
+    Output.wayNodes[osmIdElem] = nodeRefs
 
 def checkNodeUseage(room):
     '''
@@ -123,7 +112,7 @@ def checkNodeUseage(room):
     usedVertexIds = []
     for vertex in room.getvertices():
         originalId = vertex.getOriginalId()
-        if originalId in usedNodes:
+        if originalId in Output.usedNodes:
             print 'node:', id, 'is being used by multiple rooms.'
             usedVertexIds.append(id)
     return usedVertexIds

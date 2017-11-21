@@ -3,7 +3,7 @@ Created on 10.11.2017
 
 @author: user
 '''
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, Point
 from shapely.geometry.base import CAP_STYLE
 
 def main():
@@ -17,6 +17,8 @@ def main():
     print stepsd.__class__.__name__
     print stepsd.area
     
+    print stepsl.xy
+    print list(stepsl.coords)[0][0]
 
 if __name__ == '__main__':
     main()

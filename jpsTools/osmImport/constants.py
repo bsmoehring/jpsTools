@@ -20,6 +20,8 @@ class osm(object):
     Bounds = 'bounds'
     MinLat = 'minlat'
     MinLon = 'minlon'
+    MaxLat = 'maxlat'
+    MaxLon = 'maxlon'
     Level = 'level'
     Member = 'member'
     Type = 'type'
