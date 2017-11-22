@@ -5,14 +5,18 @@ Created on 21.11.2017
 '''
 from matplotlib import pyplot
 from data import Output
+from matplotlib.pyplot import gray
 
 def plot(transform):
     
-    for poly in Output.polygons.itervalues():
-        fig = pyplot.figure(1, figsize=(5,5), dpi=90)
-        x, y = poly.exterior.   xy
-        ax = fig.add_subplot(111)
-        ax.plot(x, y, color='#6699cc', alpha=0.7,
-                linewidth=3, solid_capstyle='round', zorder=2)
-        ax.set_title('Polygon')
+    fig = pyplot.figure(1, figsize=(50,50), dpi=90)
+    i = 121
+    
+    for osmId, poly in Output.polygons.iteritems():
         
+        ax = fig.add_subplot(i)
+        i = i+1
+        x, y = poly.exterior.xy
+        ax.plot(x, y, zorder=1, linewidth=3, alpha=1)
+        
+    pyplot.show()

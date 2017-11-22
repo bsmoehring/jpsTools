@@ -41,6 +41,13 @@ class Output(object):
     #osmId Way = [osmId Node]
     wayNodes = {}
     #osmId way = [polygon]
-    polygonTrash = {}
+    polygonTrash = {} 
     #transition
-    transitions = {}
+    transitions = []
+    
+    class Transition():
+        
+        def __init__(self, line, osmId1, osmId2):
+            self.line = line
+            self.osmId1 = osmId1
+            self.osmId2 = osmId2

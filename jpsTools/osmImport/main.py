@@ -28,7 +28,7 @@ def main():
     
     readOSM(input, handler)
     
-    plot(transform)
+    #plot(transform)
     
     translate2jps()
                   

@@ -20,9 +20,10 @@ class Transformation(object):
         
         minlat = float(bounds.attrib.get(osm.MinLat))
         minlon = float(bounds.attrib.get(osm.MinLon))
-        minlat = float(bounds.attrib.get(osm.MaxLat))
-        minlon = float(bounds.attrib.get(osm.MaxLon))
+        maxlat = float(bounds.attrib.get(osm.MaxLat))
+        maxlon = float(bounds.attrib.get(osm.MaxLon))
         self.minx, self.miny = self.projection(minlon, minlat) 
+        self.maxx, self.maxy = self.projection(maxlon, maxlat) 
         print '---' 
         print 'Boundaries (reference point x,y=0,0):', self.minx, self.miny  
         
@@ -37,15 +38,22 @@ class Transformation(object):
         return x, y
     
     def nodeRefs2XY(self, nodeRefs, nodes):
-        XYList = []
-        for nodeRef in nodeRefs:
-            try:
-                node = nodes[nodeRef]
-                x, y = self.WGSToXY(node)
-                XYList.append((x, y))
-            except KeyError:
-                print nodeRef, 'is not in the nodes list. ->OSM inconsistency?'
-        return XYList
+        if isinstance(nodeRefs, str):
+            node = nodes[nodeRefs]
+            x, y = self.WGSToXY(node)
+            return x, y
+        elif isinstance(nodeRefs, list):
+            XYList = []
+            for nodeRef in nodeRefs:
+                try:
+                    node = nodes[nodeRef]
+                    x, y = self.WGSToXY(node)
+                    XYList.append((x, y))
+                except KeyError:
+                    print nodeRef, 'is not in the nodes list. ->OSM inconsistency?'
+            return XYList
+        else:
+            'Dont know how to handle this Element ', nodeRefs
         
         
         
