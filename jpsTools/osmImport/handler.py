@@ -122,6 +122,7 @@ class ElementHandler(object):
     
     def adjustPoly(self, nodeId, elemNew, polyNew, elemOld, polyOld, transform):
         '''
+        
         '''
         
         if polyNew.disjoint(polyOld):
@@ -212,8 +213,16 @@ class ElementHandler(object):
         
         poly1 = Polygon([[x1, y1], [x3, y3], [x0, y0], [x4, y4], [x1, y1]])
         poly2 = Polygon([[x2, y2], [x3, y3], [x0, y0], [x4, y4], [x2, y2]])
+        
 
-        return poly1, poly2
+        if poly1.intersection(poly2).geom_type in [shapely.LineString, shapely.MultiLineString]:
+            return poly1, poly2
+        else:
+            print poly1.intersection(poly2)
+            print poly1.intersection(poly2).geom_type
+            print poly1
+            print poly2
+            print nodeId
         
     def storeElement(self, elem, poly):
         '''
@@ -250,20 +259,26 @@ class ElementHandler(object):
         '''
         TODO get Transitions from two polygons
         '''
-        line = polyNew.intersection(polyOld)
-        if line.geom_type == shapely.LineString or line.geom_type == shapely.Polygon:
-            #===================================================================
-            # if len(line.coords) > 2:
-            #     #TODO: What happens with the Polygons???
-            #     line = LineString(line.coords[0], line.coords[-1])
-            #===================================================================
-            print 'Transition', line
-            room1osmId = elemNew.attrib[osm.Id]
-            room2osmId = elemOld.attrib[osm.Id]
+        def transition(line, room1osmId, room2osmId):
             transition = Output.Transition(line, room1osmId, room2osmId)
             Output.transitionlst.append(transition)
+            print 'Transition', line
+            
+        intersect = polyNew.intersection(polyOld)
+        room1osmId = elemNew.attrib[osm.Id]
+        room2osmId = elemOld.attrib[osm.Id]
+        
+        if intersect.geom_type == shapely.LineString:
+            transition(intersect, room1osmId, room2osmId)
+        elif intersect.geom_type == shapely.MultiLineString:
+            for linestring in intersect:
+                transition(linestring, room1osmId, room2osmId)
         else: 
-            print 'Other', line
+            Exception
+        #=======================================================================
+        # else: 
+        #     print 'Other', line
+        #=======================================================================
             
     def filterRelevantPoly(self, multipoly):
         '''

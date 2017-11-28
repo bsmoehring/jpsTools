@@ -16,9 +16,14 @@ class ElementPlotter(object):
     
     def plot(self):
         for osmId, poly in Output.polygons.iteritems():
-             
+            
+            if poly.geom_type == shapely.Polygon:
+                x, y = poly.exterior.xy 
+            else: 
+                print 'Problem handling ', poly
+                continue
+            
             ax = self.fig.add_subplot(111)
-            x, y = poly.exterior.xy 
             ax.plot(x, y, color='#6699cc', alpha=0.7,
                     linewidth=1, solid_capstyle='round', zorder=2)
             ax.set_title(osmId)
@@ -27,11 +32,15 @@ class ElementPlotter(object):
             
             if transition.line.geom_type == shapely.Polygon:
                 x, y = transition.line.exterior.xy 
-            else:
+            elif transition.line.geom_type == shapely.LineString:
                 x, y = transition.line.coords.xy
-                ax = self.fig.add_subplot(111)
-                ax.plot(x, y, color='#c62b2b', alpha=0.7,
-                        linewidth=2, solid_capstyle='round', zorder=2)
+            else: 
+                print 'Problem handling ', transition.line, transition.osmid1, transition.osmid2
+                continue
+            
+            ax = self.fig.add_subplot(111)
+            ax.plot(x, y, color='#c62b2b', alpha=0.7,
+                    linewidth=2, solid_capstyle='round', zorder=2)
             ax.set_title(transition.osmid1)
     
         pyplot.axis('equal')

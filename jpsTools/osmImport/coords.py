@@ -17,14 +17,20 @@ class Transformation(object):
     maxy = 0
     
     def __init__(self, bounds):
-        
-        minlat = float(bounds.attrib.get(osm.MinLat))
-        minlon = float(bounds.attrib.get(osm.MinLon))
-        maxlat = float(bounds.attrib.get(osm.MaxLat))
-        maxlon = float(bounds.attrib.get(osm.MaxLon))
+        print '---' 
+        try:
+            minlat = float(bounds.attrib.get(osm.MinLat))
+            minlon = float(bounds.attrib.get(osm.MinLon))
+            maxlat = float(bounds.attrib.get(osm.MaxLat))
+            maxlon = float(bounds.attrib.get(osm.MaxLon))
+        except (AttributeError):
+            minlat = 0
+            minlon = 0
+            maxlat = 0
+            maxlon = 0
+            print 'no ', osm.Bounds, 'in xml'
         self.minx, self.miny = self.projection(minlon, minlat) 
         self.maxx, self.maxy = self.projection(maxlon, maxlat) 
-        print '---' 
         print 'Boundaries (reference point x,y=0,0):', self.minx, self.miny  
         
         
