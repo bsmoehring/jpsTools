@@ -44,6 +44,14 @@ class Output(object):
     polygonTrash = {} 
     #osmId osmId LineString
     transitionlst = []
+    #osmId node = [osmId Way]
+    transitionToDoLst = {}
+    
+    def addTransitionToDo(self, nodeId, osmId1, osmId2):
+        try:
+            self.transitionToDoLst[nodeId].extend((osmId1, osmId2) )
+        except (KeyError):
+            self.transitionToDoLst[nodeId] = [osmId1, osmId2]
     
     class Transition():
         '''

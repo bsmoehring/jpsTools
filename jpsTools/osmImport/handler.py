@@ -20,6 +20,29 @@ class ElementHandler(object):
         self.tree = input.tree
         self.nodes = input.allNodes
         self.transform = transform
+    
+    def readOSM(self):
+    
+        elements = {}
+        for elem in self.tree.iter():
+            if elem.tag in [osm.Way, osm.Relation]:
+                count = 0
+                convert = False
+                for tag in elem:
+                    k = tag.get(osm.Key)
+                    v = tag.get(osm.Value)
+                    if k in Config.filterTags and v in Config.filterTags[k]:
+                        convert = True
+                if convert:
+                    try: 
+                        elements[count].append(elem)
+                    except KeyError:
+                        elements[count] = [elem]
+        
+        #sort list to start with largest elements
+        for count in sorted(elements.iterkeys(), reverse=True): 
+            for elem in elements[count]:
+                self.handle(elem)
         
     def handle(self, elem):
         print '---'
@@ -113,7 +136,7 @@ class ElementHandler(object):
                 elemOld = Output.elements[wayId]
                 polyNew, polyOld = self.adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform)
                 print 'poly adjusted to: ', polyNew
-                self.getTransitions(nodeId, polyNew, polyOld, elemNew, elemOld)
+                Output().addTransitionToDo(nodeId, elemNew.attrib[osm.Id], elemOld.attrib[osm.Id])
                 Output.polygons[elemOld.attrib[osm.Id]] = polyOld
         
         #approved
