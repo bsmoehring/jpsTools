@@ -111,9 +111,10 @@ class ElementHandler(object):
             for wayId in Output.usedNodes[nodeId]:
                 polyOld = Output.polygons[wayId]
                 elemOld = Output.elements[wayId]
-                polyNew = self.adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform)
+                polyNew, polyOld = self.adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform)
                 print 'poly adjusted to: ', polyNew
                 self.getTransitions(nodeId, polyNew, polyOld, elemNew, elemOld)
+                Output.polygons[elemOld.attrib[osm.Id]] = polyOld
         
         #approved
         #store osm nodes to usednodes   
@@ -142,7 +143,6 @@ class ElementHandler(object):
                 polyNew = self.filterRelevantPoly(polyNew)
             if polyOld.geom_type == shapely.MultiPolygon:
                 polyOld = self.filterRelevantPoly(polyOld)
-            Output.polygons[elemOld.attrib[osm.Id]] = polyOld
         elif newEnd and not oldEnd:
             polyNew = polyNew.difference(polyOld)
             if polyNew.geom_type == shapely.MultiPolygon:
@@ -151,11 +151,10 @@ class ElementHandler(object):
             polyOld = polyOld.difference(polyNew)
             if polyOld.geom_type == shapely.MultiPolygon:
                 polyOld = self.filterRelevantPoly(polyOld)
-            Output.polygons[elemOld.attrib[osm.Id]] = polyOld
         elif not newEnd and not oldEnd:
             print 'Polygons', elemNew.attrib[osm.Id], 'and', elemOld.attrib[osm.Id], 'are crossing each other. Not handling this.'
-            
-        return polyNew
+        
+        return polyNew, polyOld
     
     def getBisectorPolygons(self, nodeId, nodeRefsNew, nodeRefsOld):
         '''
@@ -251,23 +250,25 @@ class ElementHandler(object):
         '''
         TODO get Transitions from two polygons
         '''
-        node = Point(self.transform.nodeRefs2XY(nodeId, self.nodes))
         line = polyNew.intersection(polyOld)
-        if line.geom_type == shapely.LineString:
+        if line.geom_type == shapely.LineString or line.geom_type == shapely.Polygon:
+            #===================================================================
+            # if len(line.coords) > 2:
+            #     #TODO: What happens with the Polygons???
+            #     line = LineString(line.coords[0], line.coords[-1])
+            #===================================================================
             print 'Transition', line
-            if line.distance(node) < 1e-8:
-                room1osmId = elemNew.attrib[osm.Id]
-                room2osmId = elemOld.attrib[osm.Id]
-                transition = Output.Transition(line, room1osmId, room2osmId)
-                Output.transitions.append(transition)
+            room1osmId = elemNew.attrib[osm.Id]
+            room2osmId = elemOld.attrib[osm.Id]
+            transition = Output.Transition(line, room1osmId, room2osmId)
+            Output.transitionlst.append(transition)
         else: 
             print 'Other', line
             
     def filterRelevantPoly(self, multipoly):
         '''
-        return largest Polygon from given Multipolygon.
+        return largest Polygon from given MultiP olygon.
         Method should later be optimized!
-        USE CROSSES INSTEAD!
         '''    
         polygons = [polygon for polygon in multipoly]
         area = 0

@@ -11,8 +11,8 @@ from config import Config
 from coords import Transformation
 from handler import ElementHandler
 import logging
-from osmImport.data import Input
-from plot import plot
+from osmImport.data import Input, Output
+from plot import ElementPlotter
 
 def main():
     
@@ -28,8 +28,6 @@ def main():
     
     readOSM(input, handler)
     
-    #plot(transform)
-    
     translate2jps()
                   
     outgeometry = buildJPSTree()
@@ -37,6 +35,8 @@ def main():
     tree2xml(outgeometry)
     
     logging.info('operation finished!')
+    
+    ElementPlotter(transform).plot()
 
 
 def readOSM(input, handler):
@@ -60,7 +60,8 @@ def readOSM(input, handler):
     #sort list to start with largest elements
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
-            handler.handle(elem)  
+            handler.handle(elem)
+    print 'Rooms', Output.elements
 
 def tree2xml(outGeometry):
     '''
@@ -77,6 +78,7 @@ def tree2xml(outGeometry):
         f = open(Config.outputPath, 'w')
         f.write(out)
         f.close()
+        print 'output written to', Config.outputPath
     except Exception:
         print 'output not written!'
     

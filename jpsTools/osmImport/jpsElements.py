@@ -89,10 +89,22 @@ class Geometry:
         self.transitions.append(transition)
         
     def getRoomById(self, id):
+        roomlst = []
         try:
             for room in self.rooms:
                 if room.attribs[jps.Id] == id:
-                    return room
+                    roomlst.append(room)
+            return roomlst
+        except KeyError:
+            print 'no id:'; id, 'in geometry.rooms[].'
+            
+    def getRoomByOriginalId(self, originalId):
+        roomlst = []
+        try:
+            for room in self.rooms:
+                if room.attribs[jps.OriginalId] == originalId:
+                    roomlst.append(room)
+            return roomlst
         except KeyError:
             print 'no id:'; id, 'in geometry.rooms[].'
  
@@ -120,6 +132,7 @@ class Subroom:
     '''
     Subrooms define the navigation mesh, i.e the walkable areas in the geometry.
     Each subroom is bounded by at least one crossing.JuPedSim[2017]
+    Using standard-id 1 for subrooms so far. All rooms consist of a single subroom.
     '''
     tag = jps.Subroom
     
