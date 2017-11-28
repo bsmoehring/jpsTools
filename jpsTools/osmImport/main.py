@@ -4,19 +4,33 @@ Created on 24.10.2017
 @author: bsmoehring
 '''
 
-import lxml.etree as ET
-from lxml.etree import SubElement, Element, tostring
-from constants import osm, jps, geometryAttribs
-import jpsElements
+from lxml.etree import tostring 
+from constants import osm
+from jpsElements import translate2jps, buildJPSTree
 from config import Config
-import handler
+from coords import Transformation
+from handler import ElementHandler
 import logging
+from osmImport.data import Input
+from plot import plot
 
 def main():
     
+    logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
+    
     logging.info('Start')
     
-    readOSM()
+    input = Input(Config.inputFile)
+    
+    transform = Transformation(input.tree.find(osm.Bounds))
+    
+    handler = ElementHandler(input, transform)
+    
+    readOSM(input, handler)
+    
+    #plot(transform)
+    
+    translate2jps()
                   
     outgeometry = buildJPSTree()
     
@@ -24,22 +38,11 @@ def main():
     
     logging.info('operation finished!')
 
-class Input:
-    '''
-    class to store the input-xml as tree and all nodes of this file separately as nodes
-    '''
-    logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
-    tree = ET.parse(Config().inputFile)
-    nodes = {}
-    for node in tree.iter(tag=osm.Node):
-        key = node.attrib.get(osm.Id)
-        nodes[key] = node 
-    logging.info('Input loaded.') 
 
-def readOSM():
+def readOSM(input, handler):
     
     elements = {}
-    for elem in Input.tree.iter():
+    for elem in input.tree.iter():
         if elem.tag in [osm.Way, osm.Relation]:
             count = 0
             convert = False
@@ -55,28 +58,9 @@ def readOSM():
                     elements[count] = [elem]
     
     #sort list to start with largest elements
-    eHandler = handler.ElementHandler()
     for count in sorted(elements.iterkeys(), reverse=True): 
         for elem in elements[count]:
-            eHandler.handle(elem)  
-
-def buildJPSTree():
-    '''
-    form an xml string from all geometry objects
-    '''
-    outGeometry = Element(jpsElements.Geometry().tag, geometryAttribs().attribs)
-    outRooms = SubElement(outGeometry, jps.Rooms)
-    for  room in jpsElements.Geometry().rooms:
-        outRoom = SubElement(outRooms, room.tag, room.attribs)
-        for subroom in room.subrooms:
-            outSubroom = SubElement(outRoom, subroom.tag, subroom.attribs)
-            for polygon in subroom.polygons:
-                outPoly = SubElement(outSubroom, polygon.tag, polygon.attribs)
-                for vertex in polygon.vertices:
-                    outVertex = SubElement(outPoly, jps.Vertex, vertex.attribs)
-                    #print vertex.attribs
-       
-    return outGeometry
+            handler.handle(elem)  
 
 def tree2xml(outGeometry):
     '''
@@ -84,7 +68,7 @@ def tree2xml(outGeometry):
     '''
     out = tostring(outGeometry, pretty_print=True)
     print '---'
-    print out
+    #print out
     if Config.outputPath.endswith('.xml'):
         pass
     else:
