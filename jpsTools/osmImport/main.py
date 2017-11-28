@@ -4,14 +4,13 @@ Created on 24.10.2017
 @author: bsmoehring
 '''
 
-from lxml.etree import tostring 
 from constants import osm
-from jpsElements import translate2jps, buildJPSTree
 from config import Config
 from coords import Transformation
 from handler import ElementHandler
 import logging
 from osmImport.data import Input, Output
+from jpsElements import JPSBuilder
 from plot import ElementPlotter
 
 def main():
@@ -28,11 +27,7 @@ def main():
     
     readOSM(input, handler)
     
-    translate2jps()
-                  
-    outgeometry = buildJPSTree()
-    
-    tree2xml(outgeometry)
+    JPSBuilder(Config.outputPath)
     
     logging.info('operation finished!')
     
@@ -63,24 +58,5 @@ def readOSM(input, handler):
             handler.handle(elem)
     print 'Rooms', Output.elements
 
-def tree2xml(outGeometry):
-    '''
-    writes the ElementTree geometry to a xml file
-    '''
-    out = tostring(outGeometry, pretty_print=True)
-    print '---'
-    #print out
-    if Config.outputPath.endswith('.xml'):
-        pass
-    else:
-        Config.outputPath += 'test.xml' 
-    try:
-        f = open(Config.outputPath, 'w')
-        f.write(out)
-        f.close()
-        print 'output written to', Config.outputPath
-    except Exception:
-        print 'output not written!'
-    
 if      __name__ == "__main__":
     main()
