@@ -4,7 +4,6 @@ Created on 21.11.2017
 @author: user
 '''
 from matplotlib import pyplot
-from shapely.geometry.polygon import LinearRing, Polygon
 from data import Output
 from constants import shapely
 
@@ -30,18 +29,33 @@ class ElementPlotter(object):
             
         for transition in Output.transitionlst:
             
-            if transition.line.geom_type == shapely.Polygon:
-                x, y = transition.line.exterior.xy 
-            elif transition.line.geom_type == shapely.LineString:
-                x, y = transition.line.coords.xy
-            else: 
-                print 'Problem handling ', transition.line, transition.osmid1, transition.osmid2
-                continue
-            
-            ax = self.fig.add_subplot(111)
-            ax.plot(x, y, color='#c62b2b', alpha=0.7,
-                    linewidth=2, solid_capstyle='round', zorder=2)
-            ax.set_title(transition.osmid1)
+            try:
+                for elem in transition.line.__iter__():
+                    x, y = self.xy(elem)
+                    ax = self.fig.add_subplot(111)
+                    ax.plot(x, y, color='#c62b2b', alpha=0.7,
+                    linewidth=2, solid_capstyle='round', zorder=4)
+            except (AttributeError):
+                x, y = self.xy(transition.line)
+                ax = self.fig.add_subplot(111)
+                ax.plot(x, y, color='#c62b2b', alpha=0.7,
+                linewidth=2, solid_capstyle='round', zorder=4)
+            #===================================================================
+            # else: 
+            #     print 'Problem handling ', transition.line, transition.osmid1, transition.osmid2
+            #     continue
+            #===================================================================
     
         pyplot.axis('equal')
         pyplot.show()
+    
+    def xy(self, elem):
+        if elem.geom_type == shapely.Polygon:
+            x, y = elem.exterior.xy 
+        elif elem.geom_type == shapely.LineString:
+            x, y = elem.coords.xy
+        elif elem.geom_type == shapely.Point:
+            x, y = elem.xy
+        else:
+            print 'Cant plot element ', elem
+        return x, y

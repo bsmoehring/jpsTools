@@ -16,6 +16,7 @@ class JPSBuilder(object):
         self.tree2xml(outputPath)
     
     def translate2jps(self):
+        print '---'
         for osmId, poly in Output.polygons.items():
             if poly.geom_type == shapely.Polygon:
                 self.polygon2jps(Output.elements[osmId], poly)
@@ -29,6 +30,7 @@ class JPSBuilder(object):
         '''
         form an xml string from all geometry objects
         '''
+        print '---'
         outGeometry = Element(Geometry().tag, geometryAttribs().attribs)
         outRooms = SubElement(outGeometry, jps.Rooms)
         for  room in Geometry().rooms:

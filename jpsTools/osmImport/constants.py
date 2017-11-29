@@ -61,6 +61,8 @@ class shapely():
     MultiPolygon = 'MultiPolygon'
     LineString = 'LineString'
     MultiLineString = 'MultiLineString'
+    GeometryCollection = 'GeometryCollection'
+    Point = 'Point'
     
 class geometryAttribs(object):
     '''
