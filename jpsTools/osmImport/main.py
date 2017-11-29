@@ -21,11 +21,9 @@ def main():
     
     input = Input(Config.inputFile)
     
-    transform = Transformation(input.tree.find(osm.Bounds))
+    transform = Transformation(input)
     
     ElementHandler(input, transform).readOSM()
-    
-    #readOSM(input, handler)
     
     JPSBuilder(Config.outputPath)
     
