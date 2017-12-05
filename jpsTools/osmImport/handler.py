@@ -242,8 +242,8 @@ class ElementHandler(object):
         x4 = x0 + 5*vx4
         y4 = y0 + 5*vy4
         
-        poly1 = Polygon([[x1, y1], [x3, y3], [x0, y0], [x4, y4], [x1, y1]])
-        poly2 = Polygon([[x2, y2], [x3, y3], [x0, y0], [x4, y4], [x2, y2]])
+        poly1 = Polygon([[x1, y1], [x3, y3], [x4, y4], [x1, y1]])
+        poly2 = Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
         
         print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
         print poly1.intersection(poly2)
