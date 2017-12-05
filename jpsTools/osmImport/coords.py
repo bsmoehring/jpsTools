@@ -5,7 +5,6 @@ Created on 07.11.2017
 '''
 from pyproj import Proj
 from constants import osm
-import sys
 
 class Transformation(object):
     '''
@@ -48,8 +47,6 @@ class Transformation(object):
         x, y = self.projection(node.attrib[osm.Lon], node.attrib[osm.Lat])
         x -= self.minx
         y -= self.miny
-        round(x, 2)
-        round(y, 2)
         return x, y
     
     def nodeRefs2XY(self, nodeRefs, nodes):
