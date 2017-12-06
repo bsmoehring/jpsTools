@@ -5,6 +5,7 @@ Created on 07.11.2017
 '''
 from constants import jps, osm, shapely, geometryAttribs
 from data import Output
+from shapely.geometry import LineString
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
 
@@ -23,6 +24,8 @@ class JPSBuilder(object):
             elif poly.geom_type == shapely.MultiPolygon:
                 for polygon in poly:
                     self.polygon2jps(Output.elements[osmId], polygon)
+        for transition in Output.transitionlst:
+            self.transition2jps(transition)
                     
         self.buildJPSTree()      
 
@@ -42,7 +45,12 @@ class JPSBuilder(object):
                     for vertex in polygon.vertices:
                         SubElement(outPoly, jps.Vertex, vertex.attribs)
                         #print vertex.attribs
-           
+        outTransitions = SubElement(outGeometry, jps.Transitions)
+        for transition in Geometry().transitions:
+            outTransition = SubElement(outTransitions, jps.Transition, transition.attribs)
+            SubElement(outTransition, jps.Vertex, transition.vertex1.attribs)
+            SubElement(outTransition, jps.Vertex, transition.vertex2.attribs)
+            
         self.outGeometry = outGeometry
 
     def polygon2jps(self, elem, poly):
@@ -53,11 +61,20 @@ class JPSBuilder(object):
         jpsSubroom = Subroom()
         jpsPoly = Polygon()
         for coord in poly.exterior._get_coords():
-            jpsVertex = Vertex(str(coord[0]), str(coord[1]))
+            jpsVertex = Vertex(coord[0], coord[1])
             jpsPoly.addVertex(jpsVertex)
         jpsSubroom.addPolygon(jpsPoly)
         jpsRoom.addSubroom(jpsSubroom)
         Geometry().addRoom(jpsRoom)
+        
+    def transition2jps(self, transition):
+        if transition.line.geom_type == shapely.LineString:
+            vertex1 = Vertex(transition.coord1[0], transition.coord1[1])
+            vertex2 = Vertex(transition.coord2[0], transition.coord2[1])
+            jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), "a", "a", transition.osmid1, 0, transition.osmid2, 0)
+            Geometry().addTransition(jpsTransition)
+        else:
+            Exception
     
     def tree2xml(self, outputPath):
         '''
@@ -188,8 +205,8 @@ class Vertex:
     
     def __init__(self, x, y):
         self.attribs = {}
-        self.attribs[jps.PX] = x
-        self.attribs[jps.PY] = y 
+        self.attribs[jps.PX] = str(x)
+        self.attribs[jps.PY] = str(y) 
         
     def getOriginalId(self):
         return self.attribs[jps.OriginalId]
@@ -201,15 +218,14 @@ class Transition:
     tag = jps.Transition
     
     def __init__(self, vertex_1, vertex_2, id, caption, type, room1_id, subroom1_id, room2_id, subroom2_id):
-        self.vertices = []
-        self.vertices.append(vertex_1)
-        self.vertices.append(vertex_2)
+        self.vertex1 = vertex_1
+        self.vertex2 = vertex_2
         self.attribs = {}
-        self.attribs[jps.Id] = id
+        self.attribs[jps.Id] = str(id)
         self.attribs[jps.Caption] = caption
         self.attribs[jps.Type] = type
         self.attribs[jps.Room1] = room1_id
-        self.attribs[jps.Subroom1] = subroom1_id
+        self.attribs[jps.Subroom1] = str(subroom1_id)
         self.attribs[jps.Room2] = room2_id
-        self.attribs[jps.Subroom2] = subroom2_id
+        self.attribs[jps.Subroom2] = str(subroom2_id)
         
