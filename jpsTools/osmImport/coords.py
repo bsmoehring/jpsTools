@@ -16,15 +16,29 @@ class Transformation(object):
     maxx = 0
     maxy = 0
     
-    def __init__(self, bounds):
-        
-        minlat = float(bounds.attrib.get(osm.MinLat))
-        minlon = float(bounds.attrib.get(osm.MinLon))
-        maxlat = float(bounds.attrib.get(osm.MaxLat))
-        maxlon = float(bounds.attrib.get(osm.MaxLon))
+    def __init__(self, input):
+        print '---' 
+        try:
+            bounds = input.tree.find(osm.Bounds)
+            minlat = float(bounds.attrib.get(osm.MinLat))
+            minlon = float(bounds.attrib.get(osm.MinLon))
+            maxlat = float(bounds.attrib.get(osm.MaxLat))
+            maxlon = float(bounds.attrib.get(osm.MaxLon))
+        except (AttributeError):
+            minlat, minlon = float('+inf'), float('+inf')
+            maxlat, maxlon = float('-inf'), float('-inf')
+            for node in input.tree.iter(tag=osm.Node):
+                lat, lon = float(node.attrib[osm.Lat]), float(node.attrib[osm.Lon])
+                if lat > maxlat:
+                    maxlat = lat
+                if lat < minlat:
+                    minlat = lat
+                if lon > maxlon:
+                    maxlon = lon
+                if lon < minlon:
+                    minlon = lon
         self.minx, self.miny = self.projection(minlon, minlat) 
         self.maxx, self.maxy = self.projection(maxlon, maxlat) 
-        print '---' 
         print 'Boundaries (reference point x,y=0,0):', self.minx, self.miny  
         
         
@@ -33,8 +47,6 @@ class Transformation(object):
         x, y = self.projection(node.attrib[osm.Lon], node.attrib[osm.Lat])
         x -= self.minx
         y -= self.miny
-        round(x, 2)
-        round(y, 2)
         return x, y
     
     def nodeRefs2XY(self, nodeRefs, nodes):

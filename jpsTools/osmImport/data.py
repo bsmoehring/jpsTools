@@ -42,12 +42,26 @@ class Output(object):
     wayNodes = {}
     #osmId way = [polygon]
     polygonTrash = {} 
-    #transition
-    transitions = []
+    #osmId osmId LineString
+    transitionlst = []
+    #osmId node = [osmId Way]
+    transitionToDoLst = {}
+    
+    def addTransitionToDo(self, nodeId, osmIdLst):
+        try:
+            for osmId in osmIdLst:
+                if osmId not in self.transitionToDoLst[nodeId]:
+                    self.transitionToDoLst[nodeId].append(osmId)
+        except (KeyError):
+            self.transitionToDoLst[nodeId] = osmIdLst
     
     class Transition():
+        '''
         
-        def __init__(self, line, osmId1, osmId2):
+        '''
+        def __init__(self, line, coord1, coord2, osmId1, osmId2):
             self.line = line
-            self.osmId1 = osmId1
-            self.osmId2 = osmId2
+            self.coord1 = coord1
+            self.coord2 = coord2
+            self.osmid1 = osmId1
+            self.osmid2 = osmId2

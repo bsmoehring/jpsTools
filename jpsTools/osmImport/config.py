@@ -8,7 +8,8 @@ class Config:
     outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
     inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
-    stanardWidth = 2 #4 meters
+    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
+    stanardWidth = 2 #meters
     filterTags = {}
     areaTags = {}
     

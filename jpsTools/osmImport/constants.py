@@ -48,6 +48,7 @@ class jps(object):
     PY = 'py'
     Wall = 'wall'
     OriginalId = 'originalId'
+    Transitions = 'transitions'
     Transition = 'transition' 
     Type = 'type'
     Room1 = 'room1_id'
@@ -60,6 +61,9 @@ class shapely():
     Polygon = 'Polygon'
     MultiPolygon = 'MultiPolygon'
     LineString = 'LineString'
+    MultiLineString = 'MultiLineString'
+    GeometryCollection = 'GeometryCollection'
+    Point = 'Point'
     
 class geometryAttribs(object):
     '''
