@@ -242,8 +242,8 @@ class ElementHandler(object):
         x4 = x0 + 5*vx4
         y4 = y0 + 5*vy4
         
-        poly1 = Polygon([[x1, y1], [x3, y3], [x4, y4], [x1, y1]])
-        poly2 = Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
+        poly1 = Polygon([[x1, y1], [x3, y3], [x0, y0], [x4, y4], [x1, y1]])
+        poly2 = Polygon([[x2, y2], [x3, y3], [x0, y0], [x4, y4], [x2, y2]])
         
         print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
         print poly1.intersection(poly2)
@@ -293,7 +293,7 @@ class ElementHandler(object):
         TODO get Transitions from two polygons
         '''
         def transition(line):
-            transition = Output.Transition(line, osmId1, osmId2)
+            transition = Output.Transition(line, line.coords[0], line.coords[-1], osmId1, osmId2)
             Output.transitionlst.append(transition)
             print 'Transition', line
             
@@ -313,6 +313,9 @@ class ElementHandler(object):
                 elif intersect.geom_type == shapely.MultiLineString:
                     for linestring in geometry:
                         transition(linestring)
+                else: 
+                    print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+                    print intersect.geom_type, nodeId, osmId1, osmId2
         else: 
             print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
             print intersect.geom_type, nodeId, osmId1, osmId2

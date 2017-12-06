@@ -59,7 +59,9 @@ class Output(object):
         '''
         
         '''
-        def __init__(self, line, osmId1, osmId2):
+        def __init__(self, line, coord1, coord2, osmId1, osmId2):
             self.line = line
+            self.coord1 = coord1
+            self.coord2 = coord2
             self.osmid1 = osmId1
             self.osmid2 = osmId2
