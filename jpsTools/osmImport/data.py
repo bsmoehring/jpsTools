@@ -47,14 +47,6 @@ class Output(object):
     #osmId node = [osmId Way]
     transitionToDoLst = {}
     
-    def addTransitionToDo(self, nodeId, osmIdLst):
-        try:
-            for osmId in osmIdLst:
-                if osmId not in self.transitionToDoLst[nodeId]:
-                    self.transitionToDoLst[nodeId].append(osmId)
-        except (KeyError):
-            self.transitionToDoLst[nodeId] = osmIdLst
-    
     class Transition():
         '''
         
@@ -63,5 +55,6 @@ class Output(object):
             self.line = line
             self.coord1 = coord1
             self.coord2 = coord2
-            self.osmid1 = osmId1
-            self.osmid2 = osmId2
+            self.osmId1 = osmId1
+            self.osmId2 = osmId2
+            print 'Transition', osmId1, osmId2, line
