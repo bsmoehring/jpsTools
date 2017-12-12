@@ -24,11 +24,11 @@ def main():
     
     ElementHandler(input, transform).readOSM()
     
-    JPSBuilder(Config.outputPath)
+    #JPSBuilder(Config.outputPath)
     
     logging.info('operation finished!')
     
-    ElementPlotter(transform).plot()
+    ElementPlotter(transform).plotOutput()
 
 
 if      __name__ == "__main__":

@@ -13,7 +13,7 @@ class ElementPlotter(object):
         self.transform = transform
         self.fig = pyplot.figure(1, figsize=(50,50), dpi=90)
     
-    def plot(self):
+    def plotOutput(self):
         for osmId, poly in Output.polygons.iteritems():
             
             if poly.geom_type == shapely.Polygon:
@@ -30,13 +30,15 @@ class ElementPlotter(object):
         for transition in Output.transitionlst:
             
             try:
-                for elem in transition.line.__iter__():
-                    x, y = self.xy(elem)
-                    ax = self.fig.add_subplot(111)
-                    ax.plot(x, y, color='#c62b2b', alpha=0.7,
-                    linewidth=2, solid_capstyle='round', zorder=4)
+                x1, y1 = self.xy(transition.line)
+                ax = self.fig.add_subplot(111)
+                ax.plot(x1, y1, color='#c62b2b', alpha=0.7,
+                        linewidth=2, solid_capstyle='round', zorder=4)
             except (AttributeError):
-                x, y = self.xy(transition.line)
+                if transition.geom_type == shapely.Polygon:
+                    x, y = transition.exterior.xy
+                else:
+                    x, y = self.xy(transition.line)
                 ax = self.fig.add_subplot(111)
                 ax.plot(x, y, color='#c62b2b', alpha=0.7,
                 linewidth=2, solid_capstyle='round', zorder=4)
@@ -48,6 +50,9 @@ class ElementPlotter(object):
     
         pyplot.axis('equal')
         pyplot.show()
+        
+    def plotElement(self, object):
+        pass
     
     def xy(self, elem):
         if elem.geom_type == shapely.Polygon:
