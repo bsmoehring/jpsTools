@@ -10,6 +10,7 @@ from handler import ElementHandler
 import logging
 from osmImport.data import Input
 from jpsElements import JPSBuilder
+from osmElements import OSMBuilder
 from plot import ElementPlotter
 
 def main():
@@ -25,6 +26,8 @@ def main():
     ElementHandler(input, transform).readOSM()
     
     #JPSBuilder(Config.outputPath)
+    
+    OSMBuilder(Config.outputPath, transform)
     
     logging.info('operation finished!')
     
