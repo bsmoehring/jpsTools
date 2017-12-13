@@ -10,6 +10,7 @@ from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 from shapely import ops
 from data import Output
 import math, itertools
+from numpy.core.fromnumeric import shape
 
 class ElementHandler(object):
     '''
@@ -210,10 +211,18 @@ class ElementHandler(object):
                     if unionAll.exterior.distance(p) < 0.001:
                         unionCleared.append((p.x, p.y))
                 unionCleared = geometry.Polygon(unionCleared)
-                Output.polygons[nodeId] = unionCleared
+                if unionCleared.geom_type == shapely.Polygon:
+                    Output.polygons[nodeId] = unionCleared
+                else: 
+                    raise Exception
                 
                 #get transitions from unionCleared intersection
                 for osmId, poly in polys.iteritems():
+                    # difference only if poly is linked at end point
+                    if not polyEndInfo[osmId]:
+                        print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
+                        #possible solution: not filtering relevant poly.
+                        raise Exception
                     poly = poly.difference(unionCleared)
                     poly = self.filterRelevantPoly(poly)
                     poly = self.fuseClosePoints(unionCleared, poly)
@@ -233,11 +242,14 @@ class ElementHandler(object):
                 #both ends of line
                 b1, b2 = self.getBisectorPolygons(nodeId, osmId1, osmId2)
                 poly1 = poly1.difference(b2)
+                poly1 = self.filterRelevantPoly(poly1)
                 poly2 = poly2.difference(b1)
+                poly2 = self.filterRelevantPoly(poly2)
                 poly2 = self.fuseClosePoints(poly1, poly2)
             elif polyEndInfo[osmId1]:
                 #one end of line
-                poly1 = polys[osmId1].difference(polys[osmId2])
+                poly1 = poly1.difference(poly2)
+                poly1 = self.filterRelevantPoly(poly1)
                 union = poly1.exterior.union(poly2.exterior)
                 polyLst = [geom for geom in ops.polygonize(union)]
                 poly1 = self.filterClosestPolygon(poly1, polyLst)
@@ -245,21 +257,38 @@ class ElementHandler(object):
                 poly1 = self.fuseClosePoints(poly2, poly1)
             elif polyEndInfo[osmId2]:
                 #one end of line
-                poly1 = polys[osmId2].difference(polys[osmId1])
+                poly2 = poly2.difference(poly1)
+                poly2 = self.filterRelevantPoly(poly2)
                 union = poly2.exterior.union(poly1.exterior)
                 polyLst = [geom for geom in ops.polygonize(union)]
                 poly1 = self.filterClosestPolygon(poly1, polyLst)
                 poly2 = self.filterClosestPolygon(poly2, polyLst)
-                poly1 = self.fuseClosePoints(poly1, poly2)
+                poly2 = self.fuseClosePoints(poly1, poly2)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
                 #like if more than 2 elements
                 return
-            Output.polygons[osmId1] = poly1
-            Output.polygons[osmId2] = poly2
+            if poly1.geom_type == shapely.Polygon and poly2.geom_type == shapely.Polygon:
+                Output.polygons[osmId1] = poly1
+                Output.polygons[osmId2] = poly2
+            else:
+                print poly1
+                print poly2
+                raise Exception
             transition = poly1.intersection(poly2)
             if transition.geom_type == shapely.LineString:
                 transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId1, osmId2)
-                Output.transitionlst.append(transition)    
+                Output.transitionlst.append(transition) 
+            elif transition.geom_type == shapely.MultiLineString:
+                #handle this
+                pass
+            elif transition.geom_type == shapely.Point:
+                pass
+            else: 
+                print transition
+                raise Exception 
+        else:
+            print polyOsmIdLst
+            raise Exception  
             
             
         #=======================================================================
@@ -346,7 +375,7 @@ class ElementHandler(object):
         if poly1.intersection(poly2).geom_type in [shapely.LineString, shapely.MultiLineString]:
             return poly1, poly2
         else:
-            Exception
+            raise Exception
         
     def storeElement(self, elem, poly):
         '''
@@ -354,20 +383,36 @@ class ElementHandler(object):
         '''
         osmIdElem = elem.attrib[osm.Id]
         nodeRefs = []
+        #parse nodes
         for nd in elem.iter(tag = osm.NodeRef):
             osmIdNode = nd.attrib[osm.Ref]
             nodeRefs.append(osmIdNode)
-            if osmIdNode in Output.usedNodes:
-                #make sure that every node is added only once
-                if osmIdElem not in Output.usedNodes[osmIdNode]:
-                    Output.usedNodes[osmIdNode].append(osmIdElem)
-            else:
-                Output.usedNodes[osmIdNode] = [osmIdElem]
+            node = self.nodes[osmIdNode]
+            #unhandle Node if tag is in unhandleDictionary
+            if self.checkNodeUnhandling(node):
+                #add nodes and elemId to usedNodes
+                if osmIdNode in Output.usedNodes:
+                    #make sure that every node is added only once
+                    if osmIdElem not in Output.usedNodes[osmIdNode]:
+                        Output.usedNodes[osmIdNode].append(osmIdElem)
+                    else:
+                        pass
+                else:
+                    Output.usedNodes[osmIdNode] = [osmIdElem]
                 
         Output.polygons[osmIdElem] = poly  
         Output.elements[osmIdElem] = elem 
         Output.wayNodes[osmIdElem] = nodeRefs
-        
+    
+    def checkNodeUnhandling(self, node):
+        for tag in node.iter(tag = osm.Tag):
+                try:
+                    if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
+                        return False
+                except KeyError:
+                    pass
+        return True
+                
     def fuseClosePoints(self, polyStay, polyChange):
         '''
         moves the vertices of polyChange to vertices of PolyStay if their very close. solving numeric issues
@@ -375,15 +420,19 @@ class ElementHandler(object):
         polyExteriorLst = []
         for coord in polyChange.exterior.coords:
             p = geometry.Point(coord)
-            if p.distance(polyStay) < 0.01:
-                for coord in polyStay.exterior.coords:
-                    p2 = geometry.Point(coord)
-                    if p2.distance(p)<0.001:
-                        polyExteriorLst.append(coord)
-                        break
-            else:
+            changed = False
+            for coord2 in polyStay.exterior.coords:
+                p2 = geometry.Point(coord2)
+                if p2.distance(p)<0.001:
+                    polyExteriorLst.append(coord2)
+                    changed = True
+                    break
+            if changed == False:
                 polyExteriorLst.append(coord)
-        return geometry.Polygon(polyExteriorLst)
+        poly = geometry.Polygon(polyExteriorLst)
+        if not poly.is_valid:
+            print poly
+        return poly       
                 
     def checkNodeUseage(self, room):
         '''
