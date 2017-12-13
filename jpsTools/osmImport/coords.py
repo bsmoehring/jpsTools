@@ -10,7 +10,8 @@ class Transformation(object):
     '''
     classdocs
     '''                
-    projection = Proj("+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs ")  
+    projection = Proj("+proj=utm +zone=32 + north +ellps=WGS84 +datum=WGS84 +units=m +no_defs ")
+    #projXY2WGS = Proj("+ellps=WGS84 +datum=WGS84 +proj=utm +zone=32 +units=m +no_defs ")
     minx = 0
     miny = 0
     maxx = 0
@@ -42,24 +43,30 @@ class Transformation(object):
         print 'Boundaries (reference point x,y=0,0):', self.minx, self.miny  
         
         
-    def WGSToXY(self, node):
+    def WGS2XY(self, node):
         
         x, y = self.projection(node.attrib[osm.Lon], node.attrib[osm.Lat])
         x -= self.minx
         y -= self.miny
         return x, y
     
+    def XY2WGS(self, x, y):
+        x += self.minx
+        y += self.miny
+        lon, lat = self.projection(x, y, inverse=True)
+        return lat, lon
+    
     def nodeRefs2XY(self, nodeRefs, nodes):
         if isinstance(nodeRefs, str):
             node = nodes[nodeRefs]
-            x, y = self.WGSToXY(node)
+            x, y = self.WGS2XY(node)
             return x, y
         elif isinstance(nodeRefs, list):
             XYList = []
             for nodeRef in nodeRefs:
                 try:
                     node = nodes[nodeRef]
-                    x, y = self.WGSToXY(node)
+                    x, y = self.WGS2XY(node)
                     XYList.append((x, y))
                 except KeyError:
                     print nodeRef, 'is not in the nodes list. ->OSM inconsistency?'
