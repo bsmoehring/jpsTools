@@ -208,7 +208,7 @@ class ElementHandler(object):
                 unionCleared = []
                 for p in union.exterior.coords:
                     p = geometry.Point(p[0], p[1])
-                    if unionAll.exterior.distance(p) < 0.001:
+                    if unionAll.exterior.distance(p) < Config.errorDistance:
                         unionCleared.append((p.x, p.y))
                 unionCleared = geometry.Polygon(unionCleared)
                 if unionCleared.geom_type == shapely.Polygon:
@@ -423,7 +423,7 @@ class ElementHandler(object):
             changed = False
             for coord2 in polyStay.exterior.coords:
                 p2 = geometry.Point(coord2)
-                if p2.distance(p)<0.001:
+                if p2.distance(p) < Config.errorDistance:
                     polyExteriorLst.append(coord2)
                     changed = True
                     break

@@ -10,7 +10,11 @@ class Config:
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
     inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
+    
     stanardWidth = 2 #meters
+    #points are merged if their distance is below errorDistance
+    errorDistance = 0.001
+    
     filterTags = {}
     areaTags = {}
     unhandleTag = {}
