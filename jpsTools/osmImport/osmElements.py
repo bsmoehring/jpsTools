@@ -155,6 +155,7 @@ class Way:
     def __init__(self, id, nodeRefs = [], tags = {}):
         self.attribs = {}
         self.attribs[osm.Id] = str(id)
+        self.attribs['version'] = '9999999'
         self.nodeRefs = nodeRefs
         self.tags = {}
     
