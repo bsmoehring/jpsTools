@@ -5,7 +5,7 @@ Created on 21.11.2017
 '''
 from matplotlib import pyplot
 from data import Output
-from constants import shapely
+from shapely import geometry
 
 class ElementPlotter(object):
     
@@ -16,7 +16,7 @@ class ElementPlotter(object):
     def plotOutput(self):
         for osmId, poly in Output.polygons.iteritems():
             
-            if poly.geom_type == shapely.Polygon:
+            if isinstance(poly, geometry.Polygon):
                 x, y = poly.exterior.xy 
             else: 
                 print 'Problem handling ', poly
@@ -35,7 +35,7 @@ class ElementPlotter(object):
                 ax.plot(x1, y1, color='#c62b2b', alpha=0.7,
                         linewidth=2, solid_capstyle='round', zorder=4, marker='o')
             except (AttributeError):
-                if transition.geom_type == shapely.Polygon:
+                if isinstance(transition, geometry.Polygon):
                     x, y = transition.exterior.xy
                 else:
                     x, y = self.xy(transition.line)
@@ -55,11 +55,11 @@ class ElementPlotter(object):
         pass
     
     def xy(self, elem):
-        if elem.geom_type == shapely.Polygon:
+        if isinstance(elem, geometry.Polygon):
             x, y = elem.exterior.xy 
-        elif elem.geom_type == shapely.LineString:
+        elif isinstance(elem, geometry.LineString):
             x, y = elem.coords.xy
-        elif elem.geom_type == shapely.Point:
+        elif isinstance(elem, geometry.Point):
             x, y = elem.xy
         else:
             print 'Cant plot element ', elem

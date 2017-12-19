@@ -3,9 +3,9 @@ Created on 07.11.2017
 
 @author: user
 '''
-from constants import jps, osm, shapely
+from constants import jps, osm
 from data import Output
-from shapely.geometry import LineString
+from shapely import geometry
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
 
@@ -19,9 +19,9 @@ class JPSBuilder(object):
     def translate2jps(self):
         print '---'
         for osmId, poly in Output.polygons.items():
-            if poly.geom_type == shapely.Polygon:
+            if isinstance(poly, geometry.Polygon):
                 self.polygon2jps(osmId, poly)
-            elif poly.geom_type == shapely.MultiPolygon:
+            elif isinstance(poly, geometry.MultiPolygon):
                 for polygon in poly:
                     self.polygon2jps(osmId, polygon)
         for transition in Output.transitionlst:
@@ -77,7 +77,7 @@ class JPSBuilder(object):
         Geometry().addRoom(jpsRoom)
         
     def transition2jps(self, transition):
-        if transition.line.geom_type == shapely.LineString:
+        if isinstance(transition.line, geometry.LineString):
             vertex1 = Vertex(transition.coord1[0], transition.coord1[1])
             vertex2 = Vertex(transition.coord2[0], transition.coord2[1])
             jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN',

@@ -5,9 +5,9 @@ Created on Dec 13, 2017
 '''
 
 from config import Config
-from constants import osm, shapely
+from constants import osm
 from data import Output
-from shapely.geometry import Point
+from shapely import geometry
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
 
@@ -26,9 +26,9 @@ class OSMBuilder(object):
                 elem = Output.elements[osmId]
             except KeyError:
                 elem = None
-            if poly.geom_type == shapely.Polygon:
+            if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
-            elif poly.geom_type == shapely.MultiPolygon:
+            elif isinstance(poly, geometry.MultiPolygon):
                 for polygon in poly:
                     self.polygon2osm(osmId, polygon, elem)
             else: 
@@ -111,9 +111,9 @@ class OSM:
         
         '''
         #checking all exisitng nodes if one is the same and can be used
-        pNew = Point(x, y)
+        pNew = geometry.Point(x, y)
         for node in self.nodes:
-            pOld = Point(node.x, node.y)
+            pOld = geometry.Point(node.x, node.y)
             if pNew.distance(pOld) < Config.errorDistance:
                 return node.attribs[osm.Id]
         

@@ -3,7 +3,7 @@ Created on 11.11.2017
 
 @author: user
 '''
-from constants import osm, shapely
+from constants import osm
 from config import Config
 import shapely.geometry as geometry
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
@@ -163,8 +163,18 @@ class ElementHandler(object):
             #get all point intersects of the polygons
             if isinstance(exIntersects, geometry.base.BaseMultipartGeometry):
                 for p in exIntersects:
-                    if p.geom_type == shapely.Point:
+                    if isinstance(p, geometry.Point):
                         intersectionPointLst.append((p.x, p.y))
+                    else:
+                        print p
+                        raise Exception
+            elif isinstance(exIntersects, geometry.LineString):
+                for p in exIntersects.coords:
+                    intersectionPointLst.append(p)
+            else:
+                print intersectionPointLst
+                print exIntersects
+                raise Exception
 
         print 'intersectionPoints', intersectionPointLst
     
@@ -172,38 +182,52 @@ class ElementHandler(object):
         union = ops.cascaded_union(polyintersects)
         unionAll = ops.cascaded_union(polys.values())
         
-        #handle if more than 2 elements related to point
+        '''
+        handle if more than 2 elements related to point
+        '''
         if len(polyOsmIdLst)>2:    
-            #treating elements with a polygon union
-            if union.geom_type == shapely.Polygon:
-                #if distance to unionAll is > epsilon -> delete point from intersection
+            '''
+            treating elements with a polygon union
+            '''
+            if isinstance(union, geometry.Polygon):
+                '''
+                if distance to unionAll is < epsilon -> use point for intersection poly
+                '''
                 unionCleared = []
                 for p in union.exterior.coords:
                     p = geometry.Point(p[0], p[1])
                     if unionAll.exterior.distance(p) < Config.errorDistance:
                         unionCleared.append((p.x, p.y))
                 unionCleared = geometry.Polygon(unionCleared)
-                if unionCleared.geom_type == shapely.Polygon:
+                if isinstance(unionCleared, geometry.Polygon):
                     Output.polygons[nodeId] = unionCleared
                 else: 
+                    print unionCleared
                     raise Exception
-                
-                #get transitions from unionCleared intersection
+                '''
+                buffer unionCleared by epsilon and differenciate other polygons
+                '''
                 for osmId, poly in polys.iteritems():
                     # difference only if poly is linked at end point
                     if not polyEndInfo[osmId]:
                         print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
                         #possible solution: not filtering relevant poly.
                         raise Exception
-                    poly = poly.difference(unionCleared)
+                    poly = poly.difference(unionCleared.buffer(Config.errorDistance/2))
                     poly = self.filterRelevantPoly(poly)
                     poly = self.fuseClosePoints(unionCleared, poly)
-                    Output.polygons[osmId] = poly
+                    if poly.is_valid:
+                        Output.polygons[osmId] = poly
+                    else:
+                        print poly
+                        raise Exception
                     #transition = poly.intersection(unionCleared)
                     #if transition.geom_type == shapely.LineString:
                     #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
                     #    Output.transitionlst.append(transition)
-        
+            else:
+                print union
+                raise Exception
         elif len(polyOsmIdLst)==2:
             osmId1 = polyOsmIdLst[0]
             osmId2 = polyOsmIdLst[1]
@@ -239,7 +263,7 @@ class ElementHandler(object):
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
                 #like if more than 2 elements
                 return
-            if poly1.geom_type == shapely.Polygon and poly2.geom_type == shapely.Polygon:
+            if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
                 Output.polygons[osmId2] = poly2
             else:
@@ -323,8 +347,9 @@ class ElementHandler(object):
         poly2 = geometry.Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
         
         print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-        print poly1.intersection(poly2)
-        if poly1.intersection(poly2).geom_type in [shapely.LineString, shapely.MultiLineString]:
+        intersect = poly1.intersection(poly2)
+        print intersect
+        if isinstance(intersect, geometry.LineString):
             return poly1, poly2
         else:
             raise Exception
@@ -406,7 +431,7 @@ class ElementHandler(object):
         return largest Polygon from given MultiP olygon.
         Method should later be optimized!
         '''    
-        if multipoly.geom_type == shapely.Polygon:
+        if isinstance(multipoly, geometry.Polygon):
             return multipoly
         
         polygons = [polygon for polygon in multipoly]
