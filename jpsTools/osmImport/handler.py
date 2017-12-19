@@ -181,53 +181,49 @@ class ElementHandler(object):
             #distance to the outside of the overall union of each point intersect
         union = ops.cascaded_union(polyintersects)
         unionAll = ops.cascaded_union(polys.values())
+        unionCleared = []
+        '''
+        if distance to unionAll is < epsilon -> use point for intersection poly
+        '''
+        if isinstance(union, geometry.Polygon):
+            for p in union.exterior.coords:
+                p = geometry.Point(p[0], p[1])
+                if unionAll.exterior.distance(p) < Config.errorDistance:
+                    unionCleared.append((p.x, p.y))
+            unionCleared = geometry.Polygon(unionCleared)
+        elif isinstance(union, geometry.LineString):
+            print 'not adjusting', nodeId
+            return
+        else: 
+            print unionCleared
+            raise Exception
         
         '''
         handle if more than 2 elements related to point
         '''
         if len(polyOsmIdLst)>2:    
             '''
-            treating elements with a polygon union
+            buffer unionCleared by epsilon and differenciate other polygons
             '''
-            if isinstance(union, geometry.Polygon):
-                '''
-                if distance to unionAll is < epsilon -> use point for intersection poly
-                '''
-                unionCleared = []
-                for p in union.exterior.coords:
-                    p = geometry.Point(p[0], p[1])
-                    if unionAll.exterior.distance(p) < Config.errorDistance:
-                        unionCleared.append((p.x, p.y))
-                unionCleared = geometry.Polygon(unionCleared)
-                if isinstance(unionCleared, geometry.Polygon):
-                    Output.polygons[nodeId] = unionCleared
-                else: 
-                    print unionCleared
+            Output.polygons[nodeId] = unionCleared
+            for osmId, poly in polys.iteritems():
+                # difference only if poly is linked at end point
+                if not polyEndInfo[osmId]:
+                    print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
+                    #possible solution: not filtering relevant poly.
                     raise Exception
-                '''
-                buffer unionCleared by epsilon and differenciate other polygons
-                '''
-                for osmId, poly in polys.iteritems():
-                    # difference only if poly is linked at end point
-                    if not polyEndInfo[osmId]:
-                        print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
-                        #possible solution: not filtering relevant poly.
-                        raise Exception
-                    poly = poly.difference(unionCleared.buffer(Config.errorDistance/2))
-                    poly = self.filterRelevantPoly(poly)
-                    poly = self.fuseClosePoints(unionCleared, poly)
-                    if poly.is_valid:
-                        Output.polygons[osmId] = poly
-                    else:
-                        print poly
-                        raise Exception
-                    #transition = poly.intersection(unionCleared)
-                    #if transition.geom_type == shapely.LineString:
-                    #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
-                    #    Output.transitionlst.append(transition)
-            else:
-                print union
-                raise Exception
+                poly = poly.difference(unionCleared.buffer(Config.errorDistance/5))
+                poly = self.filterRelevantPoly(poly)
+                poly = self.fuseClosePoints(unionCleared, poly)
+                if poly.is_valid:
+                    Output.polygons[osmId] = poly
+                else:
+                    print poly
+                    raise Exception
+                #transition = poly.intersection(unionCleared)
+                #if transition.geom_type == shapely.LineString:
+                #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
+                #    Output.transitionlst.append(transition)
         elif len(polyOsmIdLst)==2:
             osmId1 = polyOsmIdLst[0]
             osmId2 = polyOsmIdLst[1]
@@ -246,22 +242,35 @@ class ElementHandler(object):
                 #one end of line
                 poly1 = poly1.difference(poly2)
                 poly1 = self.filterRelevantPoly(poly1)
-                union = poly1.exterior.union(poly2.exterior)
-                polyLst = [geom for geom in ops.polygonize(union)]
-                poly1 = self.filterClosestPolygon(poly1, polyLst)
-                poly2 = self.filterClosestPolygon(poly2, polyLst)
                 poly1 = self.fuseClosePoints(poly2, poly1)
             elif polyEndInfo[osmId2]:
                 #one end of line
                 poly2 = poly2.difference(poly1)
                 poly2 = self.filterRelevantPoly(poly2)
-                union = poly2.exterior.union(poly1.exterior)
-                polyLst = [geom for geom in ops.polygonize(union)]
-                poly1 = self.filterClosestPolygon(poly1, polyLst)
-                poly2 = self.filterClosestPolygon(poly2, polyLst)
                 poly2 = self.fuseClosePoints(poly1, poly2)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
-                #like if more than 2 elements
+                #===============================================================
+                # #like if more than 2 elements
+                # poly1 = poly1.difference(unionCleared.buffer(Config.errorDistance/5))
+                # poly2 = poly2.difference(unionCleared.buffer(Config.errorDistance/5))
+                # Output.polygons[nodeId] = unionCleared
+                # if isinstance(poly1, geometry.MultiPolygon) and isinstance(poly2, geometry.MultiPolygon):
+                #     i = 1
+                #     for poly in poly1:
+                #         poly = self.fuseClosePoints(union, poly)
+                #         Output.polygons[osmId1 + `000` + `i`] = poly
+                #         i += 1
+                #     i = 1
+                #     for poly in poly2:
+                #         poly = self.fuseClosePoints(union, poly)
+                #         Output.polygons[osmId2 + `000` + `i`] = poly
+                #         i += 1   
+                #     return
+                # else:
+                #     print poly1
+                #     print poly2
+                #     raise Exception
+                #===============================================================
                 return
             if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
