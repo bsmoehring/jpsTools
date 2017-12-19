@@ -52,7 +52,7 @@ class ElementHandler(object):
         print Output.wayNodes
         for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
             if len(polyOsmIdLst) > 1:
-                self.adjustPolys(nodeId, polyOsmIdLst)
+                self.handlePolysAroundNode(nodeId, polyOsmIdLst)
                 #self.checkConsistency(way, poly)
         #do transitions
         #=======================================================================
@@ -133,38 +133,10 @@ class ElementHandler(object):
         
         return poly
     
-    def checkConsistency(self, elemNew, polyNew, transform):
-        '''
-        iterates through elements nodes and checks if they're in use. 
-        if yes, the polygon and counterpolygons (polygons that share the node) are adjusted.
-        polygon information is then stored.
-        '''
-        
-        used = []
-        for nd in elemNew.iter(tag = osm.NodeRef):
-            nodeId = nd.attrib[osm.Ref]
-            if nodeId not in used:
-                if nodeId in Output.usedNodes:
-                    print nodeId, 'already in use by elements: ', Output.usedNodes[nodeId]
-                    used.append(nodeId)
-        
-        #if len(wayIds) == 1:
-        for nodeId in used:
-            for wayId in Output.usedNodes[nodeId]:
-                polyOld = Output.polygons[wayId]
-                elemOld = Output.elements[wayId]
-                polyNew, polyOld = self.adjustPoly(nodeId, elemNew, polyNew, elemOld, polyOld, transform)
-                print 'polys adjusted to: ', polyNew, polyOld
-                Output().addTransitionToDo(nodeId, [elemNew.attrib[osm.Id], elemOld.attrib[osm.Id]])
-                Output.polygons[elemOld.attrib[osm.Id]] = polyOld
-        
-        #approved
-        #store osm nodes to usednodes   
-        self.storeElement(elemNew, polyNew)
     
-    def adjustPolys(self, nodeId, polyOsmIdLst):
+    def handlePolysAroundNode(self, nodeId, polyOsmIdLst):
         '''
-        
+        defining how to handle all polygons around a specific node by their relation to each other.
         '''
         print'---'
         print 'adjusting node', nodeId
@@ -227,10 +199,10 @@ class ElementHandler(object):
                     poly = self.filterRelevantPoly(poly)
                     poly = self.fuseClosePoints(unionCleared, poly)
                     Output.polygons[osmId] = poly
-                    transition = poly.intersection(unionCleared)
-                    if transition.geom_type == shapely.LineString:
-                        transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
-                        Output.transitionlst.append(transition)
+                    #transition = poly.intersection(unionCleared)
+                    #if transition.geom_type == shapely.LineString:
+                    #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
+                    #    Output.transitionlst.append(transition)
         
         elif len(polyOsmIdLst)==2:
             osmId1 = polyOsmIdLst[0]
@@ -274,44 +246,24 @@ class ElementHandler(object):
                 print poly1
                 print poly2
                 raise Exception
-            transition = poly1.intersection(poly2)
-            if transition.geom_type == shapely.LineString:
-                transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId1, osmId2)
-                Output.transitionlst.append(transition) 
-            elif transition.geom_type == shapely.MultiLineString:
-                #handle this
-                pass
-            elif transition.geom_type == shapely.Point:
-                pass
-            else: 
-                print transition
-                raise Exception 
+            #===================================================================
+            # transition = poly1.intersection(poly2)
+            # if transition.geom_type == shapely.LineString:
+            #     transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId1, osmId2)
+            #     Output.transitionlst.append(transition) 
+            # elif transition.geom_type == shapely.MultiLineString:
+            #     #handle this
+            #     pass
+            # elif transition.geom_type == shapely.Point:
+            #     pass
+            # else: 
+            #     print transition
+            #     raise Exception 
+            #===================================================================
         else:
             print polyOsmIdLst
             raise Exception  
             
-            
-        #=======================================================================
-        # if newEnd and oldEnd:
-        #     print 'CASE 1'
-        #     pCutNew, pCutOld = self.getBisectorPolygons(nodeId, nodeRefsNew, nodeRefsOld)
-        #     polyNew = polyNew.difference(pCutOld)
-        #     polyOld = polyOld.difference(pCutNew)
-        #     polyNew = self.filterRelevantPoly(polyNew)
-        #     polyOld = self.filterRelevantPoly(polyOld)
-        # elif newEnd and not oldEnd:
-        #     print 'CASE 2'
-        #     polyNew = polyNew.difference(polyOld)
-        #     polyNew = self.filterRelevantPoly(polyNew)
-        # elif not newEnd and oldEnd:
-        #     print 'CASE 3'
-        #     polyOld = polyOld.difference(polyNew)
-        #     polyOld = self.filterRelevantPoly(polyOld)
-        # elif not newEnd and not oldEnd:
-        #     print 'CASE 4'
-        #     print 'Polygons', elemNew.attrib[osm.Id], 'and', elemOld.attrib[osm.Id], 'are crossing each other. Not handling this.'
-        #=======================================================================
-
     
     def getBisectorPolygons(self, nodeId, osmId1, osmId2):
         '''
@@ -405,6 +357,9 @@ class ElementHandler(object):
         Output.wayNodes[osmIdElem] = nodeRefs
     
     def checkNodeUnhandling(self, node):
+        '''
+        returns false if one of the nodes tags is in the unhandle dictionary
+        '''
         for tag in node.iter(tag = osm.Tag):
                 try:
                     if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
@@ -434,51 +389,6 @@ class ElementHandler(object):
             print poly
         return poly       
                 
-    def checkNodeUseage(self, room):
-        '''
-        checking if the vertices of the newly added room are members of an already existing room.
-        this is a quick check. 
-        '''
-        usedVertexIds = []
-        for vertex in room.getvertices():
-            originalId = vertex.getOriginalId()
-            if originalId in Output.usedNodes:
-                print 'node:', id, 'is being used by multiple rooms.'
-                usedVertexIds.append(id)
-        return usedVertexIds
-    
-    def getTransitions(self, nodeId, poly1, poly2, osmId1, osmId2):
-        '''
-        TODO get Transitions from two polygons
-        '''
-        def transition(line):
-            transition = Output.Transition(line, line.coords[0], line.coords[-1], osmId1, osmId2)
-            Output.transitionlst.append(transition)
-            print 'Transition', line
-            
-        intersect = poly1.intersection(poly2)
-        
-        #transition(intersect)
-        
-        if intersect.geom_type == shapely.LineString:
-            transition(intersect)
-        elif intersect.geom_type == shapely.MultiLineString:
-            for linestring in intersect:
-                transition(linestring)
-        elif intersect.geom_type == shapely.GeometryCollection:
-            for geometry in intersect.geoms:
-                if geometry.geom_type == shapely.LineString:
-                    transition(geometry)
-                elif intersect.geom_type == shapely.MultiLineString:
-                    for linestring in geometry:
-                        transition(linestring)
-                else: 
-                    print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-                    print intersect.geom_type, nodeId, osmId1, osmId2
-        else: 
-            print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-            print intersect.geom_type, nodeId, osmId1, osmId2
-            
     def filterClosestPolygon(self, polyOld, polyLst):
         '''
         return a poly of a list that is the closest in area to the polyOld
@@ -510,6 +420,10 @@ class ElementHandler(object):
         return poly
     
     def isEndOfElement(self, nodeId, wayId):
+        '''
+        returns true of the node is an endpoint of way. 
+        rings/polygons might start and end at the same node. it is in this case not considered an endpoint.
+        '''
         nodeRefs = Output.wayNodes[wayId]
         if (nodeId == nodeRefs[0] or nodeId == nodeRefs[-1]) and nodeRefs[0] != nodeRefs[-1]:
             print nodeId, 'is the end of element', wayId
@@ -519,10 +433,3 @@ class ElementHandler(object):
             end = False
         return end
     
-    def getNodeRefsFromElement(self, elem):
-        nodeRefs = []
-        for nd in elem.iter(tag = osm.NodeRef):
-            nodeRefs.append(nd.attrib[osm.Ref])
-        return nodeRefs
-            
-                
