@@ -40,12 +40,8 @@ class Output(object):
     elements = {}
     #osmId Way = [osmId Node]
     wayNodes = {}
-    #osmId way = [polygon]
-    polygonTrash = {} 
     #osmId osmId LineString
     transitionlst = []
-    #osmId node = [osmId Way]
-    transitionToDoLst = {}
     
     class Transition():
         '''
