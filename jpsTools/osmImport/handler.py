@@ -142,58 +142,32 @@ class ElementHandler(object):
         print 'adjusting node', nodeId
         print 'polygons', polyOsmIdLst
         
-        polys = {}
-        elems = {}
         polyEndInfo  = {}
-        exteriors = {}
+        unionAll = geometry.Polygon()
         for polyOsmId in polyOsmIdLst:
-            polys[polyOsmId] = Output.polygons[polyOsmId]  
-            elems[polyOsmId] = Output.elements[polyOsmId]   
             polyEndInfo[polyOsmId] = self.isEndOfElement(nodeId, polyOsmId)
-            exteriors[polyOsmId] = geometry.LineString(polys[polyOsmId].exterior.coords)
+            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId]])
 
         polyintersects = []
-        intersectionPointLst = []
-        #all combinations of polygons in poly
-        for a, b in itertools.combinations(polyOsmIdLst, 2):
-            #polygon intersections
-            polyintersects.append(polys[a].intersection(polys[b]))
-            #exterior intersections
-            exIntersects = exteriors[a].intersection(exteriors[b])
-            #get all point intersects of the polygons
-            if isinstance(exIntersects, geometry.base.BaseMultipartGeometry):
-                for p in exIntersects:
-                    if isinstance(p, geometry.Point):
-                        intersectionPointLst.append((p.x, p.y))
-                    else:
-                        print p
-                        raise Exception
-            elif isinstance(exIntersects, geometry.LineString):
-                for p in exIntersects.coords:
-                    intersectionPointLst.append(p)
-            else:
-                print intersectionPointLst
-                print exIntersects
-                raise Exception
-
-        print 'intersectionPoints', intersectionPointLst
+        '''
+        all combinations of polygons in poly
+        '''
+        for polyOsmIdA, polyOsmIdB in itertools.combinations(polyOsmIdLst, 2):
+            polyA = Output.polygons[polyOsmIdA]
+            polyB = Output.polygons[polyOsmIdB]
+            polyintersects.append(polyA.intersection(polyB))
     
-            #distance to the outside of the overall union of each point intersect
+        #distance to the outside of the overall union of each point intersect
         union = ops.cascaded_union(polyintersects)
-        unionAll = ops.cascaded_union(polys.values())
-        unionCleared = []
         '''
         if distance to unionAll is < epsilon -> use point for intersection poly
         '''
         if isinstance(union, geometry.Polygon):
-            for p in union.exterior.coords:
-                p = geometry.Point(p[0], p[1])
-                if unionAll.exterior.distance(p) < Config.errorDistance:
-                    unionCleared.append((p.x, p.y))
-            unionCleared = geometry.Polygon(unionCleared)
+            unionCleared = self.filterPolyPointsByDistance(unionAll, union)
         elif isinstance(union, geometry.LineString):
+            unionCleared = geometry.Polygon()
             print 'not adjusting', nodeId
-            return
+            print 'propably touching polygons'
         else: 
             print unionCleared
             raise Exception
@@ -206,71 +180,29 @@ class ElementHandler(object):
             buffer unionCleared by epsilon and differenciate other polygons
             '''
             Output.polygons[nodeId] = unionCleared
-            for osmId, poly in polys.iteritems():
-                # difference only if poly is linked at end point
-                if not polyEndInfo[osmId]:
-                    print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
-                    #possible solution: not filtering relevant poly.
-                    raise Exception
-                poly = poly.difference(unionCleared.buffer(Config.errorDistance/5))
-                poly = self.filterRelevantPoly(poly)
-                poly = self.fuseClosePoints(unionCleared, poly)
-                if poly.is_valid:
-                    Output.polygons[osmId] = poly
-                else:
-                    print poly
-                    raise Exception
-                #transition = poly.intersection(unionCleared)
+            self.adjustCaseMultiple(nodeId, polyOsmIdLst)
+                #transition = poly.intersection(Output.polygons[nodeId])
                 #if transition.geom_type == shapely.LineString:
                 #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
                 #    Output.transitionlst.append(transition)
         elif len(polyOsmIdLst)==2:
             osmId1 = polyOsmIdLst[0]
             osmId2 = polyOsmIdLst[1]
-            poly1 = polys[osmId1]
-            poly2 = polys[osmId2]
+            poly1 = Output.polygons[osmId1]
+            poly2 = Output.polygons[osmId2]
             #handle if 2 elements
             if polyEndInfo[osmId1] and polyEndInfo[osmId2]:
                 #both ends of line
-                b1, b2 = self.getBisectorPolygons(nodeId, osmId1, osmId2)
-                poly1 = poly1.difference(b2)
-                poly1 = self.filterRelevantPoly(poly1)
-                poly2 = poly2.difference(b1)
-                poly2 = self.filterRelevantPoly(poly2)
-                poly2 = self.fuseClosePoints(poly1, poly2)
+                poly1, poly2 = self.adjustCaseEndEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
             elif polyEndInfo[osmId1]:
                 #one end of line
-                poly1 = poly1.difference(poly2)
-                poly1 = self.filterRelevantPoly(poly1)
-                poly1 = self.fuseClosePoints(poly2, poly1)
+                poly2, poly1 = self.adjustCaseMidEnd(poly2, poly1, unionAll)
             elif polyEndInfo[osmId2]:
                 #one end of line
-                poly2 = poly2.difference(poly1)
-                poly2 = self.filterRelevantPoly(poly2)
-                poly2 = self.fuseClosePoints(poly1, poly2)
+                poly1, poly2 = self.adjustCaseMidEnd(poly1, poly2, unionAll)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
-                #===============================================================
-                # #like if more than 2 elements
-                # poly1 = poly1.difference(unionCleared.buffer(Config.errorDistance/5))
-                # poly2 = poly2.difference(unionCleared.buffer(Config.errorDistance/5))
-                # Output.polygons[nodeId] = unionCleared
-                # if isinstance(poly1, geometry.MultiPolygon) and isinstance(poly2, geometry.MultiPolygon):
-                #     i = 1
-                #     for poly in poly1:
-                #         poly = self.fuseClosePoints(union, poly)
-                #         Output.polygons[osmId1 + `000` + `i`] = poly
-                #         i += 1
-                #     i = 1
-                #     for poly in poly2:
-                #         poly = self.fuseClosePoints(union, poly)
-                #         Output.polygons[osmId2 + `000` + `i`] = poly
-                #         i += 1   
-                #     return
-                # else:
-                #     print poly1
-                #     print poly2
-                #     raise Exception
-                #===============================================================
+                #both middle points
+                #self.adjustCaseMidMid(nodeId, poly1, poly2)
                 return
             if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
@@ -296,8 +228,92 @@ class ElementHandler(object):
         else:
             print polyOsmIdLst
             raise Exception  
-            
     
+    def adjustCaseMultiple(self, nodeId, polyOsmIdLst, polyEndInfo):
+        '''
+        
+        '''
+        for polyOsmId in polyOsmIdLst:
+                poly = Output.polygons[polyOsmId]
+                # difference only if poly is linked at end point
+                if not polyEndInfo[polyOsmId]:
+                    print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
+                    #possible solution: split poly
+                    raise Exception
+                poly = poly.difference(Output.polygons[nodeId].buffer(Config.errorDistance/5))
+                poly = self.filterRelevantPoly(poly)
+                poly = self.fuseClosePoints(Output.polygons[nodeId], poly)
+                if poly.is_valid:
+                    Output.polygons[polyOsmId] = poly
+                else:
+                    print poly
+                    raise Exception
+           
+    def adjustCaseMidEnd(self, polyMid, polyEnd, unionAll):
+        '''
+        returning two adjusted polygons. case T-junction.
+        '''
+        polyEnd = polyEnd.difference(polyMid)
+        polyEnd = self.filterRelevantPoly(polyEnd)
+        polyMid, polyEnd = self.mergePolys(polyMid, polyEnd, unionAll)
+        polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
+        polyMid = self.filterPolyPointsByDistance(unionAll, polyMid)
+        return polyMid, polyEnd
+    
+    def adjustCaseEndEnd(self, nodeId, osmId1, osmId2, poly1, poly2, unionAll):
+        '''
+        returning two adjusted polygons. case end-end-connection
+        '''
+        b1, b2 = self.getBisectorPolygons(nodeId, osmId1, osmId2)
+        poly1 = poly1.difference(b2)
+        poly1 = self.filterRelevantPoly(poly1)
+        poly2 = poly2.difference(b1)
+        poly2 = self.filterRelevantPoly(poly2)
+        poly1, poly2 = self.mergePolys(poly1, poly2, unionAll)
+        return poly1, poly2
+    
+    def adjustCaseMidMid(self, nodeId, poly1, poly2):
+        '''
+        returning five adjusted polygons from two input-polygons. case mid-mid-junction
+        '''
+        #===============================================================
+        # #like if more than 2 elements
+        # poly1 = poly1.difference(unionCleared.buffer(Config.errorDistance/5))
+        # poly2 = poly2.difference(unionCleared.buffer(Config.errorDistance/5))
+        # Output.polygons[nodeId] = unionCleared
+        # if isinstance(poly1, geometry.MultiPolygon) and isinstance(poly2, geometry.MultiPolygon):
+        #     i = 1
+        #     for poly in poly1:
+        #         poly = self.fuseClosePoints(union, poly)
+        #         Output.polygons[osmId1 + `000` + `i`] = poly
+        #         i += 1
+        #     i = 1
+        #     for poly in poly2:
+        #         poly = self.fuseClosePoints(union, poly)
+        #         Output.polygons[osmId2 + `000` + `i`] = poly
+        #         i += 1   
+        #     return
+        # else:
+        #     print poly1
+        #     print poly2
+        #     raise Exception
+        #===============================================================
+        
+    def mergePolys(self, poly1, poly2, unionAll):
+        '''
+        returning two polygons that should share the same coords at intersecting areas.
+        union of the exterior LineString of Polygons. then filtering the closest Polygon. 
+        '''
+        lineString1 = geometry.LineString(list(poly1.buffer(Config.errorDistance/5).exterior.coords))
+        lineString2 = geometry.LineString(list(poly2.buffer(Config.errorDistance/5).exterior.coords))
+        unionExteriors = lineString1.union(lineString2)
+        polyLst = [geom for geom in ops.polygonize(unionExteriors)]
+        poly1 = self.filterClosestPolygon(poly1, polyLst)
+        poly2d = self.filterClosestPolygon(poly2, polyLst)
+        poly1 = self.fuseClosePoints(unionAll, poly1)
+        poly2 = self.fuseClosePoints(unionAll, poly2)
+        return poly1, poly2
+        
     def getBisectorPolygons(self, nodeId, osmId1, osmId2):
         '''
         returning two polygons. Each of them is containing the two elements bisector as an line. 
@@ -365,7 +381,7 @@ class ElementHandler(object):
         
     def storeElement(self, elem, poly):
         '''
-        storing references of the approved polygon in usedNodes{}, polygons{} and elements{}
+        storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
         '''
         osmIdElem = elem.attrib[osm.Id]
         nodeRefs = []
@@ -374,17 +390,15 @@ class ElementHandler(object):
             osmIdNode = nd.attrib[osm.Ref]
             nodeRefs.append(osmIdNode)
             node = self.nodes[osmIdNode]
-            #unhandle Node if tag is in unhandleDictionary
-            if self.checkNodeUnhandling(node):
-                #add nodes and elemId to usedNodes
-                if osmIdNode in Output.usedNodes:
-                    #make sure that every node is added only once
-                    if osmIdElem not in Output.usedNodes[osmIdNode]:
-                        Output.usedNodes[osmIdNode].append(osmIdElem)
-                    else:
-                        pass
+            #add nodes and elemId to usedNodes
+            if osmIdNode in Output.usedNodes:
+                #make sure that every node is added only once
+                if osmIdElem not in Output.usedNodes[osmIdNode]:
+                    Output.usedNodes[osmIdNode].append(osmIdElem)
                 else:
-                    Output.usedNodes[osmIdNode] = [osmIdElem]
+                    pass
+            else:
+                Output.usedNodes[osmIdNode] = [osmIdElem]
                 
         Output.polygons[osmIdElem] = poly  
         Output.elements[osmIdElem] = elem 
@@ -419,13 +433,36 @@ class ElementHandler(object):
             if changed == False:
                 polyExteriorLst.append(coord)
         poly = geometry.Polygon(polyExteriorLst)
-        if not poly.is_valid:
+        if isinstance(poly, geometry.Polygon) and poly.is_valid:
+            return poly
+        else:
             print poly
-        return poly       
+            raise Exception     
+    
+    def filterPolyPointsByDistance(self, polyStay, polyChange): 
+        '''
+        returns the Polygon polyChange, cleared from points that aren't close to the outside of Polygon polyStay
+        '''
+        if not isinstance(polyStay, geometry.Polygon) and not isinstance(polyChange, geometry.Polygon):
+            print polyStay
+            print polyChange
+            raise Exception
+        polyCleared = []
+        for p in polyChange.exterior.coords:
+            p = geometry.Point(p[0], p[1])
+            if polyStay.exterior.distance(p) < Config.errorDistance:
+                polyCleared.append((p.x, p.y))
+        polyCleared = geometry.Polygon(polyCleared)
+        if isinstance(polyCleared, geometry.Polygon):
+            return polyCleared
+        else:
+            print polyCleared
+            raise Exception
                 
     def filterClosestPolygon(self, polyOld, polyLst):
         '''
         return a poly of a list that is the closest in area to the polyOld
+        TODO: filter list of polygons. returning each polygon with largest intersecting area
         '''
         diff = float('inf')
         polyNew = polyOld
