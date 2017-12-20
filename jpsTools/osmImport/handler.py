@@ -50,8 +50,12 @@ class ElementHandler(object):
         print Output.polygons
         print Output.elements
         print Output.wayNodes
+        
+        '''
+        handle all nodes that are part of more than 1 polygon and aren't tagged for unhandling:
+        '''
         for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
-            if len(polyOsmIdLst) > 1:
+            if len(polyOsmIdLst) > 1 and self.checkNodeUnhandling(nodeId):
                 self.handlePolysAroundNode(nodeId, polyOsmIdLst)
                 #self.checkConsistency(way, poly)
         #do transitions
@@ -411,10 +415,11 @@ class ElementHandler(object):
         Output.elements[osmIdElem] = elem 
         Output.wayNodes[osmIdElem] = nodeRefs
     
-    def checkNodeUnhandling(self, node):
+    def checkNodeUnhandling(self, nodeId):
         '''
         returns false if one of the nodes tags is in the unhandle dictionary
         '''
+        node = self.nodes[nodeId]
         for tag in node.iter(tag = osm.Tag):
                 try:
                     if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
