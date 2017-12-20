@@ -46,7 +46,7 @@ class OSMBuilder(object):
             nodeRefs.append(nodeRef)
         
         if elem == None:
-            tags = {osm.Id: osmId, 'origin': 'JPSTools'}
+            tags = {osm.Id:osmId, 'origin':'JPSTools', 'highway':'footway', 'area':'yes'}
         else:
             for tag in elem.iter(tag = osm.Tag):
                 k = tag.attrib[osm.Key] 
@@ -91,7 +91,7 @@ class OSMBuilder(object):
         if outputPath.endswith('.osm'):
             pass
         else:
-            outputPath += 'test.osm' 
+            outputPath += 'testOSMout.osm' 
         try:
             f = open(outputPath, 'w')
             f.write(out)
