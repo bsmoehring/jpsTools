@@ -10,6 +10,7 @@ class osm(object):
     This class aims to store required strings to parse OSM data
     '''
     Id = 'id'
+    Osm = 'osm'
     Node = 'node'
     Way = 'way'
     Relation = 'relation'
@@ -56,23 +57,4 @@ class jps(object):
     Room2 = 'room2_id'
     Subroom2 = 'subroom2_id'
     
-class shapely():
-    
-    Polygon = 'Polygon'
-    MultiPolygon = 'MultiPolygon'
-    LineString = 'LineString'
-    MultiLineString = 'MultiLineString'
-    GeometryCollection = 'GeometryCollection'
-    Point = 'Point'
-    
-class geometryAttribs(object):
-    '''
-    required attributes of the geometry element
-    '''
-    attribs = {}
-    attribs['version'] = '0.8' 
-    attribs['caption'] = 'second life' 
-    attribs['unit'] = 'm'
-    #attribs['xml:nsxsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
-    #attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'  
-    
+        

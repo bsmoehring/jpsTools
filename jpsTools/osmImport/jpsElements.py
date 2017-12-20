@@ -3,9 +3,9 @@ Created on 07.11.2017
 
 @author: user
 '''
-from constants import jps, osm, shapely, geometryAttribs
+from constants import jps, osm
 from data import Output
-from shapely.geometry import LineString
+from shapely import geometry
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
 
@@ -19,11 +19,11 @@ class JPSBuilder(object):
     def translate2jps(self):
         print '---'
         for osmId, poly in Output.polygons.items():
-            if poly.geom_type == shapely.Polygon:
-                self.polygon2jps(Output.elements[osmId], poly)
-            elif poly.geom_type == shapely.MultiPolygon:
+            if isinstance(poly, geometry.Polygon):
+                self.polygon2jps(osmId, poly)
+            elif isinstance(poly, geometry.MultiPolygon):
                 for polygon in poly:
-                    self.polygon2jps(Output.elements[osmId], polygon)
+                    self.polygon2jps(osmId, polygon)
         for transition in Output.transitionlst:
             self.transition2jps(transition)
                     
@@ -34,7 +34,16 @@ class JPSBuilder(object):
         form an xml string from all geometry objects
         '''
         print '---'
-        outGeometry = Element(Geometry().tag, geometryAttribs().attribs)
+        
+        #required attributes of the geometry element
+        attribs = {}
+        attribs['version'] = '0.8' 
+        attribs['caption'] = 'second life' 
+        attribs['unit'] = 'm'
+        #attribs['xml:nsxsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
+        #attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'
+          
+        outGeometry = Element(Geometry().tag, attribs)
         outRooms = SubElement(outGeometry, jps.Rooms)
         for  room in Geometry().rooms:
             outRoom = SubElement(outRooms, room.tag, room.attribs)
@@ -53,11 +62,11 @@ class JPSBuilder(object):
             
         self.outGeometry = outGeometry
 
-    def polygon2jps(self, elem, poly):
+    def polygon2jps(self, osmId, poly):
         '''
         translate polygon to jps Elements with required attributes of the osm element
-        '''
-        jpsRoom = Room(elem.attrib[osm.Id], self.getLevel(elem))
+        '''          
+        jpsRoom = Room(osmId, self.getLevel(osmId))
         jpsSubroom = Subroom()
         jpsPoly = Polygon()
         for coord in poly.exterior._get_coords():
@@ -68,10 +77,11 @@ class JPSBuilder(object):
         Geometry().addRoom(jpsRoom)
         
     def transition2jps(self, transition):
-        if transition.line.geom_type == shapely.LineString:
+        if isinstance(transition.line, geometry.LineString):
             vertex1 = Vertex(transition.coord1[0], transition.coord1[1])
             vertex2 = Vertex(transition.coord2[0], transition.coord2[1])
-            jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), "a", "a", transition.osmid1, 0, transition.osmid2, 0)
+            jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN',
+                                       Geometry.idOsmJps[transition.osmId1], 0, Geometry.idOsmJps[transition.osmId2], 0)
             Geometry().addTransition(jpsTransition)
         else:
             Exception
@@ -95,7 +105,11 @@ class JPSBuilder(object):
         except Exception:
             print 'output not written!'
     
-    def getLevel(self, elem):
+    def getLevel(self, osmId):
+        try: 
+            elem = Output.elements[osmId]
+        except KeyError:
+            return '0'
         for tag in elem.iter(tag=osm.Tag):
             if tag.attrib[osm.Key] == osm.Level:
                 return tag.attrib[osm.Value]
@@ -106,6 +120,7 @@ class Geometry:
     tag = jps.Geometry 
     rooms = []
     transitions = []
+    idOsmJps = {}
     
     
     #=======================================================================
@@ -153,10 +168,12 @@ class Room:
     '''
     tag = jps.Room
     
-    def __init__(self, id, level, caption='hall'):
+    def __init__(self, osmId, level, caption='hall'):
         self.attribs = {}
-        self.attribs[jps.Id] = str(len(Geometry().rooms))
-        self.attribs[jps.OriginalId] = id
+        jpsId = str(len(Geometry.rooms))
+        Geometry.idOsmJps[osmId] = jpsId
+        self.attribs[jps.Id] = jpsId
+        self.attribs[jps.OriginalId] = osmId
         self.attribs['level'] = str(level)
         self.attribs[jps.Caption] = caption
         self.subrooms = []
