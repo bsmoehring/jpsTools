@@ -141,36 +141,7 @@ class ElementHandler(object):
         print'---'
         print 'adjusting node', nodeId
         print 'polygons', polyOsmIdLst
-        
-        polyEndInfo  = {}
-        unionAll = geometry.Polygon()
-        for polyOsmId in polyOsmIdLst:
-            polyEndInfo[polyOsmId] = self.isEndOfElement(nodeId, polyOsmId)
-            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId]])
-
-        polyintersects = []
-        '''
-        all combinations of polygons in poly
-        '''
-        for polyOsmIdA, polyOsmIdB in itertools.combinations(polyOsmIdLst, 2):
-            polyA = Output.polygons[polyOsmIdA]
-            polyB = Output.polygons[polyOsmIdB]
-            polyintersects.append(polyA.intersection(polyB))
-    
-        #distance to the outside of the overall union of each point intersect
-        union = ops.cascaded_union(polyintersects)
-        '''
-        if distance to unionAll is < epsilon -> use point for intersection poly
-        '''
-        if isinstance(union, geometry.Polygon):
-            unionCleared = self.filterPolyPointsByDistance(unionAll, union)
-        elif isinstance(union, geometry.LineString):
-            unionCleared = geometry.Polygon()
-            print 'not adjusting', nodeId
-            print 'propably touching polygons'
-        else: 
-            print unionCleared
-            raise Exception
+        union, unionAll, unionCleared, polyEndInfo = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
         
         '''
         handle if more than 2 elements related to point
@@ -180,7 +151,7 @@ class ElementHandler(object):
             buffer unionCleared by epsilon and differenciate other polygons
             '''
             Output.polygons[nodeId] = unionCleared
-            self.adjustCaseMultiple(nodeId, polyOsmIdLst)
+            self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo)
                 #transition = poly.intersection(Output.polygons[nodeId])
                 #if transition.geom_type == shapely.LineString:
                 #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
@@ -202,7 +173,7 @@ class ElementHandler(object):
                 poly1, poly2 = self.adjustCaseMidEnd(poly1, poly2, unionAll)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
                 #both middle points
-                #self.adjustCaseMidMid(nodeId, poly1, poly2)
+                #self.adjustCaseMidMid(nodeId, osmId1, osmId2, poly1, poly2, unionCleared, unionAll)
                 return
             if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
@@ -231,7 +202,8 @@ class ElementHandler(object):
     
     def adjustCaseMultiple(self, nodeId, polyOsmIdLst, polyEndInfo):
         '''
-        
+        adjusting a node with multiple ways by defining their intersection as a new polygon.
+        then differenciating all polygons around the center polygon (unionCleared)
         '''
         for polyOsmId in polyOsmIdLst:
                 poly = Output.polygons[polyOsmId]
@@ -272,32 +244,32 @@ class ElementHandler(object):
         poly1, poly2 = self.mergePolys(poly1, poly2, unionAll)
         return poly1, poly2
     
-    def adjustCaseMidMid(self, nodeId, poly1, poly2):
+    def adjustCaseMidMid(self, nodeId, osmId1, osmId2, poly1, poly2, unionCleared, unionAll):
         '''
         returning five adjusted polygons from two input-polygons. case mid-mid-junction
         '''
-        #===============================================================
-        # #like if more than 2 elements
-        # poly1 = poly1.difference(unionCleared.buffer(Config.errorDistance/5))
-        # poly2 = poly2.difference(unionCleared.buffer(Config.errorDistance/5))
-        # Output.polygons[nodeId] = unionCleared
-        # if isinstance(poly1, geometry.MultiPolygon) and isinstance(poly2, geometry.MultiPolygon):
-        #     i = 1
-        #     for poly in poly1:
-        #         poly = self.fuseClosePoints(union, poly)
-        #         Output.polygons[osmId1 + `000` + `i`] = poly
-        #         i += 1
-        #     i = 1
-        #     for poly in poly2:
-        #         poly = self.fuseClosePoints(union, poly)
-        #         Output.polygons[osmId2 + `000` + `i`] = poly
-        #         i += 1   
-        #     return
-        # else:
-        #     print poly1
-        #     print poly2
-        #     raise Exception
-        #===============================================================
+        #like if more than 2 elements
+        poly1 = poly1.difference(unionCleared.buffer(Config.errorDistance/2))
+        poly2 = poly2.difference(unionCleared.buffer(Config.errorDistance/2))
+        Output.polygons[nodeId] = unionCleared
+        if isinstance(poly1, geometry.MultiPolygon) and isinstance(poly2, geometry.MultiPolygon):
+            i = 1
+            for poly in poly1:
+                poly = self.fuseClosePoints(unionCleared, poly)
+                poly = self.filterPolyPointsByDistance(unionAll, poly)
+                Output.polygons[osmId1 + `000` + `i`] = poly
+                i += 1
+            i = 1
+            for poly in poly2:
+                poly = self.fuseClosePoints(unionCleared, poly)
+                poly = self.filterPolyPointsByDistance(unionAll, poly)
+                Output.polygons[osmId2 + `000` + `i`] = poly
+                i += 1   
+            return
+        else:
+            print poly1
+            print poly2
+            raise Exception
         
     def mergePolys(self, poly1, poly2, unionAll):
         '''
@@ -309,7 +281,7 @@ class ElementHandler(object):
         unionExteriors = lineString1.union(lineString2)
         polyLst = [geom for geom in ops.polygonize(unionExteriors)]
         poly1 = self.filterClosestPolygon(poly1, polyLst)
-        poly2d = self.filterClosestPolygon(poly2, polyLst)
+        poly2 = self.filterClosestPolygon(poly2, polyLst)
         poly1 = self.fuseClosePoints(unionAll, poly1)
         poly2 = self.fuseClosePoints(unionAll, poly2)
         return poly1, poly2
@@ -379,6 +351,42 @@ class ElementHandler(object):
         else:
             raise Exception
         
+    def collectAdjustmentInformation(self, nodeId, polyOsmIdLst = []):
+        '''
+        returns union, unionAll, unionCleared, polyEndInfo
+        '''
+        polyEndInfo  = {}
+        unionAll = geometry.Polygon()
+        
+        for polyOsmId in polyOsmIdLst:
+            polyEndInfo[polyOsmId] = self.isEndOfElement(nodeId, polyOsmId)
+            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId]])
+
+        '''
+        all combinations of polygons in poly
+        '''
+        polyintersects = []
+        for polyOsmIdA, polyOsmIdB in itertools.combinations(polyOsmIdLst, 2):
+            polyA = Output.polygons[polyOsmIdA]
+            polyB = Output.polygons[polyOsmIdB]
+            polyintersects.append(polyA.intersection(polyB))
+    
+        '''
+        if distance to unionAll is < epsilon -> use point for intersection poly
+        '''
+        union = ops.cascaded_union(polyintersects)
+        if isinstance(union, geometry.Polygon):
+            unionCleared = self.filterPolyPointsByDistance(unionAll, union)
+        elif isinstance(union, geometry.LineString):
+            unionCleared = geometry.Polygon()
+            print 'not adjusting', nodeId
+            print 'propably touching polygons'
+        else: 
+            print unionCleared
+            raise Exception
+        
+        return union, unionAll, unionCleared, polyEndInfo
+    
     def storeElement(self, elem, poly):
         '''
         storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
@@ -389,7 +397,6 @@ class ElementHandler(object):
         for nd in elem.iter(tag = osm.NodeRef):
             osmIdNode = nd.attrib[osm.Ref]
             nodeRefs.append(osmIdNode)
-            node = self.nodes[osmIdNode]
             #add nodes and elemId to usedNodes
             if osmIdNode in Output.usedNodes:
                 #make sure that every node is added only once
