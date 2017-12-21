@@ -9,7 +9,7 @@ class Config:
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
     inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
+    # inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
     
     stanardWidth = 2 #meters
     #points are merged if their distance is below errorDistance
@@ -31,7 +31,7 @@ class Config:
         
         self.addUnhandleTag('highway', 'elevator')
         
-        self.areaTags['area'] = 'yes'
+        self.addAreaTag('area', 'yes')
         
     def addFilterTag(self, key, value):
         if key in self.filterTags:

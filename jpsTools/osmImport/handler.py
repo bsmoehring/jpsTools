@@ -107,15 +107,22 @@ class ElementHandler(object):
         #area?
         area = False
         nodeRefs = []
-        for child in way:
-            if child.tag == osm.Tag: 
-                try:
-                    if child.attrib[osm.Value] in Config.areaTags[child.attrib[osm.Key]]:
-                        area = True
-                except KeyError:
-                    pass
-            if child.tag == osm.NodeRef:
-                nodeRefs.append(child.attrib[osm.Ref])  
+        width = Config.stanardWidth
+        #search for specific Tags
+        for child in way.iter(tag = osm.Tag):
+            try:
+                if child.attrib[osm.Value] in Config.areaTags[child.attrib[osm.Key]]:
+                    area = True
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == osm.Width:
+                    width = float(child.attrib[osm.Value])
+            except KeyError:
+                pass
+        #get NodeRefs
+        for child in way.iter(tag = osm.NodeRef):
+            nodeRefs.append(child.attrib[osm.Ref])  
         XYList = transform.nodeRefs2XY(nodeRefs, self.nodes)
         print 'NodeRefs:', nodeRefs
         print 'Coordinates:', XYList
@@ -127,13 +134,13 @@ class ElementHandler(object):
             else:
                 #area == yes, but no polygon structure
                 print  way.attrib[osm.Id], 'has wrong tags. Area=yes but first and last node references are not the same or less than 3 nodes'
-                #continue as linestring?
+                raise Exception
         else:
             #LineString
             print way.attrib[osm.Id], 'is a LineString and needs to be buffered to create a Polygon.'
             ls = geometry.LineString(XYList)
             #polygon from linestring
-            poly = ls.buffer(Config.stanardWidth/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=Config.stanardWidth)
+            poly = ls.buffer(width/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=Config.stanardWidth)
         
         return poly
     
