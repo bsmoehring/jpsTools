@@ -10,8 +10,6 @@ from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 from shapely import ops
 from data import Output
 import math, itertools
-from numpy.core.fromnumeric import shape
-from matplotlib.projections import geo
 
 class ElementHandler(object):
     '''
