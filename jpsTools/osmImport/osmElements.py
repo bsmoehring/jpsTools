@@ -108,7 +108,7 @@ class OSM:
         
     def getOrAddNode(self, x, y, lat, lon, tags = {}):
         '''
-        
+        returning a node reference either from an existing node or from a newly created node
         '''
         #checking all exisitng nodes if one is the same and can be used
         pNew = geometry.Point(x, y)
