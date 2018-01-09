@@ -11,6 +11,7 @@ from shapely import ops
 from data import Output
 import math, itertools
 from numpy.core.fromnumeric import shape
+from matplotlib.projections import geo
 
 class ElementHandler(object):
     '''
@@ -20,6 +21,9 @@ class ElementHandler(object):
         self.tree = input.tree
         self.nodes = input.allNodes
         self.transform = transform
+        self.nodePoints = {}
+        for nodeId, node in self.nodes.iteritems():
+            self.nodePoints[nodeId] = geometry.Point(transform.WGS2XY(node))
     
     def readOSM(self):
     
@@ -56,7 +60,7 @@ class ElementHandler(object):
         '''
         for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
             if len(polyOsmIdLst) > 1 and self.checkNodeUnhandling(nodeId):
-                self.handlePolysAroundNode(nodeId, polyOsmIdLst)
+                self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
                 #self.checkConsistency(way, poly)
         #do transitions
         #=======================================================================
@@ -152,8 +156,9 @@ class ElementHandler(object):
         print'---'
         print 'adjusting node', nodeId
         print 'polygons', polyOsmIdLst
-        union, unionAll, unionCleared, polyEndInfo = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
-        
+        union, unionCleared, unionAll, polyEndInfo = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
+        if not self.checkPolygons([union, unionCleared, unionAll]):
+            return
         '''
         handle if more than 2 elements related to point
         '''
@@ -161,8 +166,7 @@ class ElementHandler(object):
             '''
             buffer unionCleared by epsilon and differenciate other polygons
             '''
-            Output.polygons[nodeId] = unionCleared
-            self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo)
+            self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
                 #transition = poly.intersection(Output.polygons[nodeId])
                 #if transition.geom_type == shapely.LineString:
                 #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
@@ -184,7 +188,7 @@ class ElementHandler(object):
                 poly1, poly2 = self.adjustCaseMidEnd(poly1, poly2, unionAll)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
                 #both middle points
-                #self.adjustCaseMidMid(nodeId, osmId1, osmId2, poly1, poly2, unionCleared, unionAll)
+                #self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
                 return
             if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
@@ -211,19 +215,96 @@ class ElementHandler(object):
             print polyOsmIdLst
             raise Exception  
     
-    def adjustCaseMultiple(self, nodeId, polyOsmIdLst, polyEndInfo):
+    def adjustCaseMultiple(self, nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll):
         '''
         adjusting a node with multiple ways by defining their intersection as a new polygon.
-        then differenciating all polygons around the center polygon (unionCleared)
+        then differenciating all polygons around the center polygon (unionCleared).
+        if the handled node is in the middle of the element, the element is split into two seperate polygons.
+        all references of the split polygon are updated in data.Output.
         '''
+        if not isinstance(unionCleared, geometry.Polygon) or unionCleared.is_empty:
+            print nodeId, 'not handled'
+            return
+        Output.polygons[nodeId] = unionCleared
+        print 'New polygon', nodeId, unionCleared
         for polyOsmId in polyOsmIdLst:
-                poly = Output.polygons[polyOsmId]
-                # difference only if poly is linked at end point
-                if not polyEndInfo[polyOsmId]:
-                    print 'this case is not handled yet. more than 2 elements intersect but one of them in its center.'
+            poly = Output.polygons[polyOsmId]
+            poly = poly.difference(Output.polygons[nodeId].buffer(Config.errorDistance/5))
+            # difference only if poly is linked at end point
+            print polyEndInfo
+            print polyOsmIdLst
+            if not polyEndInfo[polyOsmId]:
+                '''
+                split poly by unionCleared. delete the old poly. add children as new polys. 
+                '''
+                print poly
+                '''
+                    save nodeRefs when nodeId was reached and start a new List.
+                '''
+                nodeRefs = Output.wayNodes.pop(polyOsmId)
+                nodeRefsLst = []
+                nodeRefsNew = []
+                for nodeRef in nodeRefs:
+                    nodeRefsNew.append(nodeRef)
+                    if nodeRef == nodeId:
+                        nodeRefsLst.append(nodeRefsNew)
+                        nodeRefsNew = [nodeRef]
+                nodeRefsLst.append(nodeRefsNew)
+                '''
+                make LineStrings from nodeRefs
+                '''
+                lineStringLst = []
+                for nodeRefs in nodeRefsLst:
+                    ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs))
+                    lineStringLst.append(ls)
+                if isinstance(poly, geometry.MultiPolygon):
+                    i = 0
+                    childrenIds = []
+                    for polyChild in poly.geoms:
+                        if not isinstance(polyChild, geometry.Polygon):
+                            raise Exception
+                        i += 1
+                        newPolyId = polyOsmId + '000' + `i`
+                        childrenIds.append(newPolyId)
+                        #poly = self.fuseClosePoints(Output.polygons[nodeId], polyChild)
+                        #poly = self.filterPolyPointsByDistance(unionAll, polyChild)
+                        Output.polygons[newPolyId] = polyChild
+                        print polyChild
+                        print 'New Polygon', newPolyId, 'created from', polyOsmId
+                        
+                    '''
+                    #osmId Node = [osmId Way]
+                    usedNodes = {}
+                    #osmId Way = polygon
+                    polygons = {}
+                    #osmId Way = Way/Element
+                    elements = {}
+                    #osmId Way = [osmId Node]
+                    wayNodes = {}
+                    #osmId osmId LineString
+                    transitionlst = []
+                    '''
+                    Output.usedNodes[nodeId].remove(polyOsmId)
+                    Output.usedNodes[nodeId].extend(childrenIds)
+                    for osmIdWayLst in Output.usedNodes.itervalues():
+                        if polyOsmId in osmIdWayLst:
+                            osmIdWayLst.remove(polyOsmId)
+                            osmIdWayLst.extend(childrenIds)
+                    del Output.polygons[polyOsmId]
+                    elem = Output.elements.pop(polyOsmId)
+                    for childId in childrenIds:
+                        Output.elements[childId] = elem
+                        Output.wayNodes[childId] = nodeRefs
+                        polyEndInfo[childId] = self.isEndOfElement(nodeId, childId)
+                    '''
+                    TODO: split way nodes!!!
+                    '''
+                else:
+                    print poly
+                    print unionCleared
                     #possible solution: split poly
                     raise Exception
-                poly = poly.difference(Output.polygons[nodeId].buffer(Config.errorDistance/5))
+            else:
                 poly = self.filterRelevantPoly(poly)
                 poly = self.fuseClosePoints(Output.polygons[nodeId], poly)
                 if poly.is_valid:
@@ -254,33 +335,6 @@ class ElementHandler(object):
         poly2 = self.filterRelevantPoly(poly2)
         poly1, poly2 = self.mergePolys(poly1, poly2, unionAll)
         return poly1, poly2
-    
-    def adjustCaseMidMid(self, nodeId, osmId1, osmId2, poly1, poly2, unionCleared, unionAll):
-        '''
-        returning five adjusted polygons from two input-polygons. case mid-mid-junction
-        '''
-        #like if more than 2 elements
-        poly1 = poly1.difference(unionCleared.buffer(Config.errorDistance/2))
-        poly2 = poly2.difference(unionCleared.buffer(Config.errorDistance/2))
-        Output.polygons[nodeId] = unionCleared
-        if isinstance(poly1, geometry.MultiPolygon) and isinstance(poly2, geometry.MultiPolygon):
-            i = 1
-            for poly in poly1:
-                poly = self.fuseClosePoints(unionCleared, poly)
-                poly = self.filterPolyPointsByDistance(unionAll, poly)
-                Output.polygons[osmId1 + `000` + `i`] = poly
-                i += 1
-            i = 1
-            for poly in poly2:
-                poly = self.fuseClosePoints(unionCleared, poly)
-                poly = self.filterPolyPointsByDistance(unionAll, poly)
-                Output.polygons[osmId2 + `000` + `i`] = poly
-                i += 1   
-            return
-        else:
-            print poly1
-            print poly2
-            raise Exception
         
     def mergePolys(self, poly1, poly2, unionAll):
         '''
@@ -368,11 +422,19 @@ class ElementHandler(object):
         '''
         polyEndInfo  = {}
         unionAll = geometry.Polygon()
+        nodePoint = self.nodePoints[nodeId]
         
         for polyOsmId in polyOsmIdLst:
             polyEndInfo[polyOsmId] = self.isEndOfElement(nodeId, polyOsmId)
             unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId]])
-
+        if isinstance(unionAll, geometry.MultiPolygon):
+            for poly in unionAll.geoms:
+                if nodePoint.within(poly):
+                    unionAll = poly
+                    break
+            if not isinstance(unionAll, geometry.Polygon):
+                print unionAll
+                raise Exception
         '''
         all combinations of polygons in poly
         '''
@@ -388,15 +450,10 @@ class ElementHandler(object):
         union = ops.cascaded_union(polyintersects)
         if isinstance(union, geometry.Polygon):
             unionCleared = self.filterPolyPointsByDistance(unionAll, union)
-        elif isinstance(union, geometry.LineString):
-            unionCleared = geometry.Polygon()
-            print 'not adjusting', nodeId
-            print 'propably touching polygons'
-        else: 
-            print unionCleared
-            raise Exception
+        else:
+            unionCleared = union
         
-        return union, unionAll, unionCleared, polyEndInfo
+        return union, unionCleared, unionAll, polyEndInfo
     
     def storeElement(self, elem, poly):
         '''
@@ -417,7 +474,6 @@ class ElementHandler(object):
                     pass
             else:
                 Output.usedNodes[osmIdNode] = [osmIdElem]
-                
         Output.polygons[osmIdElem] = poly  
         Output.elements[osmIdElem] = elem 
         Output.wayNodes[osmIdElem] = nodeRefs
@@ -434,7 +490,17 @@ class ElementHandler(object):
                 except KeyError:
                     pass
         return True
-                
+    
+    def checkPolygons(self, polyLst = []):
+        '''
+        return true if all polygons in list are not empty and polygons
+        '''
+        for poly in polyLst:
+            if not isinstance(poly, geometry.Polygon) or poly.is_empty:
+                print poly
+                return False
+        return True
+    
     def fuseClosePoints(self, polyStay, polyChange):
         '''
         moves the vertices of polyChange to vertices of PolyStay if their very close. solving numeric issues
@@ -462,7 +528,7 @@ class ElementHandler(object):
         '''
         returns the Polygon polyChange, cleared from points that aren't close to the outside of Polygon polyStay
         '''
-        if not isinstance(polyStay, geometry.Polygon) and not isinstance(polyChange, geometry.Polygon):
+        if not isinstance(polyStay, geometry.Polygon) or not isinstance(polyChange, geometry.Polygon):
             print polyStay
             print polyChange
             raise Exception
@@ -471,6 +537,7 @@ class ElementHandler(object):
             p = geometry.Point(p[0], p[1])
             if polyStay.exterior.distance(p) < Config.errorDistance:
                 polyCleared.append((p.x, p.y))
+        print polyCleared
         polyCleared = geometry.Polygon(polyCleared)
         if isinstance(polyCleared, geometry.Polygon):
             return polyCleared
