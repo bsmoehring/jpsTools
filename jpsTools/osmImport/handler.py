@@ -186,7 +186,7 @@ class ElementHandler(object):
                 poly1, poly2 = self.adjustCaseMidEnd(poly1, poly2, unionAll)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
                 #both middle points
-                #self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
+                self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
                 return
             if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
@@ -222,7 +222,7 @@ class ElementHandler(object):
         '''
         if not isinstance(unionCleared, geometry.Polygon) or unionCleared.is_empty:
             print nodeId, 'not handled'
-            return
+            raise Exception
         Output.polygons[nodeId] = unionCleared
         print 'New polygon', nodeId, unionCleared
         for polyOsmId in polyOsmIdLst:
@@ -230,16 +230,16 @@ class ElementHandler(object):
             poly = poly.difference(Output.polygons[nodeId].buffer(Config.errorDistance/5))
             # difference only if poly is linked at end point
             print polyEndInfo
-            print polyOsmIdLst
+            print polyOsmId
             if not polyEndInfo[polyOsmId]:
                 '''
                 split poly by unionCleared. delete the old poly. add children as new polys. 
                 '''
                 print poly
                 '''
-                    save nodeRefs when nodeId was reached and start a new List.
+                save nodeRefs when nodeId was reached and start a new List.
                 '''
-                nodeRefs = Output.wayNodes.pop(polyOsmId)
+                nodeRefs = Output.wayNodes[polyOsmId]
                 nodeRefsLst = []
                 nodeRefsNew = []
                 for nodeRef in nodeRefs:
@@ -251,57 +251,48 @@ class ElementHandler(object):
                 '''
                 make LineStrings from nodeRefs
                 '''
-                lineStringLst = []
-                for nodeRefs in nodeRefsLst:
-                    ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs))
-                    lineStringLst.append(ls)
                 if isinstance(poly, geometry.MultiPolygon):
                     i = 0
-                    childrenIds = []
                     for polyChild in poly.geoms:
                         if not isinstance(polyChild, geometry.Polygon):
                             raise Exception
                         i += 1
                         newPolyId = polyOsmId + '000' + `i`
-                        childrenIds.append(newPolyId)
                         #poly = self.fuseClosePoints(Output.polygons[nodeId], polyChild)
                         #poly = self.filterPolyPointsByDistance(unionAll, polyChild)
-                        Output.polygons[newPolyId] = polyChild
-                        print polyChild
-                        print 'New Polygon', newPolyId, 'created from', polyOsmId
                         
-                    '''
-                    #osmId Node = [osmId Way]
-                    usedNodes = {}
-                    #osmId Way = polygon
-                    polygons = {}
-                    #osmId Way = Way/Element
-                    elements = {}
-                    #osmId Way = [osmId Node]
-                    wayNodes = {}
-                    #osmId osmId LineString
-                    transitionlst = []
-                    '''
+                        '''
+                        get relevant nodeRefs from nodeRefsLst
+                        TODO: get largest intersection
+                        '''
+                        for nodeRefs in nodeRefsLst:
+                            ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
+                            if isinstance(ls.intersection(polyChild), geometry.LineString):
+                                Output.wayNodes[newPolyId] = nodeRefs
+                                Output.elements[newPolyId] = Output.elements[polyOsmId]
+                                Output.polygons[newPolyId] = polyChild
+                                Output.usedNodes[nodeId].append(newPolyId)
+                                for osmIdWayLst in Output.usedNodes.itervalues():
+                                    if polyOsmId in osmIdWayLst:
+                                        osmIdWayLst.append(newPolyId)
+                                
+                                polyEndInfo[newPolyId] = self.isEndOfElement(nodeId, newPolyId)
+                                print polyChild
+                                print 'New Polygon', newPolyId, 'created from', polyOsmId
+                                break
+                            
                     Output.usedNodes[nodeId].remove(polyOsmId)
-                    Output.usedNodes[nodeId].extend(childrenIds)
+                    del Output.elements[polyOsmId]
+                    del Output.polygons[polyOsmId]
+                    del Output.wayNodes[polyOsmId]
                     for osmIdWayLst in Output.usedNodes.itervalues():
                         if polyOsmId in osmIdWayLst:
                             osmIdWayLst.remove(polyOsmId)
-                            osmIdWayLst.extend(childrenIds)
-                    del Output.polygons[polyOsmId]
-                    elem = Output.elements.pop(polyOsmId)
-                    for childId in childrenIds:
-                        Output.elements[childId] = elem
-                        Output.wayNodes[childId] = nodeRefs
-                        polyEndInfo[childId] = self.isEndOfElement(nodeId, childId)
-                    '''
-                    TODO: split way nodes!!!
-                    '''
                 else:
                     print poly
                     print unionCleared
                     #possible solution: split poly
-                    raise Exception
+                    print 'not handling'
             else:
                 poly = self.filterRelevantPoly(poly)
                 poly = self.fuseClosePoints(Output.polygons[nodeId], poly)
