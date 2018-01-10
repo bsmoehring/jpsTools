@@ -19,6 +19,7 @@ class JPSBuilder(object):
     def translate2jps(self):
         print '---'
         for osmId, poly in Output.polygons.items():
+            print osmId
             if isinstance(poly, geometry.Polygon):
                 self.polygon2jps(osmId, poly)
             elif isinstance(poly, geometry.MultiPolygon):
@@ -27,8 +28,6 @@ class JPSBuilder(object):
         for transition in Output.transitionlst:
             self.transition2jps(transition)
                     
-        self.buildJPSTree()      
-
     def buildJPSTree(self):
         '''
         form an xml string from all geometry objects
