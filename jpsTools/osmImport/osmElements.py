@@ -22,10 +22,8 @@ class OSMBuilder(object):
     def translate2osm(self):
         print '---'
         for osmId, poly in Output.polygons.items():
-            try:
-                elem = Output.elements[osmId]
-            except KeyError:
-                elem = None
+            print osmId
+            elem = Output.elements[osmId]
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
             elif isinstance(poly, geometry.MultiPolygon):
@@ -40,11 +38,13 @@ class OSMBuilder(object):
         
         nodeRefs = []
         tags = {}
+        nodeRefPrevious = ''
         for coord in poly.exterior._get_coords():
             lat, lon = self.transform.XY2WGS(coord[0], coord[1])
             nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
-            nodeRefs.append(nodeRef)
-        
+            if nodeRef != nodeRefPrevious:
+                nodeRefs.append(nodeRef)
+            nodeRefPrevious = nodeRef
         if elem == None:
             tags = {osm.Id:osmId, 'origin':'JPSTools', 'highway':'footway', 'area':'yes'}
         else:
