@@ -6,11 +6,12 @@ Created on 11.11.2017
 from constants import osm
 from config import Config
 import shapely.geometry as geometry
-from shapely.geometry.base import CAP_STYLE, JOIN_STYLE, geom_factory
+from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 from shapely import ops
 from data import Output
 from xml.etree import ElementTree
 import math, itertools
+#from exceptions import UnhandleThisNodeException
 
 class ElementHandler(object):
     '''
@@ -58,8 +59,11 @@ class ElementHandler(object):
         handle all nodes that are part of more than 1 polygon and aren't tagged for unhandling:
         '''
         for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
-            if len(polyOsmIdLst) > 1 and self.checkNodeUnhandling(nodeId):
-                self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
+            if len(polyOsmIdLst) > 1:
+                try:
+                    self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
+                except UnhandleThisNodeException:
+                    print nodeId, 'not handled!'
                 #self.checkConsistency(way, poly)
         #do transitions
         #=======================================================================
@@ -155,6 +159,8 @@ class ElementHandler(object):
         print'---'
         print 'adjusting node', nodeId
         print 'polygons', polyOsmIdLst
+        self.checkNodeUnhandling(nodeId)
+
         union, unionCleared, unionAll, polyEndInfo = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
         if not self.checkPolygons([union, unionCleared, unionAll]):
             return
@@ -232,7 +238,7 @@ class ElementHandler(object):
         
         for polyOsmId in polyOsmIdLst:
             poly = Output.polygons[polyOsmId]
-            poly = poly.difference(unionCleared.buffer(Config.errorDistance/5))
+            poly = poly.difference(unionCleared.buffer(Config.bufferDistance))
             # difference only if poly is linked at end point
             print polyEndInfo
             print polyOsmId
@@ -329,12 +335,12 @@ class ElementHandler(object):
         returning two polygons that should share the same coords at intersecting areas.
         union of the exterior LineString of Polygons. then filtering the closest Polygon. 
         '''
-        lineString1 = geometry.LineString(list(poly1.buffer(Config.errorDistance/5).exterior.coords))
-        lineString2 = geometry.LineString(list(poly2.buffer(Config.errorDistance/5).exterior.coords))
+        lineString1 = geometry.LineString(list(poly1.buffer(Config.bufferDistance).exterior.coords))
+        lineString2 = geometry.LineString(list(poly2.buffer(Config.bufferDistance).exterior.coords))
         unionExteriors = lineString1.union(lineString2)
         polyLst = [geom for geom in ops.polygonize(unionExteriors)]
-        poly1 = self.filterClosestPolygon(poly1, polyLst)
-        poly2 = self.filterClosestPolygon(poly2, polyLst)
+        poly1 = self.filterClosestPoly(poly1, polyLst)
+        poly2 = self.filterClosestPoly(poly2, polyLst)
         poly1 = self.fuseClosePoints(unionAll, poly1)
         poly2 = self.fuseClosePoints(unionAll, poly2)
         return poly1, poly2
@@ -492,10 +498,9 @@ class ElementHandler(object):
         for tag in node.iter(tag = osm.Tag):
                 try:
                     if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
-                        return False
+                        raise UnhandleThisNodeException
                 except KeyError:
                     pass
-        return True
     
     def checkPolygons(self, polyLst = []):
         '''
@@ -540,10 +545,10 @@ class ElementHandler(object):
             print polyChange
             raise Exception
         polyCleared = []
-        for p in polyChange.exterior.coords:
-            p = geometry.Point(p[0], p[1])
+        for coord in polyChange.exterior.coords:
+            p = geometry.Point(coord)
             if polyStay.exterior.distance(p) < Config.errorDistance:
-                polyCleared.append((p.x, p.y))
+                polyCleared.append(coord)
         print polyCleared
         try:
             polyCleared = geometry.Polygon(polyCleared)
@@ -555,7 +560,7 @@ class ElementHandler(object):
             print polyCleared
             raise Exception
                 
-    def filterClosestPolygon(self, polyOld, polyLst):
+    def filterClosestPoly(self, polyOld, polyLst):
         '''
         return a poly of a list that is the closest in area to the polyOld
         TODO: filter list of polygons. returning each polygon with largest intersecting area
@@ -590,7 +595,7 @@ class ElementHandler(object):
             print poly.geom_type, 'retrieved from MultiPolygon because of its size.'
             return poly
         else:
-            raise Exception
+            raise UnhandleThisNodeException
     
     def isEndOfElement(self, nodeId, wayId):
         '''
@@ -606,4 +611,7 @@ class ElementHandler(object):
             return False
         else:
             raise Exception
+
+class UnhandleThisNodeException(Exception):
+    pass
     
