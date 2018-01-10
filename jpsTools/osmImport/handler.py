@@ -6,7 +6,7 @@ Created on 11.11.2017
 from constants import osm
 from config import Config
 import shapely.geometry as geometry
-from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
+from shapely.geometry.base import CAP_STYLE, JOIN_STYLE, geom_factory
 from shapely import ops
 from data import Output
 from xml.etree import ElementTree
@@ -181,10 +181,10 @@ class ElementHandler(object):
                 poly1, poly2 = self.adjustCaseEndEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
             elif polyEndInfo[osmId1]:
                 #one end of line
-                poly2, poly1 = self.adjustCaseMidEnd(poly2, poly1, unionAll)
+                poly2, poly1 = self.adjustCaseMidEnd(nodeId, osmId2, osmId1, poly2, poly1, unionAll)
             elif polyEndInfo[osmId2]:
                 #one end of line
-                poly1, poly2 = self.adjustCaseMidEnd(poly1, poly2, unionAll)
+                poly1, poly2 = self.adjustCaseMidEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
             elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
                 #both middle points
                 self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
@@ -293,7 +293,7 @@ class ElementHandler(object):
                     #possible solution: split poly
                     print 'not handling'
             else:
-                poly = self.filterRelevantPoly(poly)
+                poly = self.filterRelevantPoly(poly, polyOsmId)
                 poly = self.fuseClosePoints(Output.polygons[nodeId], poly)
                 if poly.is_valid:
                     Output.polygons[polyOsmId] = poly
@@ -301,12 +301,12 @@ class ElementHandler(object):
                     print poly
                     raise Exception
            
-    def adjustCaseMidEnd(self, polyMid, polyEnd, unionAll):
+    def adjustCaseMidEnd(self, nodeId, osmIdMid, osmIdEnd, polyMid, polyEnd, unionAll):
         '''
         returning two adjusted polygons. case T-junction.
         '''
         polyEnd = polyEnd.difference(polyMid)
-        polyEnd = self.filterRelevantPoly(polyEnd)
+        polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
         polyMid, polyEnd = self.mergePolys(polyMid, polyEnd, unionAll)
         polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
         polyMid = self.filterPolyPointsByDistance(unionAll, polyMid)
@@ -318,9 +318,9 @@ class ElementHandler(object):
         '''
         b1, b2 = self.getBisectorPolygons(nodeId, osmId1, osmId2)
         poly1 = poly1.difference(b2)
-        poly1 = self.filterRelevantPoly(poly1)
+        poly1 = self.filterRelevantPoly(poly1, osmId1)
         poly2 = poly2.difference(b1)
-        poly2 = self.filterRelevantPoly(poly2)
+        poly2 = self.filterRelevantPoly(poly2, osmId2)
         poly1, poly2 = self.mergePolys(poly1, poly2, unionAll)
         return poly1, poly2
         
@@ -568,22 +568,29 @@ class ElementHandler(object):
                 polyNew = poly
         return polyNew
             
-    def filterRelevantPoly(self, multipoly):
+    def filterRelevantPoly(self, multipoly, polyOsmId):
         '''
         return largest Polygon from given MultiP olygon.
         Method should later be optimized!
         '''    
         if isinstance(multipoly, geometry.Polygon):
             return multipoly
-        area = float("-infinity")
+        elif isinstance(multipoly, geometry.MultiPolygon):
+            nodeRefs = Output.wayNodes[polyOsmId]
+            ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
+            for poly in multipoly.geoms:
+                if ls.intersects(poly) and isinstance(poly, geometry.Polygon):
+                    return poly
         
-        for polygon in multipoly:
-            if polygon.area > area:
-                area = polygon.area
-                poly = polygon
-        
-        print poly.geom_type, 'retrieved from MultiPolygon because of its size.'
-        return poly
+            area = float("-infinity")
+            for polygon in multipoly:
+                if polygon.area > area:
+                    area = polygon.area
+                    poly = polygon
+            print poly.geom_type, 'retrieved from MultiPolygon because of its size.'
+            return poly
+        else:
+            raise Exception
     
     def isEndOfElement(self, nodeId, wayId):
         '''
@@ -593,9 +600,10 @@ class ElementHandler(object):
         nodeRefs = Output.wayNodes[wayId]
         if (nodeId == nodeRefs[0] or nodeId == nodeRefs[-1]) and nodeRefs[0] != nodeRefs[-1]:
             print nodeId, 'is the end of element', wayId
-            end = True
-        else:
+            return True
+        elif nodeId in nodeRefs:
             print nodeId, 'is somewhere in the middle of', wayId
-            end = False
-        return end
+            return False
+        else:
+            raise Exception
     
