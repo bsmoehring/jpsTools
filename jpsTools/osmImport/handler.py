@@ -9,6 +9,7 @@ import shapely.geometry as geometry
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 from shapely import ops
 from data import Output
+from xml.etree import ElementTree
 import math, itertools
 
 class ElementHandler(object):
@@ -45,7 +46,7 @@ class ElementHandler(object):
         for count in sorted(elements.iterkeys(), reverse=True): 
             for elem in elements[count]:
                 poly = self.translate(elem)
-                self.storeElement(elem, poly)
+                self.storeElement(elem, poly, [])
         #adjustpolys
         print '---'
         print Output.usedNodes
@@ -223,11 +224,15 @@ class ElementHandler(object):
         if not isinstance(unionCleared, geometry.Polygon) or unionCleared.is_empty:
             print nodeId, 'not handled'
             raise Exception
-        Output.polygons[nodeId] = unionCleared
-        print 'New polygon', nodeId, unionCleared
+        newElem = ElementTree.Element(osm.Way, {osm.Id:nodeId, 'origin':'JPSTools'})
+        ElementTree.SubElement(newElem, osm.Tag, {osm.Key:'highway', osm.Value:'footway'})
+        ElementTree.SubElement(newElem, osm.Tag, {osm.Key:'area', osm.Value:'yes'})
+        self.storeElement(newElem, unionCleared, [nodeId])
+        print 'New Polygon', nodeId, 'created from', nodeId
+        
         for polyOsmId in polyOsmIdLst:
             poly = Output.polygons[polyOsmId]
-            poly = poly.difference(Output.polygons[nodeId].buffer(Config.errorDistance/5))
+            poly = poly.difference(unionCleared.buffer(Config.errorDistance/5))
             # difference only if poly is linked at end point
             print polyEndInfo
             print polyOsmId
@@ -257,7 +262,7 @@ class ElementHandler(object):
                         if not isinstance(polyChild, geometry.Polygon):
                             raise Exception
                         i += 1
-                        newPolyId = polyOsmId + '000' + `i`
+                        newPolyId = polyOsmId + '0' + `i`
                         #poly = self.fuseClosePoints(Output.polygons[nodeId], polyChild)
                         #poly = self.filterPolyPointsByDistance(unionAll, polyChild)
                         
@@ -268,23 +273,17 @@ class ElementHandler(object):
                         for nodeRefs in nodeRefsLst:
                             ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
                             if isinstance(ls.intersection(polyChild), geometry.LineString):
-                                Output.wayNodes[newPolyId] = nodeRefs
-                                Output.elements[newPolyId] = Output.elements[polyOsmId]
-                                Output.polygons[newPolyId] = polyChild
-                                Output.usedNodes[nodeId].append(newPolyId)
-                                for osmIdWayLst in Output.usedNodes.itervalues():
-                                    if polyOsmId in osmIdWayLst:
-                                        osmIdWayLst.append(newPolyId)
-                                
-                                polyEndInfo[newPolyId] = self.isEndOfElement(nodeId, newPolyId)
+                                elem = Output.elements[polyOsmId].copy()
+                                elem.attrib[osm.Id] = newPolyId
+                                self.storeElement(elem, polyChild, nodeRefs)
                                 print polyChild
                                 print 'New Polygon', newPolyId, 'created from', polyOsmId
                                 break
                             
-                    Output.usedNodes[nodeId].remove(polyOsmId)
                     del Output.elements[polyOsmId]
                     del Output.polygons[polyOsmId]
                     del Output.wayNodes[polyOsmId]
+                    Output.usedNodes[nodeId].remove(polyOsmId)
                     for osmIdWayLst in Output.usedNodes.itervalues():
                         if polyOsmId in osmIdWayLst:
                             osmIdWayLst.remove(polyOsmId)
@@ -437,35 +436,53 @@ class ElementHandler(object):
         if distance to unionAll is < epsilon -> use point for intersection poly
         '''
         union = ops.cascaded_union(polyintersects)
+        if isinstance(union, geometry.MultiPolygon):
+            for poly in union.geoms:
+                if nodePoint.within(poly):
+                    union = poly
+                    break
+        elif isinstance(union, geometry.GeometryCollection):
+            for geom in union.geoms:
+                if isinstance(geom, geometry.Polygon):
+                    union = geom
+                    break
         if isinstance(union, geometry.Polygon):
             unionCleared = self.filterPolyPointsByDistance(unionAll, union)
         else:
-            unionCleared = union
+            unionCleared = geometry.Polygon()
         
         return union, unionCleared, unionAll, polyEndInfo
     
-    def storeElement(self, elem, poly):
+    def storeElement(self, elem, poly, nodeRefs = []):
         '''
         storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
+        use the List nodeRefs instead of the elements tags if it's given
         '''
         osmIdElem = elem.attrib[osm.Id]
-        nodeRefs = []
+        if not self.checkPolygons([poly]):
+            raise Exception
+        if nodeRefs:
+            for elemChild in elem.iter(tag = osm.NodeRef):
+                elem.remove(elemChild)
+            for nodeRef in nodeRefs:
+                ElementTree.SubElement(elem, osm.NodeRef, {osm.Ref:nodeRef})
+            
         #parse nodes
-        for nd in elem.iter(tag = osm.NodeRef):
-            osmIdNode = nd.attrib[osm.Ref]
-            nodeRefs.append(osmIdNode)
-            #add nodes and elemId to usedNodes
-            if osmIdNode in Output.usedNodes:
+        else:
+            for nd in elem.iter(tag = osm.NodeRef):
+                nodeRefs.append(nd.attrib[osm.Ref])
+        #add nodes and elemId to usedNodes
+        for nodeRef in nodeRefs: 
+            if nodeRef in Output.usedNodes:
                 #make sure that every node is added only once
-                if osmIdElem not in Output.usedNodes[osmIdNode]:
-                    Output.usedNodes[osmIdNode].append(osmIdElem)
-                else:
-                    pass
+                if osmIdElem not in Output.usedNodes[nodeRef]:
+                    Output.usedNodes[nodeRef].append(osmIdElem)
             else:
-                Output.usedNodes[osmIdNode] = [osmIdElem]
+                Output.usedNodes[nodeRef] = [osmIdElem]
+        Output.wayNodes[osmIdElem] = nodeRefs
         Output.polygons[osmIdElem] = poly  
         Output.elements[osmIdElem] = elem 
-        Output.wayNodes[osmIdElem] = nodeRefs
+            
     
     def checkNodeUnhandling(self, nodeId):
         '''
@@ -510,6 +527,7 @@ class ElementHandler(object):
         if isinstance(poly, geometry.Polygon) and poly.is_valid:
             return poly
         else:
+            return polyChange
             print poly
             raise Exception     
     
@@ -527,7 +545,10 @@ class ElementHandler(object):
             if polyStay.exterior.distance(p) < Config.errorDistance:
                 polyCleared.append((p.x, p.y))
         print polyCleared
-        polyCleared = geometry.Polygon(polyCleared)
+        try:
+            polyCleared = geometry.Polygon(polyCleared)
+        except ValueError:
+            return geometry.Polygon()
         if isinstance(polyCleared, geometry.Polygon):
             return polyCleared
         else:
@@ -554,14 +575,13 @@ class ElementHandler(object):
         '''    
         if isinstance(multipoly, geometry.Polygon):
             return multipoly
+        area = float("-infinity")
         
-        polygons = [polygon for polygon in multipoly]
-        area = 0
-        
-        for polygon in polygons:
+        for polygon in multipoly:
             if polygon.area > area:
                 area = polygon.area
                 poly = polygon
+        
         print poly.geom_type, 'retrieved from MultiPolygon because of its size.'
         return poly
     
