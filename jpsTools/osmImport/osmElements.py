@@ -10,7 +10,6 @@ from data import Output
 from shapely import geometry
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
-from osmImport import constants
 
 class OSMBuilder(object):
     
@@ -29,24 +28,11 @@ class OSMBuilder(object):
                 self.polygon2osm(osmId, poly, elem)
         transitionId = 1
         for transition in Output.transitionlst:
-            nodeRefs = []
-            nodeRefPrevious = ''
             if isinstance(transition.geometry, geometry.Polygon):
-                for coord in transition.geometry.exterior._get_coords():
-                    lat, lon = self.transform.XY2WGS(coord[0], coord[1])
-                    nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
-                    if nodeRef != nodeRefPrevious:
-                        nodeRefs.append(nodeRef)
-                    nodeRefPrevious = nodeRef
+                nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
             elif isinstance(transition.geometry, geometry.LineString):
-                for coord in transition.geometry.coords:
-                    lat, lon = self.transform.XY2WGS(coord[0], coord[1])
-                    nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
-                    if nodeRef != nodeRefPrevious:
-                        nodeRefs.append(nodeRef)
-                    nodeRefPrevious = nodeRef
-            if len(nodeRefs)==3:
-                del nodeRefs[-1]
+                nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
+            nodeRefs = list(set(nodeRefs))
             if len(nodeRefs)==2:
                 tags = {'origin':'JPSTools', 'highway':'transition', 'osmId1':transition.osmId1, 'osmId2':transition.osmId2}
                 OSM().addWay(Way(transitionId, nodeRefs, tags))
@@ -55,15 +41,8 @@ class OSMBuilder(object):
             
     def polygon2osm(self, osmId, poly, elem = None):
         
-        nodeRefs = []
         tags = {}
-        nodeRefPrevious = ''
-        for coord in poly.exterior._get_coords():
-            lat, lon = self.transform.XY2WGS(coord[0], coord[1])
-            nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
-            if nodeRef != nodeRefPrevious:
-                nodeRefs.append(nodeRef)
-            nodeRefPrevious = nodeRef
+        nodeRefs = self.coords2nodeRefs(poly.exterior._get_coords())
         if elem == None:
             tags = {osm.Id:osmId, 'origin':'JPSTools', 'highway':'footway', 'area':'yes'}
         else:
@@ -71,8 +50,20 @@ class OSMBuilder(object):
                 k = tag.attrib[osm.Key] 
                 v = tag.attrib[osm.Value]
                 tags[k] = v
+            tags['area'] = 'yes'
             
         OSM().addWay(Way(osmId, nodeRefs, tags))
+        
+    def coords2nodeRefs(self, coords = []):
+        nodeRefs = []
+        nodeRefPrevious = ''
+        for coord in coords:
+            lat, lon = self.transform.XY2WGS(coord[0], coord[1])
+            nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
+            if nodeRef != nodeRefPrevious:
+                nodeRefs.append(nodeRef)
+            nodeRefPrevious = nodeRef
+        return nodeRefs
         
     def buildOSMTree(self):
         '''
@@ -178,22 +169,6 @@ class Way:
         self.nodeRefs = nodeRefs
         self.tags = tags
     
-class Relation:
-    '''
-    OSM relation
-    '''
-    tag = osm.Relation
-
-class Tag:
-    '''
-    OSm tag
-    '''
-    tag = osm.Tag
-    
-    def __init__(self, key, value):
-        self.attribs = {}
-        self.attribs[osm.Key] = key
-        self.attribs[osm.Value] = value
         
         
         
