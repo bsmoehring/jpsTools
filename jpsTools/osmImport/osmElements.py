@@ -35,7 +35,7 @@ class OSMBuilder(object):
             nodeRefs = list(set(nodeRefs))
             if len(nodeRefs)==2:
                 tags = {'origin':'JPSTools', 'highway':'transition', 'osmId1':transition.osmId1, 'osmId2':transition.osmId2}
-                OSM().addWay(Way(transitionId, nodeRefs, tags))
+                OSMOut().addWay(Way(transitionId, nodeRefs, tags))
                 print transitionId
                 transitionId += 1
             
@@ -52,14 +52,14 @@ class OSMBuilder(object):
                 tags[k] = v
             tags['area'] = 'yes'
             
-        OSM().addWay(Way(osmId, nodeRefs, tags))
+        OSMOut().addWay(Way(osmId, nodeRefs, tags))
         
     def coords2nodeRefs(self, coords = []):
         nodeRefs = []
         nodeRefPrevious = ''
         for coord in coords:
             lat, lon = self.transform.XY2WGS(coord[0], coord[1])
-            nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
+            nodeRef = OSMOut().getOrAddNode(coord[0], coord[1], lat, lon, {})
             if nodeRef != nodeRefPrevious:
                 nodeRefs.append(nodeRef)
             nodeRefPrevious = nodeRef
@@ -76,13 +76,13 @@ class OSMBuilder(object):
         attribs['version'] = '0.6' 
         attribs['generator'] = 'JPSTools'
           
-        osmTree = Element(OSM.tag, attribs)
-        for node in OSM.nodes:
+        osmTree = Element(OSMOut.tag, attribs)
+        for node in OSMOut.nodes:
             outNode = SubElement(osmTree, node.tag, node.attribs)
             for tag in node.tags.iteritems():
                 SubElement(outNode, tag.tag, tag.attribs)
         
-        for way in OSM.ways:
+        for way in OSMOut.ways:
             outWay = SubElement(osmTree, way.tag, way.attribs)
             for nodeRef in way.nodeRefs:
                 SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
@@ -110,11 +110,10 @@ class OSMBuilder(object):
         except Exception:
             print 'output not written!'
             
-class OSM:
+class OSMOut:
     tag = osm.Osm
     nodes = []
     ways = []
-    relations = []
         
     def getOrAddNode(self, x, y, lat, lon, tags = {}):
         '''
