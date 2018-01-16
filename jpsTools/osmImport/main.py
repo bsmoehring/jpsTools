@@ -23,9 +23,13 @@ def main():
     
     transform = Transformation(input)
     
-    ElementHandler(input, transform).readOSM()
+    handler = ElementHandler(input, transform)
     
-    #JPSBuilder(Config.outputPath)
+    handler.readOSM()
+    
+    #handler.getTransitions()
+    
+    JPSBuilder(Config.outputPath)
     
     OSMBuilder(Config.outputPath, transform)
     

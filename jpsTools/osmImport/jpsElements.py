@@ -25,8 +25,8 @@ class JPSBuilder(object):
             elif isinstance(poly, geometry.MultiPolygon):
                 for polygon in poly:
                     self.polygon2jps(osmId, polygon)
-        for transition in Output.transitionlst:
-            self.transition2jps(transition)
+        #for transition in Output.transitionlst:
+         #   self.transition2jps(transition)
                     
     def buildJPSTree(self):
         '''

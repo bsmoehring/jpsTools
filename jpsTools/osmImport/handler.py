@@ -27,10 +27,8 @@ class ElementHandler(object):
     
     def readOSM(self):
     
-        elements = {}
         for elem in self.tree.iter():
             if elem.tag in [osm.Way, osm.Relation]:
-                count = 0
                 convert = False
                 for tag in elem:
                     k = tag.get(osm.Key)
@@ -38,17 +36,9 @@ class ElementHandler(object):
                     if k in Config.filterTags and v in Config.filterTags[k]:
                         convert = True
                 if convert:
-                    try: 
-                        elements[count].append(elem)
-                    except KeyError:
-                        elements[count] = [elem]
+                    poly = self.translate(elem)
+                    self.storeElement(elem, poly, [])
         
-        #sort list to start with largest elements
-        for count in sorted(elements.iterkeys(), reverse=True): 
-            for elem in elements[count]:
-                poly = self.translate(elem)
-                self.storeElement(elem, poly, [])
-        #adjustpolys
         print '---'
         print Output.usedNodes
         print Output.polygons
@@ -64,17 +54,8 @@ class ElementHandler(object):
                     self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
                 except UnhandleThisNodeException:
                     print nodeId, 'not handled!'
-                #self.checkConsistency(way, poly)
-        #do transitions
-        #=======================================================================
-        # print '---'
-        # for nodeId, osmIdLst in Output.transitionToDoLst.iteritems():
-        #     for pair in itertools.combinations(osmIdLst, 2):
-        #         osmId1, osmId2 = pair[0], pair[1]
-        #         print osmId1, osmId2
-        #         poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
-        #         self.getTransitions(nodeId, poly1, poly2, osmId1, osmId2)
-        #=======================================================================
+        for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
+            self.getTransitions(nodeId, Output.usedNodes[nodeId])
         
     def translate(self, elem):
         print '---'
@@ -105,6 +86,7 @@ class ElementHandler(object):
                     return self.way2polygon(way, self.transform)
         else:
             print 'Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?' 
+            raise Exception
                 
     def way2polygon(self, way, transform):
         '''
@@ -161,9 +143,9 @@ class ElementHandler(object):
         print 'polygons', polyOsmIdLst
         self.checkNodeUnhandling(nodeId)
 
-        union, unionCleared, unionAll, polyEndInfo = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
+        union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
         if not self.checkPolygons([union, unionCleared, unionAll]):
-            return
+            raise Exception
         '''
         handle if more than 2 elements related to point
         '''
@@ -171,7 +153,7 @@ class ElementHandler(object):
             '''
             buffer unionCleared by epsilon and differenciate other polygons
             '''
-            self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
+            self.adjustCaseMultiple(nodeId, polyOsmIdLst, unionCleared, unionAll)
                 #transition = poly.intersection(Output.polygons[nodeId])
                 #if transition.geom_type == shapely.LineString:
                 #    transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId, nodeId)
@@ -182,18 +164,18 @@ class ElementHandler(object):
             poly1 = Output.polygons[osmId1]
             poly2 = Output.polygons[osmId2]
             #handle if 2 elements
-            if polyEndInfo[osmId1] and polyEndInfo[osmId2]:
+            if self.isEndOfElement(nodeId, osmId1) and self.isEndOfElement(nodeId, osmId2):
                 #both ends of line
                 poly1, poly2 = self.adjustCaseEndEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
-            elif polyEndInfo[osmId1]:
+            elif self.isEndOfElement(nodeId, osmId1):
                 #one end of line
                 poly2, poly1 = self.adjustCaseMidEnd(nodeId, osmId2, osmId1, poly2, poly1, unionAll)
-            elif polyEndInfo[osmId2]:
+            elif self.isEndOfElement(nodeId, osmId2):
                 #one end of line
                 poly1, poly2 = self.adjustCaseMidEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
-            elif not polyEndInfo[osmId1] and not polyEndInfo[osmId2]:
+            elif not self.isEndOfElement(nodeId, osmId1) and not self.isEndOfElement(nodeId, osmId2):
                 #both middle points
-                self.adjustCaseMultiple(nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll)
+                self.adjustCaseMultiple(nodeId, polyOsmIdLst, unionCleared, unionAll)
                 return
             if isinstance(poly1, geometry.Polygon) and isinstance(poly2, geometry.Polygon):
                 Output.polygons[osmId1] = poly1
@@ -202,25 +184,11 @@ class ElementHandler(object):
                 print poly1
                 print poly2
                 raise Exception
-            #===================================================================
-            # transition = poly1.intersection(poly2)
-            # if transition.geom_type == shapely.LineString:
-            #     transition = Output.Transition(transition, transition.coords[0], transition.coords[-1], osmId1, osmId2)
-            #     Output.transitionlst.append(transition) 
-            # elif transition.geom_type == shapely.MultiLineString:
-            #     #handle this
-            #     pass
-            # elif transition.geom_type == shapely.Point:
-            #     pass
-            # else: 
-            #     print transition
-            #     raise Exception 
-            #===================================================================
         else:
             print polyOsmIdLst
             raise Exception  
     
-    def adjustCaseMultiple(self, nodeId, polyOsmIdLst, polyEndInfo, unionCleared, unionAll):
+    def adjustCaseMultiple(self, nodeId, polyOsmIdLst, unionCleared, unionAll):
         '''
         adjusting a node with multiple ways by defining their intersection as a new polygon.
         then differenciating all polygons around the center polygon (unionCleared).
@@ -240,9 +208,8 @@ class ElementHandler(object):
             poly = Output.polygons[polyOsmId]
             poly = poly.difference(unionCleared.buffer(Config.bufferDistance))
             # difference only if poly is linked at end point
-            print polyEndInfo
             print polyOsmId
-            if not polyEndInfo[polyOsmId]:
+            if not self.isEndOfElement(nodeId, polyOsmId):
                 '''
                 split poly by unionCleared. delete the old poly. add children as new polys. 
                 '''
@@ -414,12 +381,10 @@ class ElementHandler(object):
         '''
         returns union, unionAll, unionCleared, polyEndInfo
         '''
-        polyEndInfo  = {}
         unionAll = geometry.Polygon()
         nodePoint = self.nodePoints[nodeId]
         
         for polyOsmId in polyOsmIdLst:
-            polyEndInfo[polyOsmId] = self.isEndOfElement(nodeId, polyOsmId)
             unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId]])
         if isinstance(unionAll, geometry.MultiPolygon):
             for poly in unionAll.geoms:
@@ -457,7 +422,7 @@ class ElementHandler(object):
         else:
             unionCleared = geometry.Polygon()
         
-        return union, unionCleared, unionAll, polyEndInfo
+        return union, unionCleared, unionAll
     
     def storeElement(self, elem, poly, nodeRefs = []):
         '''
@@ -604,13 +569,34 @@ class ElementHandler(object):
         '''
         nodeRefs = Output.wayNodes[wayId]
         if (nodeId == nodeRefs[0] or nodeId == nodeRefs[-1]) and nodeRefs[0] != nodeRefs[-1]:
-            print nodeId, 'is the end of element', wayId
             return True
         elif nodeId in nodeRefs:
-            print nodeId, 'is somewhere in the middle of', wayId
             return False
         else:
             raise Exception
+        
+    def getTransitions(self, nodeId, osmIdLst = []):
+        '''
+        '''
+        for osmId in osmIdLst:
+            if nodeId in Output.wayNodes[osmId]:
+                pass
+            else:
+                raise Exception
+        for pair in itertools.combinations(osmIdLst, 2):
+            osmId1, osmId2 = pair[0], pair[1]
+            print osmId1, osmId2
+            poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
+            
+            transition = poly1.buffer(Config.bufferDistance).intersection(poly2)
+            if isinstance(transition, geometry.base.BaseMultipartGeometry): 
+                distance = float("+infinity")
+                for geom in transition.geoms:
+                    if geom.distance(self.nodePoints[nodeId]) < distance:
+                        transition = geom
+            if isinstance(transition, geometry.Polygon) or isinstance(transition, geometry.LineString):
+                transition = Output.Transition(transition, osmId1, osmId2)
+                Output.transitionlst.append(transition)
 
 class UnhandleThisNodeException(Exception):
     pass

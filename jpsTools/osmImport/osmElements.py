@@ -10,6 +10,7 @@ from data import Output
 from shapely import geometry
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
+from osmImport import constants
 
 class OSMBuilder(object):
     
@@ -26,13 +27,31 @@ class OSMBuilder(object):
             elem = Output.elements[osmId]
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
-            elif isinstance(poly, geometry.MultiPolygon):
-                for polygon in poly:
-                    self.polygon2osm(osmId, polygon, elem)
-            else: 
-                print poly
-                raise Exception
-        #TODO transitions2osm
+        transitionId = 1
+        for transition in Output.transitionlst:
+            nodeRefs = []
+            nodeRefPrevious = ''
+            if isinstance(transition.geometry, geometry.Polygon):
+                for coord in transition.geometry.exterior._get_coords():
+                    lat, lon = self.transform.XY2WGS(coord[0], coord[1])
+                    nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
+                    if nodeRef != nodeRefPrevious:
+                        nodeRefs.append(nodeRef)
+                    nodeRefPrevious = nodeRef
+            elif isinstance(transition.geometry, geometry.LineString):
+                for coord in transition.geometry.coords:
+                    lat, lon = self.transform.XY2WGS(coord[0], coord[1])
+                    nodeRef = OSM().getOrAddNode(coord[0], coord[1], lat, lon, {})
+                    if nodeRef != nodeRefPrevious:
+                        nodeRefs.append(nodeRef)
+                    nodeRefPrevious = nodeRef
+            if len(nodeRefs)==3:
+                del nodeRefs[-1]
+            if len(nodeRefs)==2:
+                tags = {'origin':'JPSTools', 'highway':'transition', 'osmId1':transition.osmId1, 'osmId2':transition.osmId2}
+                OSM().addWay(Way(transitionId, nodeRefs, tags))
+                print transitionId
+                transitionId += 1
             
     def polygon2osm(self, osmId, poly, elem = None):
         
@@ -76,8 +95,8 @@ class OSMBuilder(object):
             outWay = SubElement(osmTree, way.tag, way.attribs)
             for nodeRef in way.nodeRefs:
                 SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
-            for tag in way.tags.iteritems():
-                SubElement(outWay, tag.tag, tag.attribs)   
+            for k, v in way.tags.iteritems():
+                SubElement(outWay, osm.Tag, {osm.Key:k, osm.Value:v})   
             
         self.osmTree = osmTree
     
@@ -157,7 +176,7 @@ class Way:
         self.attribs[osm.Id] = str(id)
         self.attribs['version'] = '9999999'
         self.nodeRefs = nodeRefs
-        self.tags = {}
+        self.tags = tags
     
 class Relation:
     '''
