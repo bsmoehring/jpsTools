@@ -6,12 +6,12 @@ Created on 07.11.2017
 
 class Config:
     
-    #inputFile = 'ressources/Meckesheim.osm'
-    #outputPath = 'ressources'
+    inputFile = 'ressources/Meckesheim.osm'
+    outputPath = 'ressources'
     
-    outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
+    #outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
-    inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
+    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/koeln.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
