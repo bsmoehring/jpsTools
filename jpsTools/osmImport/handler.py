@@ -3,7 +3,7 @@ Created on 11.11.2017
 
 @author: user
 '''
-from constants import osm
+from constants import osm, jps
 from config import Config
 import shapely.geometry as geometry
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
@@ -17,9 +17,9 @@ class ElementHandler(object):
     '''
     classdocs
     '''
-    def __init__(self, input, transform):
-        self.tree = input.tree
-        self.nodes = input.allNodes
+    def __init__(self, inputData, transform):
+        self.tree = inputData.tree
+        self.nodes = inputData.allNodes
         self.transform = transform
         self.nodePoints = {}
         for nodeId, node in self.nodes.iteritems():
@@ -35,9 +35,10 @@ class ElementHandler(object):
                     v = tag.get(osm.Value)
                     if k in Config.filterTags and v in Config.filterTags[k]:
                         convert = True
+                        break
                 if convert:
                     poly = self.translate(elem)
-                    self.storeElement(elem, poly, [])
+                    self.storeElement(elem.attrib[osm.Id], elem, poly, [])
         
         print '---'
         print Output.usedNodes
@@ -95,6 +96,7 @@ class ElementHandler(object):
         print  'element:', way.attrib[osm.Id], '--> Way'
         #area?
         area = False
+        transition = False
         nodeRefs = []
         width = Config.stanardWidth
         #search for specific Tags
@@ -107,6 +109,11 @@ class ElementHandler(object):
             try:
                 if child.attrib[osm.Key] == osm.Width:
                     width = float(child.attrib[osm.Value])
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Value] in Config.transitionTags[child.attrib[osm.Key]]:
+                    transition = True
             except KeyError:
                 pass
         #get NodeRefs
@@ -124,6 +131,24 @@ class ElementHandler(object):
                 #area == yes, but no polygon structure
                 print  way.attrib[osm.Id], 'has wrong tags. Area=yes but first and last node references are not the same or less than 3 nodes'
                 raise Exception
+        elif transition:
+            if len(nodeRefs) == 2:
+                osmId1, osmId2 = ''
+                for child in way.iter(tag = osm.Tag):
+                    try:
+                        if child.attrib[osm.Key] == jps.Room1:
+                            osmId1 = child.attrib[osm.Value]
+                    except KeyError:
+                        pass
+                    try:
+                        if child.attrib[osm.Key] == jps.Room1:
+                            osmId2 = child.attrib[osm.Value]
+                    except KeyError:
+                        pass
+                Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
+            else:
+                print 'Tranasition must have exactly 2 nodeReferences'
+                raise Exception
         else:
             #LineString
             print way.attrib[osm.Id], 'is a LineString and needs to be buffered to create a Polygon.'
@@ -133,6 +158,8 @@ class ElementHandler(object):
         
         return poly
     
+    def way2transition(self, way, transform):
+        pass
     
     def handlePolysAroundNode(self, nodeId, polyOsmIdLst):
         '''
@@ -141,11 +168,11 @@ class ElementHandler(object):
         print'---'
         print 'adjusting node', nodeId
         print 'polygons', polyOsmIdLst
-        self.checkNodeUnhandling(nodeId)
+        self.checkNodeUnhandling(nodeId, polyOsmIdLst)
 
         union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
         if not self.checkPolygons([union, unionCleared, unionAll]):
-            raise Exception
+            return
         '''
         handle if more than 2 elements related to point
         '''
@@ -195,13 +222,13 @@ class ElementHandler(object):
         if the handled node is in the middle of the element, the element is split into two seperate polygons.
         all references of the split polygon are updated in data.Output.
         '''
-        if not isinstance(unionCleared, geometry.Polygon) or unionCleared.is_empty:
+        if not isinstance(unionCleared, geometry.Polygon) or unionCleared == None:
             print nodeId, 'not handled'
             raise Exception
-        newElem = ElementTree.Element(osm.Way, {osm.Id:nodeId, 'origin':'JPSTools'})
+        newElem = ElementTree.Element(osm.Way, {osm.Id:'', 'origin':'JPSTools'})
         ElementTree.SubElement(newElem, osm.Tag, {osm.Key:'highway', osm.Value:'footway'})
         ElementTree.SubElement(newElem, osm.Tag, {osm.Key:'area', osm.Value:'yes'})
-        self.storeElement(newElem, unionCleared, [nodeId])
+        self.storeElement(nodeId, newElem, unionCleared, [nodeId])
         print 'New Polygon', nodeId, 'created from', nodeId
         
         for polyOsmId in polyOsmIdLst:
@@ -247,8 +274,7 @@ class ElementHandler(object):
                             ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
                             if isinstance(ls.intersection(polyChild), geometry.LineString):
                                 elem = Output.elements[polyOsmId].copy()
-                                elem.attrib[osm.Id] = newPolyId
-                                self.storeElement(elem, polyChild, nodeRefs)
+                                self.storeElement(newPolyId, elem, polyChild, nodeRefs)
                                 print polyChild
                                 print 'New Polygon', newPolyId, 'created from', polyOsmId
                                 break
@@ -381,19 +407,25 @@ class ElementHandler(object):
         '''
         returns union, unionAll, unionCleared, polyEndInfo
         '''
+        for osmId in polyOsmIdLst:
+            if nodeId in Output.wayNodes[osmId]:
+                pass
+            else:
+                raise Exception
+        
         unionAll = geometry.Polygon()
         nodePoint = self.nodePoints[nodeId]
         
         for polyOsmId in polyOsmIdLst:
-            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId]])
-        if isinstance(unionAll, geometry.MultiPolygon):
-            for poly in unionAll.geoms:
-                if nodePoint.within(poly):
-                    unionAll = poly
+            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId].buffer(Config.bufferDistance)])
+        if isinstance(unionAll, geometry.MultiPolygon) or isinstance(unionAll, geometry.GeometryCollection):
+            for geom in unionAll.geoms:
+                if nodePoint.within(geom):
+                    unionAll = geom
                     break
-            if not isinstance(unionAll, geometry.Polygon):
-                print unionAll
-                raise Exception
+        if not isinstance(unionAll, geometry.Polygon):
+            print unionAll
+            raise Exception
         '''
         all combinations of polygons in poly
         '''
@@ -407,29 +439,23 @@ class ElementHandler(object):
         if distance to unionAll is < epsilon -> use point for intersection poly
         '''
         union = ops.cascaded_union(polyintersects)
-        if isinstance(union, geometry.MultiPolygon):
-            for poly in union.geoms:
-                if nodePoint.within(poly):
-                    union = poly
-                    break
-        elif isinstance(union, geometry.GeometryCollection):
+        if isinstance(union, geometry.MultiPolygon) or isinstance(union, geometry.GeometryCollection):
             for geom in union.geoms:
-                if isinstance(geom, geometry.Polygon):
+                if isinstance(geom, geometry.Polygon) and nodePoint.within(geom):
                     union = geom
                     break
         if isinstance(union, geometry.Polygon):
             unionCleared = self.filterPolyPointsByDistance(unionAll, union)
         else:
-            unionCleared = geometry.Polygon()
+            unionCleared = None
         
         return union, unionCleared, unionAll
     
-    def storeElement(self, elem, poly, nodeRefs = []):
+    def storeElement(self, osmId, elem, poly, nodeRefs = []):
         '''
         storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
         use the List nodeRefs instead of the elements tags if it's given
         '''
-        osmIdElem = elem.attrib[osm.Id]
         if not self.checkPolygons([poly]):
             raise Exception
         if nodeRefs:
@@ -446,26 +472,43 @@ class ElementHandler(object):
         for nodeRef in nodeRefs: 
             if nodeRef in Output.usedNodes:
                 #make sure that every node is added only once
-                if osmIdElem not in Output.usedNodes[nodeRef]:
-                    Output.usedNodes[nodeRef].append(osmIdElem)
+                if osmId not in Output.usedNodes[nodeRef]:
+                    Output.usedNodes[nodeRef].append(osmId)
             else:
-                Output.usedNodes[nodeRef] = [osmIdElem]
-        Output.wayNodes[osmIdElem] = nodeRefs
-        Output.polygons[osmIdElem] = poly  
-        Output.elements[osmIdElem] = elem 
+                Output.usedNodes[nodeRef] = [osmId]
+        Output.wayNodes[osmId] = nodeRefs
+        Output.polygons[osmId] = poly  
+        Output.elements[osmId] = elem 
             
     
-    def checkNodeUnhandling(self, nodeId):
+    def checkNodeUnhandling(self, nodeId, polyOsmIdLst):
         '''
         returns false if one of the nodes tags is in the unhandle dictionary
         '''
         node = self.nodes[nodeId]
+        ok = True
         for tag in node.iter(tag = osm.Tag):
+            try:
+                if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
+                    ok = False
+            except KeyError:
+                pass
+        if not ok:
+            raise UnhandleThisNodeException
+        
+        for polyOsmId in polyOsmIdLst:
+            area = False
+            elem = Output.elements[polyOsmId]
+            for tag in elem.iter(tag = osm.Tag):
                 try:
-                    if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
-                        raise UnhandleThisNodeException
+                    if tag.attrib[osm.Value] in Config.areaTags[tag.attrib[osm.Key]]:
+                        area = True
+                        break
                 except KeyError:
                     pass
+            if not area:
+                return
+        raise UnhandleThisNodeException
     
     def checkPolygons(self, polyLst = []):
         '''
@@ -578,25 +621,20 @@ class ElementHandler(object):
     def getTransitions(self, nodeId, osmIdLst = []):
         '''
         '''
-        for osmId in osmIdLst:
-            if nodeId in Output.wayNodes[osmId]:
-                pass
-            else:
-                raise Exception
+        union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
         for pair in itertools.combinations(osmIdLst, 2):
             osmId1, osmId2 = pair[0], pair[1]
             print osmId1, osmId2
             poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
-            
-            transition = poly1.buffer(Config.bufferDistance).intersection(poly2)
+            transition = poly1.buffer(Config.bufferDistance).intersection(poly2.buffer(Config.bufferDistance))
             if isinstance(transition, geometry.base.BaseMultipartGeometry): 
                 distance = float("+infinity")
                 for geom in transition.geoms:
                     if geom.distance(self.nodePoints[nodeId]) < distance:
                         transition = geom
-            if isinstance(transition, geometry.Polygon) or isinstance(transition, geometry.LineString):
-                transition = Output.Transition(transition, osmId1, osmId2)
-                Output.transitionlst.append(transition)
+            if isinstance(transition, geometry.Polygon):
+                transition = self.filterPolyPointsByDistance(unionAll, transition)
+                Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
 
 class UnhandleThisNodeException(Exception):
     pass

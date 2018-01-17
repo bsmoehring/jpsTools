@@ -40,7 +40,7 @@ class Output(object):
     elements = {}
     #osmId Way = [osmId Node]
     wayNodes = {}
-    #osmId osmId LineString
+    #[Transition]
     transitionlst = []
     
     class Transition():
