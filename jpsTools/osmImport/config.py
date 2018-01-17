@@ -6,8 +6,8 @@ Created on 07.11.2017
 
 class Config:
     
-    inputFile = 'ressources/Meckesheim.osm'
-    outputPath = 'ressources'
+    inputFile = 'resources/Meckesheim.osm'
+    outputPath = 'resources'
     
     #outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
