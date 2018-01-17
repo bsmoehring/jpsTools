@@ -120,8 +120,6 @@ class ElementHandler(object):
         for child in way.iter(tag = osm.NodeRef):
             nodeRefs.append(child.attrib[osm.Ref])  
         XYList = transform.nodeRefs2XY(nodeRefs, self.nodes)
-        print 'NodeRefs:', nodeRefs
-        print 'Coordinates:', XYList
         if area:
             #check if first and last nodes are the same
             if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs [-1]:
@@ -395,9 +393,7 @@ class ElementHandler(object):
         poly1 = geometry.Polygon([[x1, y1], [x3, y3], [x4, y4], [x1, y1]])
         poly2 = geometry.Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
         
-        print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
         intersect = poly1.intersection(poly2)
-        print intersect
         if isinstance(intersect, geometry.LineString):
             return poly1, poly2
         else:
@@ -425,7 +421,7 @@ class ElementHandler(object):
                     break
         if not isinstance(unionAll, geometry.Polygon):
             print unionAll
-            raise Exception
+            raise UnhandleThisNodeException
         '''
         all combinations of polygons in poly
         '''
@@ -557,16 +553,11 @@ class ElementHandler(object):
             p = geometry.Point(coord)
             if polyStay.exterior.distance(p) < Config.errorDistance:
                 polyCleared.append(coord)
-        print polyCleared
         try:
             polyCleared = geometry.Polygon(polyCleared)
-        except ValueError:
-            return geometry.Polygon()
-        if isinstance(polyCleared, geometry.Polygon):
             return polyCleared
-        else:
-            print polyCleared
-            raise Exception
+        except ValueError:
+            return None
                 
     def filterClosestPoly(self, polyOld, polyLst):
         '''
@@ -600,7 +591,6 @@ class ElementHandler(object):
                 if polygon.area > area:
                     area = polygon.area
                     poly = polygon
-            print poly.geom_type, 'retrieved from MultiPolygon because of its size.'
             return poly
         else:
             raise UnhandleThisNodeException
@@ -621,20 +611,26 @@ class ElementHandler(object):
     def getTransitions(self, nodeId, osmIdLst = []):
         '''
         '''
-        union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
-        for pair in itertools.combinations(osmIdLst, 2):
-            osmId1, osmId2 = pair[0], pair[1]
-            print osmId1, osmId2
-            poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
-            transition = poly1.buffer(Config.bufferDistance).intersection(poly2.buffer(Config.bufferDistance))
-            if isinstance(transition, geometry.base.BaseMultipartGeometry): 
-                distance = float("+infinity")
-                for geom in transition.geoms:
-                    if geom.distance(self.nodePoints[nodeId]) < distance:
-                        transition = geom
-            if isinstance(transition, geometry.Polygon):
-                transition = self.filterPolyPointsByDistance(unionAll, transition)
-                Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
+        try:
+            union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
+            for pair in itertools.combinations(osmIdLst, 2):
+                osmId1, osmId2 = pair[0], pair[1]
+                poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
+                transition = poly1.buffer(Config.bufferDistance).intersection(poly2.buffer(Config.bufferDistance))
+                if isinstance(transition, geometry.base.BaseMultipartGeometry): 
+                    distance = float("+infinity")
+                    for geom in transition.geoms:
+                        if geom.distance(self.nodePoints[nodeId]) < distance:
+                            transition = geom
+                if isinstance(transition, geometry.Polygon):
+                    transition = self.filterPolyPointsByDistance(unionAll, transition)
+                    if isinstance(transition, geometry.Polygon):
+                        Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
+                    else:
+                        raise UnhandleThisNodeException
+        except UnhandleThisNodeException:
+            print 'Transition at node ', nodeId, 'not handled'
+            return
 
 class UnhandleThisNodeException(Exception):
     pass

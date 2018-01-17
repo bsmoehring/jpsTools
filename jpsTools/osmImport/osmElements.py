@@ -27,16 +27,21 @@ class OSMBuilder(object):
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
         transitionId = 1
+        print '---'
         for transition in Output.transitionlst:
-            if isinstance(transition.geometry, geometry.Polygon):
-                nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
-            elif isinstance(transition.geometry, geometry.LineString):
-                nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
+            try:
+                if isinstance(transition.geometry, geometry.Polygon):
+                    nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
+                elif isinstance(transition.geometry, geometry.LineString):
+                    nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
+            except AttributeError:
+                print 'not handling Transition ', transition.osmId1, transition.osmId2
+                continue
             nodeRefs = list(set(nodeRefs))
             if len(nodeRefs)==2:
                 tags = {'origin':'JPSTools', 'highway':'transition', jps.Room1:transition.osmId1, jps.Room2:transition.osmId2}
                 OSMOut().addTransition(Way(transitionId, '', nodeRefs, tags))
-                print transitionId
+                print 'Transition', transitionId
                 transitionId += 1
             
     def polygon2osm(self, osmId, poly, elem = None):

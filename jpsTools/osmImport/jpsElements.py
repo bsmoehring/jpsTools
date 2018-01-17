@@ -19,6 +19,7 @@ class JPSBuilder(object):
         print '---'
         for way in OSMOut.transitions:
             self.transition2jps(way)
+        print '---'
         for way in OSMOut.ways:
             self.way2jps(way)
         #for transition in Output.transitionlst:

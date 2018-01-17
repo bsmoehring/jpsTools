@@ -6,12 +6,12 @@ Created on 07.11.2017
 
 class Config:
     
-    inputFile = 'ressources/Meckesheim.osm'
-    outputPath = 'ressources'
+    #inputFile = 'ressources/Meckesheim.osm'
+    #outputPath = 'ressources'
     
-    #outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
+    outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
+    inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/koeln.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
     #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
@@ -31,14 +31,10 @@ class Config:
     def __init__(self):
         
         self.addFilterTag('railway', 'platform')
-        #=======================================================================
-        # self.filterTags['railway'] = 'station'
-        # self.filterTags['public_transport'] = 'station'
-        #=======================================================================
         self.addFilterTag('highway', 'steps')
         self.addFilterTag('highway', 'footway')
         
-        self.addUnhandleTag('highway', 'elevator')
+        #self.addUnhandleTag('highway', 'elevator')
         
         self.addAreaTag('area', 'yes')
         
