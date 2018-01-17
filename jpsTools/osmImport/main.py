@@ -7,7 +7,6 @@ Created on 24.10.2017
 from config import Config
 from coords import Transformation
 from handler import ElementHandler
-import logging
 from osmImport.data import Input
 from jpsElements import JPSBuilder
 from osmElements import OSMBuilder
@@ -15,24 +14,21 @@ from plot import ElementPlotter
 
 def main():
     
-    logging.basicConfig(filename=Config().outputPath+'tes.log',level=logging.DEBUG)
+    Config()
     
-    logging.info('Start')
+    inputData = Input(Config.inputFile)
     
-    input = Input(Config.inputFile)
+    transform = Transformation(inputData)
     
-    transform = Transformation(input)
+    handler = ElementHandler(inputData, transform)
     
-    ElementHandler(input, transform).readOSM()
-    
-    #JPSBuilder(Config.outputPath)
+    handler.readOSM()
     
     OSMBuilder(Config.outputPath, transform)
     
-    logging.info('operation finished!')
+    JPSBuilder(Config.outputPath)
     
     ElementPlotter(transform).plotOutput()
-
 
 if      __name__ == "__main__":
     main()

@@ -40,17 +40,19 @@ class Output(object):
     elements = {}
     #osmId Way = [osmId Node]
     wayNodes = {}
-    #osmId osmId LineString
+    #[Transition]
     transitionlst = []
     
     class Transition():
         '''
         
         '''
-        def __init__(self, line, coord1, coord2, osmId1, osmId2):
-            self.line = line
-            self.coord1 = coord1
-            self.coord2 = coord2
+        def __init__(self, geometry, osmId1, osmId2):
+            self.geometry = geometry
             self.osmId1 = osmId1
             self.osmId2 = osmId2
-            print 'Transition', osmId1, osmId2, line
+            print 'Transition', osmId1, osmId2, geometry
+            
+
+    
+

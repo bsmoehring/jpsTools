@@ -1,11 +1,10 @@
 '''
 Created on 07.11.2017
 
-@author: user
+@author: bsmoehring
 '''
 from constants import jps, osm
-from data import Output
-from shapely import geometry
+from osmElements import OSMOut
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
 
@@ -18,17 +17,14 @@ class JPSBuilder(object):
     
     def translate2jps(self):
         print '---'
-        for osmId, poly in Output.polygons.items():
-            if isinstance(poly, geometry.Polygon):
-                self.polygon2jps(osmId, poly)
-            elif isinstance(poly, geometry.MultiPolygon):
-                for polygon in poly:
-                    self.polygon2jps(osmId, polygon)
-        for transition in Output.transitionlst:
-            self.transition2jps(transition)
+        for way in OSMOut.transitions:
+            self.transition2jps(way)
+        print '---'
+        for way in OSMOut.ways:
+            self.way2jps(way)
+        #for transition in Output.transitionlst:
+         #   self.transition2jps(transition)
                     
-        self.buildJPSTree()      
-
     def buildJPSTree(self):
         '''
         form an xml string from all geometry objects
@@ -62,29 +58,31 @@ class JPSBuilder(object):
             
         self.outGeometry = outGeometry
 
-    def polygon2jps(self, osmId, poly):
+    def way2jps(self, way):
         '''
-        translate polygon to jps Elements with required attributes of the osm element
+        translate osm way to jps Elements with required attributes
         '''          
-        jpsRoom = Room(osmId, self.getLevel(osmId))
+        jpsRoom = Room(way.attribs[osm.Id], way.tags[osm.Level])
         jpsSubroom = Subroom()
-        jpsPoly = Polygon()
-        for coord in poly.exterior._get_coords():
-            jpsVertex = Vertex(coord[0], coord[1])
-            jpsPoly.addVertex(jpsVertex)
-        jpsSubroom.addPolygon(jpsPoly)
+        index = 0
+        while index < len(way.nodeRefs)-1:
+            jpsVertex1 = Vertex(OSMOut.nodes[way.nodeRefs[index]].x, OSMOut.nodes[way.nodeRefs[index]].y)
+            jpsVertex2 = Vertex(OSMOut.nodes[way.nodeRefs[index+1]].x, OSMOut.nodes[way.nodeRefs[index+1]].y)
+            jpsWall = Polygon([jpsVertex1, jpsVertex2])
+            jpsSubroom.addPolygon(jpsWall, [way.nodeRefs[index], way.nodeRefs[index+1]])
+            index += 1
         jpsRoom.addSubroom(jpsSubroom)
         Geometry().addRoom(jpsRoom)
         
-    def transition2jps(self, transition):
-        if isinstance(transition.line, geometry.LineString):
-            vertex1 = Vertex(transition.coord1[0], transition.coord1[1])
-            vertex2 = Vertex(transition.coord2[0], transition.coord2[1])
-            jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN',
-                                       Geometry.idOsmJps[transition.osmId1], 0, Geometry.idOsmJps[transition.osmId2], 0)
-            Geometry().addTransition(jpsTransition)
-        else:
-            Exception
+    def transition2jps(self, way):
+        '''
+        '''
+        nodeRef1 = way.nodeRefs[0]
+        nodeRef2 = way.nodeRefs[1]
+        vertex1 = Vertex(OSMOut.nodes[nodeRef1].x, OSMOut.nodes[nodeRef1].y)
+        vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
+        jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN', way.tags[jps.Room1], 0, way.tags[jps.Room2], 0, [nodeRef1, nodeRef2])
+        Geometry().addTransition(jpsTransition)
     
     def tree2xml(self, outputPath):
         '''
@@ -96,7 +94,7 @@ class JPSBuilder(object):
         if outputPath.endswith('.xml'):
             pass
         else:
-            outputPath += 'test.xml' 
+            outputPath += 'testJPSOut.xml' 
         try:
             f = open(outputPath, 'w')
             f.write(out)
@@ -104,32 +102,12 @@ class JPSBuilder(object):
             print 'output written to', outputPath
         except Exception:
             print 'output not written!'
-    
-    def getLevel(self, osmId):
-        try: 
-            elem = Output.elements[osmId]
-        except KeyError:
-            return '0'
-        for tag in elem.iter(tag=osm.Tag):
-            if tag.attrib[osm.Key] == osm.Level:
-                return tag.attrib[osm.Value]
-        print elem.attrib[osm.Id], 'has no tag level. Returning standard 0'
-        return '0'
 
 class Geometry:
     tag = jps.Geometry 
     rooms = []
     transitions = []
-    idOsmJps = {}
     
-    
-    #=======================================================================
-    # def __init__(self):
-    #     self.tag = 'geometry' 
-    #     self.rooms = []
-    #     self.transitions = []
-    #=======================================================================
-        
     def addRoom(self, room):
         '''
         adding a new room to the geometry container. 
@@ -139,16 +117,6 @@ class Geometry:
     
     def addTransition(self, transition):
         self.transitions.append(transition)
-        
-    def getRoomById(self, id):
-        roomlst = []
-        try:
-            for room in self.rooms:
-                if room.attribs[jps.Id] == id:
-                    roomlst.append(room)
-            return roomlst
-        except KeyError:
-            print 'no id:'; id, 'in geometry.rooms[].'
             
     def getRoomByOriginalId(self, originalId):
         roomlst = []
@@ -170,9 +138,7 @@ class Room:
     
     def __init__(self, osmId, level, caption='hall'):
         self.attribs = {}
-        jpsId = str(len(Geometry.rooms))
-        Geometry.idOsmJps[osmId] = jpsId
-        self.attribs[jps.Id] = jpsId
+        self.attribs[jps.Id] = osmId
         self.attribs[jps.OriginalId] = osmId
         self.attribs['level'] = str(level)
         self.attribs[jps.Caption] = caption
@@ -195,7 +161,11 @@ class Subroom:
         self.attribs = {}
         self.attribs[jps.Caption] = caption
         
-    def addPolygon(self, p):
+    def addPolygon(self, p, nodeRefs = []):
+        if isinstance(p, Polygon) and len(p.vertices) == 2:
+            for transition in Geometry.transitions:
+                if set(transition.nodeRefs) == set(nodeRefs):
+                    return
         p.attribs[jps.Id] = str(len(self.polygons))
         self.polygons.append(p)
     
@@ -205,13 +175,10 @@ class Polygon:
     '''
     tag = jps.Polygon
     
-    def __init__(self):
+    def __init__(self, vertices = []):
         self.attribs = {}
         self.attribs[jps.Caption] = jps.Wall
-        self.vertices = []
-        
-    def addVertex(self, vertex):
-        self.vertices.append(vertex)
+        self.vertices = vertices
     
 class Vertex:
     '''
@@ -222,8 +189,10 @@ class Vertex:
     
     def __init__(self, x, y):
         self.attribs = {}
-        self.attribs[jps.PX] = str(x)
-        self.attribs[jps.PY] = str(y) 
+        self.x = str(round(x, 2))
+        self.y = str(round(y, 2))        
+        self.attribs[jps.PX] = self.x
+        self.attribs[jps.PY] = self.y 
         
     def getOriginalId(self):
         return self.attribs[jps.OriginalId]
@@ -234,7 +203,7 @@ class Transition:
     '''
     tag = jps.Transition
     
-    def __init__(self, vertex_1, vertex_2, id, caption, type, room1_id, subroom1_id, room2_id, subroom2_id):
+    def __init__(self, vertex_1, vertex_2, id, caption, type, room1_id, subroom1_id, room2_id, subroom2_id, nodeRefs = []):
         self.vertex1 = vertex_1
         self.vertex2 = vertex_2
         self.attribs = {}
@@ -245,4 +214,5 @@ class Transition:
         self.attribs[jps.Subroom1] = str(subroom1_id)
         self.attribs[jps.Room2] = room2_id
         self.attribs[jps.Subroom2] = str(subroom2_id)
+        self.nodeRefs = nodeRefs
         

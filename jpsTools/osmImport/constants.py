@@ -32,6 +32,7 @@ class osm(object):
     Key = 'k'
     Value = 'v'
     Tag = 'tag'
+    Width = 'width'
         
 class jps(object):
     '''

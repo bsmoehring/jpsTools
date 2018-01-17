@@ -1,0 +1,661 @@
+<geometry caption="second life" unit="m" version="0.8">
+  <rooms>
+    <room caption="hall" id="19331561702" level="0" originalId="19331561702">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="103.3" py="13.11"/>
+          <vertex px="96.89" py="10.0"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="96.89" py="10.0"/>
+          <vertex px="93.5" py="9.51"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="93.5" py="9.51"/>
+          <vertex px="87.91" py="11.49"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="87.91" py="11.49"/>
+          <vertex px="84.17" py="15.65"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="85.94" py="16.68"/>
+          <vertex px="89.06" py="13.21"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="89.06" py="13.21"/>
+          <vertex px="93.7" py="11.57"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="93.7" py="11.57"/>
+          <vertex px="96.3" py="11.94"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="96.3" py="11.94"/>
+          <vertex px="102.38" py="14.89"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="61910783" level="-1;0" originalId="61910783">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="119.33" py="36.82"/>
+          <vertex px="125.09" py="40.33"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="126.61" py="38.91"/>
+          <vertex px="120.31" py="35.07"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="273235393" level="-1" originalId="273235393">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="117.5" py="40.06"/>
+          <vertex px="119.33" py="36.82"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="120.31" py="35.07"/>
+          <vertex px="120.34" py="35.04"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="120.34" py="35.04"/>
+          <vertex px="106.39" py="27.36"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="106.39" py="27.36"/>
+          <vertex px="106.02" py="27.16"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="105.13" py="26.66"/>
+          <vertex px="96.3" py="21.81"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="96.3" py="21.81"/>
+          <vertex px="96.28" py="21.84"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="95.35" py="23.62"/>
+          <vertex px="93.5" py="27.17"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="95.26" py="28.14"/>
+          <vertex px="97.13" py="24.56"/>
+        </polygon>
+        <polygon caption="wall" id="8">
+          <vertex px="97.13" py="24.56"/>
+          <vertex px="104.17" py="28.44"/>
+        </polygon>
+        <polygon caption="wall" id="9">
+          <vertex px="104.17" py="28.44"/>
+          <vertex px="104.53" py="28.63"/>
+        </polygon>
+        <polygon caption="wall" id="10">
+          <vertex px="106.28" py="29.6"/>
+          <vertex px="117.59" py="35.82"/>
+        </polygon>
+        <polygon caption="wall" id="11">
+          <vertex px="117.59" py="35.82"/>
+          <vertex px="115.75" py="39.07"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="406750214" level="0" originalId="406750214">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="106.88" py="23.46"/>
+          <vertex px="107.91" py="21.6"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="107.91" py="21.6"/>
+          <vertex px="107.04" py="21.12"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="107.04" py="21.12"/>
+          <vertex px="106.59" py="21.93"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="106.59" py="21.93"/>
+          <vertex px="106.01" py="22.98"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="193315605" level="0" originalId="193315605">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="109.28" py="45.24"/>
+          <vertex px="41.75" py="169.29"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="41.75" py="169.29"/>
+          <vertex px="43.95" py="170.48"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="43.95" py="170.48"/>
+          <vertex px="56.12" py="148.59"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="56.12" py="148.59"/>
+          <vertex px="63.23" py="135.0"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="63.23" py="135.0"/>
+          <vertex px="64.9" py="135.07"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="64.9" py="135.07"/>
+          <vertex px="80.8" py="104.57"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="80.8" py="104.57"/>
+          <vertex px="79.84" py="104.11"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="79.84" py="104.11"/>
+          <vertex px="83.22" py="97.81"/>
+        </polygon>
+        <polygon caption="wall" id="8">
+          <vertex px="83.22" py="97.81"/>
+          <vertex px="84.38" py="97.07"/>
+        </polygon>
+        <polygon caption="wall" id="9">
+          <vertex px="84.38" py="97.07"/>
+          <vertex px="92.42" py="82.0"/>
+        </polygon>
+        <polygon caption="wall" id="10">
+          <vertex px="92.42" py="82.0"/>
+          <vertex px="105.61" py="57.18"/>
+        </polygon>
+        <polygon caption="wall" id="11">
+          <vertex px="105.61" py="57.18"/>
+          <vertex px="108.33" py="58.62"/>
+        </polygon>
+        <polygon caption="wall" id="12">
+          <vertex px="108.33" py="58.62"/>
+          <vertex px="112.37" py="51.03"/>
+        </polygon>
+        <polygon caption="wall" id="13">
+          <vertex px="112.37" py="51.03"/>
+          <vertex px="114.03" py="47.63"/>
+        </polygon>
+        <polygon caption="wall" id="14">
+          <vertex px="114.03" py="47.63"/>
+          <vertex px="112.64" py="46.93"/>
+        </polygon>
+        <polygon caption="wall" id="15">
+          <vertex px="110.76" py="45.99"/>
+          <vertex px="109.28" py="45.24"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="406750213" level="-1" originalId="406750213">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="106.02" py="27.16"/>
+          <vertex px="108.31" py="22.96"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="108.31" py="22.96"/>
+          <vertex px="108.79" py="22.09"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="108.79" py="22.09"/>
+          <vertex px="107.91" py="21.6"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="107.91" py="21.6"/>
+          <vertex px="106.88" py="23.46"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="106.88" py="23.46"/>
+          <vertex px="105.13" py="26.66"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="193315607" level="0" originalId="193315607">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="98.63" py="39.9"/>
+          <vertex px="98.19" py="39.67"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="98.19" py="39.67"/>
+          <vertex px="103.6" py="29.7"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="103.6" py="29.7"/>
+          <vertex px="105.31" py="30.61"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="105.31" py="30.61"/>
+          <vertex px="108.66" py="24.42"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="108.66" py="24.42"/>
+          <vertex px="107.77" py="23.93"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="107.77" py="23.93"/>
+          <vertex px="106.01" py="22.98"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="106.01" py="22.98"/>
+          <vertex px="104.6" py="22.23"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="104.6" py="22.23"/>
+          <vertex px="18.55" py="180.93"/>
+        </polygon>
+        <polygon caption="wall" id="8">
+          <vertex px="18.55" py="180.93"/>
+          <vertex px="24.33" py="184.05"/>
+        </polygon>
+        <polygon caption="wall" id="9">
+          <vertex px="24.33" py="184.05"/>
+          <vertex px="101.62" py="41.52"/>
+        </polygon>
+        <polygon caption="wall" id="10">
+          <vertex px="101.62" py="41.52"/>
+          <vertex px="100.39" py="40.85"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="311433818" level="0" originalId="311433818">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="123.91" py="48.58"/>
+          <vertex px="128.29" py="51.74"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="128.29" py="51.74"/>
+          <vertex px="129.11" py="52.33"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="129.11" py="52.33"/>
+          <vertex px="130.28" py="50.71"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="130.28" py="50.71"/>
+          <vertex px="125.65" py="47.36"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="61910772" level="-1" originalId="61910772">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="104.53" py="28.63"/>
+          <vertex px="103.04" py="31.2"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="103.04" py="31.2"/>
+          <vertex px="103.03" py="31.23"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="104.79" py="32.18"/>
+          <vertex px="106.28" py="29.6"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="61910771" level="-1;0" originalId="61910771">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="96.28" py="21.84"/>
+          <vertex px="88.14" py="17.72"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="88.14" py="17.72"/>
+          <vertex px="88.13" py="17.71"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="87.25" py="19.51"/>
+          <vertex px="95.35" py="23.62"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="2665044230" level="0" originalId="2665044230">
+      <subroom caption="" id="0"/>
+    </room>
+    <room caption="hall" id="6191077501" level="0" originalId="6191077501">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="88.13" py="17.71"/>
+          <vertex px="85.94" py="16.68"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="85.07" py="18.48"/>
+          <vertex px="87.25" py="19.51"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="6191077502" level="0" originalId="6191077502">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="84.17" py="15.65"/>
+          <vertex px="80.07" py="12.51"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="80.07" py="12.51"/>
+          <vertex px="79.27" py="11.91"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="79.27" py="11.91"/>
+          <vertex px="78.05" py="13.5"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="78.05" py="13.5"/>
+          <vertex px="83.21" py="17.44"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="193315612" level="0" originalId="193315612">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="125.09" py="40.33"/>
+          <vertex px="126.04" py="42.18"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="127.14" py="39.94"/>
+          <vertex px="126.74" py="39.16"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="126.74" py="39.16"/>
+          <vertex px="126.61" py="38.91"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="311433823" level="0" originalId="311433823">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="132.88" py="31.49"/>
+          <vertex px="140.75" py="27.76"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="140.75" py="27.76"/>
+          <vertex px="141.66" py="27.33"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="141.66" py="27.33"/>
+          <vertex px="140.8" py="25.52"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="140.8" py="25.52"/>
+          <vertex px="132.22" py="29.59"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="193315616" level="0" originalId="193315616">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="122.37" py="25.76"/>
+          <vertex px="130.39" py="30.46"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="130.39" py="30.46"/>
+          <vertex px="130.84" py="31.21"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="130.84" py="31.21"/>
+          <vertex px="130.92" py="32.15"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="130.92" py="32.15"/>
+          <vertex px="127.14" py="39.94"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="126.04" py="42.18"/>
+          <vertex px="123.88" py="46.44"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="123.88" py="46.44"/>
+          <vertex px="115.57" py="43.49"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="115.57" py="43.49"/>
+          <vertex px="117.5" py="40.06"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="115.75" py="39.07"/>
+          <vertex px="113.3" py="43.43"/>
+        </polygon>
+        <polygon caption="wall" id="8">
+          <vertex px="114.37" py="45.2"/>
+          <vertex px="123.91" py="48.58"/>
+        </polygon>
+        <polygon caption="wall" id="9">
+          <vertex px="125.65" py="47.36"/>
+          <vertex px="132.97" py="32.53"/>
+        </polygon>
+        <polygon caption="wall" id="10">
+          <vertex px="132.97" py="32.53"/>
+          <vertex px="132.88" py="31.49"/>
+        </polygon>
+        <polygon caption="wall" id="11">
+          <vertex px="132.22" py="29.59"/>
+          <vertex px="131.86" py="28.99"/>
+        </polygon>
+        <polygon caption="wall" id="12">
+          <vertex px="131.86" py="28.99"/>
+          <vertex px="123.39" py="24.03"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="311433825" level="0" originalId="311433825">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="86.65" py="29.11"/>
+          <vertex px="83.36" py="31.39"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="83.36" py="31.39"/>
+          <vertex px="82.54" py="31.96"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="82.54" py="31.96"/>
+          <vertex px="83.68" py="33.6"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="83.68" py="33.6"/>
+          <vertex px="88.63" py="30.17"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="19331561701" level="0" originalId="19331561701">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="93.5" py="27.17"/>
+          <vertex px="92.03" py="29.72"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="92.03" py="29.72"/>
+          <vertex px="83.95" py="25.39"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="83.95" py="25.39"/>
+          <vertex px="85.07" py="18.48"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="83.21" py="17.44"/>
+          <vertex px="81.74" py="26.47"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="81.74" py="26.47"/>
+          <vertex px="86.65" py="29.11"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="88.63" py="30.17"/>
+          <vertex px="92.79" py="32.41"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="92.79" py="32.41"/>
+          <vertex px="95.25" py="28.16"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="95.25" py="28.16"/>
+          <vertex px="95.26" py="28.14"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="193315615" level="0" originalId="193315615">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="106.25" py="17.03"/>
+          <vertex px="114.54" py="21.47"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="114.54" py="21.47"/>
+          <vertex px="118.11" py="23.24"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="118.11" py="23.24"/>
+          <vertex px="122.37" py="25.76"/>
+        </polygon>
+        <polygon caption="wall" id="3">
+          <vertex px="123.39" py="24.03"/>
+          <vertex px="119.06" py="21.48"/>
+        </polygon>
+        <polygon caption="wall" id="4">
+          <vertex px="119.06" py="21.48"/>
+          <vertex px="115.46" py="19.69"/>
+        </polygon>
+        <polygon caption="wall" id="5">
+          <vertex px="115.46" py="19.69"/>
+          <vertex px="107.21" py="15.28"/>
+        </polygon>
+        <polygon caption="wall" id="6">
+          <vertex px="107.21" py="15.28"/>
+          <vertex px="103.32" py="13.12"/>
+        </polygon>
+        <polygon caption="wall" id="7">
+          <vertex px="103.32" py="13.12"/>
+          <vertex px="103.3" py="13.11"/>
+        </polygon>
+        <polygon caption="wall" id="8">
+          <vertex px="102.38" py="14.89"/>
+          <vertex px="106.25" py="17.03"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="538311114" level="0" originalId="538311114">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="113.3" py="43.43"/>
+          <vertex px="110.99" py="45.75"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="110.99" py="45.75"/>
+          <vertex px="110.76" py="45.99"/>
+        </polygon>
+        <polygon caption="wall" id="2">
+          <vertex px="112.64" py="46.93"/>
+          <vertex px="114.37" py="45.2"/>
+        </polygon>
+      </subroom>
+    </room>
+    <room caption="hall" id="61910766" level="-1;0" originalId="61910766">
+      <subroom caption="" id="0">
+        <polygon caption="wall" id="0">
+          <vertex px="100.39" py="40.85"/>
+          <vertex px="104.79" py="32.18"/>
+        </polygon>
+        <polygon caption="wall" id="1">
+          <vertex px="103.03" py="31.23"/>
+          <vertex px="98.63" py="39.9"/>
+        </polygon>
+      </subroom>
+    </room>
+  </rooms>
+  <transitions>
+    <transition caption="NaN" id="0" room1_id="61910766" room2_id="193315607" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="98.63" py="39.9"/>
+      <vertex px="100.39" py="40.85"/>
+    </transition>
+    <transition caption="NaN" id="1" room1_id="61910771" room2_id="6191077501" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="87.25" py="19.51"/>
+      <vertex px="88.13" py="17.71"/>
+    </transition>
+    <transition caption="NaN" id="2" room1_id="193315607" room2_id="406750214" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="106.88" py="23.46"/>
+      <vertex px="106.01" py="22.98"/>
+    </transition>
+    <transition caption="NaN" id="3" room1_id="61910766" room2_id="61910772" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="103.03" py="31.23"/>
+      <vertex px="104.79" py="32.18"/>
+    </transition>
+    <transition caption="NaN" id="4" room1_id="61910783" room2_id="273235393" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="119.33" py="36.82"/>
+      <vertex px="120.31" py="35.07"/>
+    </transition>
+    <transition caption="NaN" id="5" room1_id="273235393" room2_id="406750213" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="105.13" py="26.66"/>
+      <vertex px="106.02" py="27.16"/>
+    </transition>
+    <transition caption="NaN" id="6" room1_id="61910772" room2_id="273235393" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="106.28" py="29.6"/>
+      <vertex px="104.53" py="28.63"/>
+    </transition>
+    <transition caption="NaN" id="7" room1_id="193315612" room2_id="193315616" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="127.14" py="39.94"/>
+      <vertex px="126.04" py="42.18"/>
+    </transition>
+    <transition caption="NaN" id="8" room1_id="193315616" room2_id="311433818" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="123.91" py="48.58"/>
+      <vertex px="125.65" py="47.36"/>
+    </transition>
+    <transition caption="NaN" id="9" room1_id="193315605" room2_id="538311114" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="110.76" py="45.99"/>
+      <vertex px="112.64" py="46.93"/>
+    </transition>
+    <transition caption="NaN" id="10" room1_id="2665044230" room2_id="6191077501" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="85.94" py="16.68"/>
+      <vertex px="85.07" py="18.48"/>
+    </transition>
+    <transition caption="NaN" id="11" room1_id="2665044230" room2_id="6191077502" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="84.17" py="15.65"/>
+      <vertex px="83.21" py="17.44"/>
+    </transition>
+    <transition caption="NaN" id="12" room1_id="2665044230" room2_id="19331561701" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="85.07" py="18.48"/>
+      <vertex px="83.21" py="17.44"/>
+    </transition>
+    <transition caption="NaN" id="13" room1_id="2665044230" room2_id="19331561702" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="85.94" py="16.68"/>
+      <vertex px="84.17" py="15.65"/>
+    </transition>
+    <transition caption="NaN" id="14" room1_id="61910771" room2_id="273235393" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="95.35" py="23.62"/>
+      <vertex px="96.28" py="21.84"/>
+    </transition>
+    <transition caption="NaN" id="15" room1_id="193315615" room2_id="19331561702" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="102.38" py="14.89"/>
+      <vertex px="103.3" py="13.11"/>
+    </transition>
+    <transition caption="NaN" id="16" room1_id="61910783" room2_id="193315612" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="126.61" py="38.91"/>
+      <vertex px="125.09" py="40.33"/>
+    </transition>
+    <transition caption="NaN" id="17" room1_id="193315616" room2_id="538311114" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="114.37" py="45.2"/>
+      <vertex px="113.3" py="43.43"/>
+    </transition>
+    <transition caption="NaN" id="18" room1_id="193315616" room2_id="273235393" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="117.5" py="40.06"/>
+      <vertex px="115.75" py="39.07"/>
+    </transition>
+    <transition caption="NaN" id="19" room1_id="193315616" room2_id="311433823" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="132.88" py="31.49"/>
+      <vertex px="132.22" py="29.59"/>
+    </transition>
+    <transition caption="NaN" id="20" room1_id="311433825" room2_id="19331561701" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="86.65" py="29.11"/>
+      <vertex px="88.63" py="30.17"/>
+    </transition>
+    <transition caption="NaN" id="21" room1_id="273235393" room2_id="19331561701" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="93.5" py="27.17"/>
+      <vertex px="95.26" py="28.14"/>
+    </transition>
+    <transition caption="NaN" id="22" room1_id="193315615" room2_id="193315616" subroom1_id="0" subroom2_id="0" type="NaN">
+      <vertex px="122.37" py="25.76"/>
+      <vertex px="123.39" py="24.03"/>
+    </transition>
+  </transitions>
+</geometry>

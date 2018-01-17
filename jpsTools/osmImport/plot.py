@@ -1,7 +1,7 @@
 '''
 Created on 21.11.2017
 
-@author: user
+@author: bsmoehring
 '''
 from matplotlib import pyplot
 from data import Output
@@ -27,26 +27,23 @@ class ElementPlotter(object):
                     linewidth=1, solid_capstyle='round', zorder=2, marker='o')
             ax.set_title(osmId)
             
-        for transition in Output.transitionlst:
-            
-            try:
-                x1, y1 = self.xy(transition.line)
-                ax = self.fig.add_subplot(111)
-                ax.plot(x1, y1, color='#c62b2b', alpha=0.7,
-                        linewidth=2, solid_capstyle='round', zorder=4, marker='o')
-            except (AttributeError):
-                if isinstance(transition, geometry.Polygon):
-                    x, y = transition.exterior.xy
-                else:
-                    x, y = self.xy(transition.line)
-                ax = self.fig.add_subplot(111)
-                ax.plot(x, y, color='#c62b2b', alpha=0.7,
-                linewidth=2, solid_capstyle='round', zorder=4, marker='o')
-            #===================================================================
-            # else: 
-            #     print 'Problem handling ', transition.line, transition.osmid1, transition.osmid2
-            #     continue
-            #===================================================================
+        #=======================================================================
+        # for transition in Output.transitionlst:
+        #      
+        #     try:
+        #         x1, y1 = self.xy(transition.line)
+        #         ax = self.fig.add_subplot(111)
+        #         ax.plot(x1, y1, color='#c62b2b', alpha=0.7,
+        #                 linewidth=2, solid_capstyle='round', zorder=4, marker='o')
+        #     except (AttributeError):
+        #         if isinstance(transition, geometry.Polygon):
+        #             x, y = transition.exterior.xy
+        #         else:
+        #             x, y = self.xy(transition.line)
+        #         ax = self.fig.add_subplot(111)
+        #         ax.plot(x, y, color='#c62b2b', alpha=0.7,
+        #         linewidth=2, solid_capstyle='round', zorder=4, marker='o')
+        #=======================================================================
     
         pyplot.axis('equal')
         pyplot.show()
