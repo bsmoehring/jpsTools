@@ -17,7 +17,7 @@ class osm(object):
     Ref = 'ref'
     NodeRef = 'nd'
     Lat = 'lat'
-    Lon ='lon'
+    Lon = 'lon'
     Bounds = 'bounds'
     MinLat = 'minlat'
     MinLon = 'minlon'
@@ -33,7 +33,7 @@ class osm(object):
     Value = 'v'
     Tag = 'tag'
     Width = 'width'
-        
+
 class jps(object):
     '''
     This class aims to store required strings for the jps input files
@@ -51,11 +51,10 @@ class jps(object):
     Wall = 'wall'
     OriginalId = 'originalId'
     Transitions = 'transitions'
-    Transition = 'transition' 
+    Transition = 'transition'
     Type = 'type'
     Room1 = 'room1_id'
     Subroom1 = 'subroom1_id'
     Room2 = 'room2_id'
     Subroom2 = 'subroom2_id'
-    
-        
+

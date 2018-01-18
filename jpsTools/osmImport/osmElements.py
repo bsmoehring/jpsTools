@@ -20,14 +20,14 @@ class OSMBuilder(object):
         self.tree2xml(outputPath)
         
     def translate2osm(self):
-        print '---'
+        print ('---')
         for osmId, poly in Output.polygons.items():
-            print osmId
+            print (osmId)
             elem = Output.elements[osmId]
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
         transitionId = 1
-        print '---'
+        print ('---')
         for transition in Output.transitionlst:
             try:
                 if isinstance(transition.geometry, geometry.Polygon):
@@ -35,13 +35,13 @@ class OSMBuilder(object):
                 elif isinstance(transition.geometry, geometry.LineString):
                     nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
             except AttributeError:
-                print 'not handling Transition ', transition.osmId1, transition.osmId2
+                print ('not handling Transition ', transition.osmId1, transition.osmId2)
                 continue
             nodeRefs = list(set(nodeRefs))
             if len(nodeRefs)==2:
                 tags = {'origin':'JPSTools', 'highway':'transition', jps.Room1:transition.osmId1, jps.Room2:transition.osmId2}
                 OSMOut().addTransition(Way(transitionId, '', nodeRefs, tags))
-                print 'Transition', transitionId
+                print ('Transition', transitionId)
                 transitionId += 1
             
     def polygon2osm(self, osmId, poly, elem = None):
@@ -75,7 +75,7 @@ class OSMBuilder(object):
         '''
         form an xml string from all objects
         '''
-        print '---'
+        print ('---')
         
         #required attributes of the geometry element
         attribs = {}
@@ -108,7 +108,7 @@ class OSMBuilder(object):
         writes the ElementTree geometry to a xml file
         '''
         out = tostring(self.osmTree, pretty_print=True)
-        print '---'
+        print ('---')
         #print out
         if outputPath.endswith('.osm'):
             pass
@@ -118,9 +118,9 @@ class OSMBuilder(object):
             f = open(outputPath, 'w')
             f.write(out)
             f.close()
-            print 'output written to', outputPath
+            print ('output written to', outputPath)
         except Exception:
-            print 'output not written!'
+            print ('output not written!')
             
 class OSMOut:
     tag = osm.Osm
