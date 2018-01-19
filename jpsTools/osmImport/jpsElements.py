@@ -16,10 +16,10 @@ class JPSBuilder(object):
         self.tree2xml(outputPath)
     
     def translate2jps(self):
-        print '---'
+        print ('---')
         for way in OSMOut.transitions:
             self.transition2jps(way)
-        print '---'
+        print ('---')
         for way in OSMOut.ways:
             self.way2jps(way)
         #for transition in Output.transitionlst:
@@ -29,7 +29,7 @@ class JPSBuilder(object):
         '''
         form an xml string from all geometry objects
         '''
-        print '---'
+        print ('---')
         
         #required attributes of the geometry element
         attribs = {}
@@ -89,7 +89,7 @@ class JPSBuilder(object):
         writes the ElementTree geometry to a xml file
         '''
         out = tostring(self.outGeometry, pretty_print=True)
-        print '---'
+        print ('---')
         #print out
         if outputPath.endswith('.xml'):
             pass
@@ -99,9 +99,9 @@ class JPSBuilder(object):
             f = open(outputPath, 'w')
             f.write(out)
             f.close()
-            print 'output written to', outputPath
+            print ('output written to', outputPath)
         except Exception:
-            print 'output not written!'
+            print ('output not written!')
 
 class Geometry:
     tag = jps.Geometry 
@@ -126,7 +126,7 @@ class Geometry:
                     roomlst.append(room)
             return roomlst
         except KeyError:
-            print 'no id:'; id, 'in geometry.rooms[].'
+            print ('no id:'; id, 'in geometry.rooms[].')
  
 class Room:
     '''

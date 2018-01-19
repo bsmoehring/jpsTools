@@ -19,7 +19,7 @@ class ElementPlotter(object):
             if isinstance(poly, geometry.Polygon):
                 x, y = poly.exterior.xy 
             else: 
-                print 'Problem handling ', poly
+                print ('Problem handling ', poly)
                 continue
             
             ax = self.fig.add_subplot(111)
@@ -59,5 +59,5 @@ class ElementPlotter(object):
         elif isinstance(elem, geometry.Point):
             x, y = elem.xy
         else:
-            print 'Cant plot element ', elem
+            print ('Cant plot element ', elem)
         return x, y

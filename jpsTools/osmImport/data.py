@@ -3,9 +3,9 @@ Created on 21.11.2017
 
 @author: bsmoehring
 '''
-from constants import osm
 import logging
 from xml.etree import ElementTree as ET
+from constants import osm
 
 class Input(object):
     '''
@@ -16,18 +16,18 @@ class Input(object):
         '''
         Constructor
         '''
-        
+
         self.tree = ET.parse(inputFile)
         self.allNodes = {}
-        
+
         for node in self.tree.iter(tag=osm.Node):
             key = node.attrib.get(osm.Id)
-            self.allNodes[key] = node 
-        logging.info('Input loaded.') 
-        
-        print self.tree
-        print self.allNodes
-        
+            self.allNodes[key] = node
+        logging.info('Input loaded.')
+
+        print(self.tree)
+        print(self.allNodes)
+
 class Output(object):
     '''
     class to store output data
@@ -42,17 +42,13 @@ class Output(object):
     wayNodes = {}
     #[Transition]
     transitionlst = []
-    
+
     class Transition():
         '''
-        
+
         '''
         def __init__(self, geometry, osmId1, osmId2):
             self.geometry = geometry
             self.osmId1 = osmId1
             self.osmId2 = osmId2
-            print 'Transition', osmId1, osmId2, geometry
-            
-
-    
-
+            print('Transition', osmId1, osmId2, geometry)
