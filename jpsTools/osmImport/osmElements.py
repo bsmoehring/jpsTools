@@ -83,22 +83,22 @@ class OSMBuilder(object):
         attribs['generator'] = 'JPSTools'
           
         osmTree = Element(OSMOut.tag, attribs)
-        for node in OSMOut.nodes.itervalues():
+        for node in OSMOut.nodes.values():
             outNode = SubElement(osmTree, node.tag, node.attribs)
-            for tag in node.tags.iteritems():
+            for tag in node.tags.items():
                 SubElement(outNode, tag.tag, tag.attribs)
         
         for way in OSMOut.ways:
             outWay = SubElement(osmTree, way.tag, way.attribs)
             for nodeRef in way.nodeRefs:
                 SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
-            for k, v in way.tags.iteritems():
+            for k, v in way.tags.items():
                 SubElement(outWay, osm.Tag, {osm.Key:k, osm.Value:v})   
         for way in OSMOut.transitions:
             outWay = SubElement(osmTree, way.tag, way.attribs)
             for nodeRef in way.nodeRefs:
                 SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
-            for k, v in way.tags.iteritems():
+            for k, v in way.tags.items():
                 SubElement(outWay, osm.Tag, {osm.Key:k, osm.Value:v})      
             
         self.osmTree = osmTree
@@ -134,7 +134,7 @@ class OSMOut:
         '''
         #checking all exisitng nodes if one is the same and can be used
         pNew = geometry.Point(x, y)
-        for nodeRef, node in self.nodes.iteritems():
+        for nodeRef, node in self.nodes.items():  #iteritems():
             pOld = geometry.Point(node.x, node.y)
             if pNew.distance(pOld) < Config.errorDistance:
                 return nodeRef

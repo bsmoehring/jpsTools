@@ -11,6 +11,7 @@ from shapely import ops
 from data import Output
 from xml.etree import ElementTree
 import math, itertools
+import copy
 #from exceptions import UnhandleThisNodeException
 
 class ElementHandler(object):
@@ -22,7 +23,7 @@ class ElementHandler(object):
         self.nodes = inputData.allNodes
         self.transform = transform
         self.nodePoints = {}
-        for nodeId, node in self.nodes.iteritems():
+        for nodeId, node in self.nodes.items():
             self.nodePoints[nodeId] = geometry.Point(transform.WGS2XY(node))
     
     def readOSM(self):
@@ -49,13 +50,13 @@ class ElementHandler(object):
         '''
         handle all nodes that are part of more than 1 polygon and aren't tagged for unhandling:
         '''
-        for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
+        for nodeId, polyOsmIdLst in Output.usedNodes.items():
             if len(polyOsmIdLst) > 1:
                 try:
                     self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
                 except UnhandleThisNodeException:
                     print(nodeId, 'not handled!')
-        for nodeId, polyOsmIdLst in Output.usedNodes.iteritems():
+        for nodeId, polyOsmIdLst in Output.usedNodes.items():
             self.getTransitions(nodeId, Output.usedNodes[nodeId])
         
     def translate(self, elem):
@@ -271,7 +272,8 @@ class ElementHandler(object):
                         for nodeRefs in nodeRefsLst:
                             ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
                             if isinstance(ls.intersection(polyChild), geometry.LineString):
-                                elem = Output.elements[polyOsmId].copy()
+                                elem = copy.deepcopy(Output.elements[polyOsmId])
+
                                 self.storeElement(newPolyId, elem, polyChild, nodeRefs)
                                 print(polyChild)
                                 print('New Polygon', newPolyId, 'created from', polyOsmId)
@@ -281,7 +283,7 @@ class ElementHandler(object):
                     del Output.polygons[polyOsmId]
                     del Output.wayNodes[polyOsmId]
                     Output.usedNodes[nodeId].remove(polyOsmId)
-                    for osmIdWayLst in Output.usedNodes.itervalues():
+                    for key, osmIdWayLst in Output.usedNodes.items(): #itervalues():
                         if polyOsmId in osmIdWayLst:
                             osmIdWayLst.remove(polyOsmId)
                 else:
