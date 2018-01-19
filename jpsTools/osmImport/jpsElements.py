@@ -110,14 +110,14 @@ class Geometry:
     
     def addRoom(self, room):
         '''
-        adding a new room to the geometry container. 
+        adding a new room to the geometry container.
         cheking consistency and handling double-used nodes.
         '''
         self.rooms.append(room)
-    
+
     def addTransition(self, transition):
         self.transitions.append(transition)
-            
+
     def getRoomByOriginalId(self, originalId):
         roomlst = []
         try:
@@ -126,8 +126,8 @@ class Geometry:
                     roomlst.append(room)
             return roomlst
         except KeyError:
-            print ('no id:'; id, 'in geometry.rooms[].')
- 
+            print('no id:', id, 'in geometry.rooms[].')
+
 class Room:
     '''
     The geometry contains at least one room and one transition.
