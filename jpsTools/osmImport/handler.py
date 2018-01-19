@@ -80,7 +80,7 @@ class ElementHandler(object):
                         print(member.attrib[osm.Ref], 'is an inner Member -> Not handled yet!')
                     else:
                         #no outer/inner
-                        print(member.attrib[osm.Ref], 'is tagged: ', member.attrib[osm.Role], '--> no procedure implemented) yet.'
+                        print(member.attrib[osm.Ref], 'is tagged: ', member.attrib[osm.Role], '--> no procedure implemented) yet.')
         if wayRefs:
             for way in self.tree.iter(tag=osm.Way):
                 if way.attrib.get(osm.Id) in wayRefs:
@@ -260,7 +260,7 @@ class ElementHandler(object):
                         if not isinstance(polyChild, geometry.Polygon):
                             raise Exception
                         i += 1
-                        newPolyId = polyOsmId + '0' + `i`
+                        newPolyId = polyOsmId + '0' + str(i)
                         #poly = self.fuseClosePoints(Output.polygons[nodeId], polyChild)
                         #poly = self.filterPolyPointsByDistance(unionAll, polyChild)
                         
