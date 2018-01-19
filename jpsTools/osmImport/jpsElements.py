@@ -88,21 +88,16 @@ class JPSBuilder(object):
         '''
         writes the ElementTree geometry to a xml file
         '''
-        out = tostring(self.outGeometry, pretty_print=True)
-        print ('---')
-        #print out
+        out = tostring(self.outGeometry, pretty_print=True,encoding='unicode')
         if outputPath.endswith('.xml'):
             pass
         else:
             outputPath += 'testJPSOut.xml' 
-        try:
             f = open(outputPath, 'w')
             f.write(out)
             f.close()
-            print ('output written to', outputPath)
-        except Exception:
-            print ('output not written!')
-
+            print ('output written to %s' % outputPath)
+            
 class Geometry:
     tag = jps.Geometry 
     rooms = []
