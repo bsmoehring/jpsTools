@@ -88,21 +88,16 @@ class JPSBuilder(object):
         '''
         writes the ElementTree geometry to a xml file
         '''
-        out = tostring(self.outGeometry, pretty_print=True)
-        print ('---')
-        #print out
+        out = tostring(self.outGeometry, pretty_print=True,encoding='unicode')
         if outputPath.endswith('.xml'):
             pass
         else:
             outputPath += 'testJPSOut.xml' 
-        try:
             f = open(outputPath, 'w')
             f.write(out)
             f.close()
-            print ('output written to', outputPath)
-        except Exception:
-            print ('output not written!')
-
+            print ('output written to %s' % outputPath)
+            
 class Geometry:
     tag = jps.Geometry 
     rooms = []
@@ -110,14 +105,14 @@ class Geometry:
     
     def addRoom(self, room):
         '''
-        adding a new room to the geometry container. 
+        adding a new room to the geometry container.
         cheking consistency and handling double-used nodes.
         '''
         self.rooms.append(room)
-    
+
     def addTransition(self, transition):
         self.transitions.append(transition)
-            
+
     def getRoomByOriginalId(self, originalId):
         roomlst = []
         try:
@@ -126,8 +121,8 @@ class Geometry:
                     roomlst.append(room)
             return roomlst
         except KeyError:
-            print ('no id:'; id, 'in geometry.rooms[].')
- 
+            print('no id:', id, 'in geometry.rooms[].')
+
 class Room:
     '''
     The geometry contains at least one room and one transition.

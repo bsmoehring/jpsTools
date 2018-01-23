@@ -64,7 +64,7 @@ class Config:
         self.defaultMandatoryTags[key] = value
 
     def addMandatoryTags(self, tags={}):
-        for key, value in self.defaultMandatoryTags.iteritems():
+        for key, value in self.defaultMandatoryTags.items():
             try:
                 tags[key]
             except KeyError:

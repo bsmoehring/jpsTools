@@ -14,7 +14,7 @@ class ElementPlotter(object):
         self.fig = pyplot.figure(1, figsize=(50,50), dpi=90)
     
     def plotOutput(self):
-        for osmId, poly in Output.polygons.iteritems():
+        for osmId, poly in Output.polygons.items():
             
             if isinstance(poly, geometry.Polygon):
                 x, y = poly.exterior.xy 

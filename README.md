@@ -5,9 +5,11 @@ tool for converting osm-data into jupedsim geometry files
 # Requirements: 
 
 - Python
-- shapely library
-- pyproj library
-- matplotlib library
+- shapely
+- pyproj
+- matplotlib
+- lxml
+
 
 # How to:
 

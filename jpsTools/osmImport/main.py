@@ -7,7 +7,7 @@ Created on 24.10.2017
 from config import Config
 from coords import Transformation
 from handler import ElementHandler
-from osmImport.data import Input
+from data import Input
 from jpsElements import JPSBuilder
 from osmElements import OSMBuilder
 from plot import ElementPlotter
