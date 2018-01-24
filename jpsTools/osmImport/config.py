@@ -21,12 +21,6 @@ class Config:
 
         self.transform = transform
 
-        self.addFilterTag('railway', 'platform')
-        self.addFilterTag('highway', 'steps')
-        self.addFilterTag('highway', 'footway')
-
-        self.addUnhandleTag('highway', 'elevator')
-
         self.addAreaTag('area', 'yes')
 
         self.addDefaultMandatoryTag('level', '0')
