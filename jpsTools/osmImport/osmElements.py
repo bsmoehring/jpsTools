@@ -113,7 +113,7 @@ class OSMBuilder(object):
         if outputPath.endswith('.osm'):
             pass
         else:
-            outputPath += 'testOSMout.osm' 
+            outputPath += 'osm2jps.osm'
         try:
             f = open(outputPath, 'w')
             f.write(out)

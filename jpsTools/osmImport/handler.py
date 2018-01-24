@@ -19,6 +19,7 @@ class ElementHandler(object):
     classdocs
     '''
     def __init__(self, inputData, transform):
+        Config()
         self.tree = inputData.tree
         self.nodes = inputData.allNodes
         self.transform = transform
@@ -478,7 +479,6 @@ class ElementHandler(object):
         Output.polygons[osmId] = poly  
         Output.elements[osmId] = elem 
             
-    
     def checkNodeUnhandling(self, nodeId, polyOsmIdLst):
         '''
         returns false if one of the nodes tags is in the unhandle dictionary

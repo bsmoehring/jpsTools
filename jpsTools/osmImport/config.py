@@ -6,17 +6,6 @@ Created on 07.11.2017
 
 class Config:
 
-    inputFile = 'resources/Meckesheim.osm'
-    outputPath = 'resources'
-
-    #outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/koeln.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/testOSMout.osm'
-
     stanardWidth = 2 #meters
     #points are merged if their distance is below errorDistance
     errorDistance = 0.01
@@ -34,7 +23,7 @@ class Config:
         self.addFilterTag('highway', 'steps')
         self.addFilterTag('highway', 'footway')
 
-        #self.addUnhandleTag('highway', 'elevator')
+        self.addUnhandleTag('highway', 'elevator')
 
         self.addAreaTag('area', 'yes')
 

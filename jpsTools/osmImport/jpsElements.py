@@ -92,7 +92,7 @@ class JPSBuilder(object):
         if outputPath.endswith('.xml'):
             pass
         else:
-            outputPath += 'testJPSOut.xml' 
+            outputPath += 'jps_geo.xml'
             f = open(outputPath, 'w')
             f.write(out)
             f.close()

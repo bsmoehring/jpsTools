@@ -3,8 +3,8 @@ Created on 24.10.2017
 
 @author: bsmoehring
 '''
+import sys
 
-from config import Config
 from coords import Transformation
 from handler import ElementHandler
 from data import Input
@@ -13,20 +13,23 @@ from osmElements import OSMBuilder
 from plot import ElementPlotter
 
 def main():
-    
-    Config()
-    
-    inputData = Input(Config.inputFile)
-    
+
+    path = str(sys.argv[1])
+    file = str(sys.argv[2])
+    if not path.endswith('/'):
+        path += '/'
+
+    inputData = Input(path + file)
+
     transform = Transformation(inputData)
     
     handler = ElementHandler(inputData, transform)
-    
+
     handler.readOSM()
     
-    OSMBuilder(Config.outputPath, transform)
+    OSMBuilder(path, transform)
     
-    JPSBuilder(Config.outputPath)
+    JPSBuilder(path)
     
     ElementPlotter(transform).plotOutput()
 
