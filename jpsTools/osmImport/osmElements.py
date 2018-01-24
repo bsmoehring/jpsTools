@@ -107,7 +107,7 @@ class OSMBuilder(object):
         '''
         writes the ElementTree geometry to a xml file
         '''
-        out = tostring(self.osmTree, pretty_print=True)
+        out = tostring(self.osmTree, pretty_print=True, encoding='unicode')
         print ('---')
         #print out
         if outputPath.endswith('.osm'):
