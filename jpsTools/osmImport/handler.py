@@ -4,7 +4,6 @@ Created on 11.11.2017
 @author: user
 '''
 from constants import osm, jps
-from config import Config
 import shapely.geometry as geometry
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 from shapely import ops
@@ -18,14 +17,13 @@ class ElementHandler(object):
     '''
     classdocs
     '''
-    def __init__(self, inputData, transform):
-        Config()
+    def __init__(self, inputData, config):
+        self.config = config
         self.tree = inputData.tree
         self.nodes = inputData.allNodes
-        self.transform = transform
         self.nodePoints = {}
         for nodeId, node in self.nodes.items():
-            self.nodePoints[nodeId] = geometry.Point(transform.WGS2XY(node))
+            self.nodePoints[nodeId] = geometry.Point(self.config.transform.WGS2XY(node))
     
     def readOSM(self):
     
@@ -35,7 +33,7 @@ class ElementHandler(object):
                 for tag in elem:
                     k = tag.get(osm.Key)
                     v = tag.get(osm.Value)
-                    if k in Config.filterTags and v in Config.filterTags[k]:
+                    if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
                         break
                 if convert:
@@ -86,12 +84,12 @@ class ElementHandler(object):
         if wayRefs:
             for way in self.tree.iter(tag=osm.Way):
                 if way.attrib.get(osm.Id) in wayRefs:
-                    return self.way2polygon(way, self.transform)
+                    return self.way2polygon(way)
         else:
             print('Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?') 
             raise Exception
                 
-    def way2polygon(self, way, transform):
+    def way2polygon(self, way):
         '''
         translate osm way to a shapely.geometry.polygon in order to to easily manipulate its shape.
         '''
@@ -100,11 +98,11 @@ class ElementHandler(object):
         area = False
         transition = False
         nodeRefs = []
-        width = Config.stanardWidth
+        width = self.config.stanardWidth
         #search for specific Tags
         for child in way.iter(tag = osm.Tag):
             try:
-                if child.attrib[osm.Value] in Config.areaTags[child.attrib[osm.Key]]:
+                if child.attrib[osm.Value] in self.config.areaTags[child.attrib[osm.Key]]:
                     area = True
             except KeyError:
                 pass
@@ -114,14 +112,14 @@ class ElementHandler(object):
             except KeyError:
                 pass
             try:
-                if child.attrib[osm.Value] in Config.transitionTags[child.attrib[osm.Key]]:
+                if child.attrib[osm.Value] in self.config.transitionTags[child.attrib[osm.Key]]:
                     transition = True
             except KeyError:
                 pass
         #get NodeRefs
         for child in way.iter(tag = osm.NodeRef):
             nodeRefs.append(child.attrib[osm.Ref])  
-        XYList = transform.nodeRefs2XY(nodeRefs, self.nodes)
+        XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
         if area:
             #check if first and last nodes are the same
             if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs [-1]:
@@ -154,11 +152,11 @@ class ElementHandler(object):
             print(way.attrib[osm.Id], 'is a LineString and needs to be buffered to create a Polygon.')
             ls = geometry.LineString(XYList)
             #polygon from linestring
-            poly = ls.buffer(width/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=Config.stanardWidth)
+            poly = ls.buffer(width/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=self.config.stanardWidth)
         
         return poly
     
-    def way2transition(self, way, transform):
+    def way2transition(self, way):
         pass
     
     def handlePolysAroundNode(self, nodeId, polyOsmIdLst):
@@ -233,7 +231,7 @@ class ElementHandler(object):
         
         for polyOsmId in polyOsmIdLst:
             poly = Output.polygons[polyOsmId]
-            poly = poly.difference(unionCleared.buffer(Config.bufferDistance))
+            poly = poly.difference(unionCleared.buffer(self.config.bufferDistance))
             # difference only if poly is linked at end point
             print(polyOsmId)
             if not self.isEndOfElement(nodeId, polyOsmId):
@@ -271,7 +269,7 @@ class ElementHandler(object):
                         TODO: get largest intersection
                         '''
                         for nodeRefs in nodeRefsLst:
-                            ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
+                            ls = geometry.LineString(self.config.transform.nodeRefs2XY(nodeRefs, self.nodes))
                             if isinstance(ls.intersection(polyChild), geometry.LineString):
                                 elem = copy.deepcopy(Output.elements[polyOsmId])
 
@@ -329,8 +327,8 @@ class ElementHandler(object):
         returning two polygons that should share the same coords at intersecting areas.
         union of the exterior LineString of Polygons. then filtering the closest Polygon. 
         '''
-        lineString1 = geometry.LineString(list(poly1.buffer(Config.bufferDistance).exterior.coords))
-        lineString2 = geometry.LineString(list(poly2.buffer(Config.bufferDistance).exterior.coords))
+        lineString1 = geometry.LineString(list(poly1.buffer(self.config.bufferDistance).exterior.coords))
+        lineString2 = geometry.LineString(list(poly2.buffer(self.config.bufferDistance).exterior.coords))
         unionExteriors = lineString1.union(lineString2)
         polyLst = [geom for geom in ops.polygonize(unionExteriors)]
         poly1 = self.filterClosestPoly(poly1, polyLst)
@@ -355,9 +353,9 @@ class ElementHandler(object):
         elif nodeId == nodeRefsOld[-1]:
             node2 = nodeRefsOld[-2]
         
-        x0, y0 = self.transform.nodeRefs2XY(nodeId, self.nodes)
-        x1, y1 = self.transform.nodeRefs2XY(node1, self.nodes)
-        x2, y2 = self.transform.nodeRefs2XY(node2, self.nodes)
+        x0, y0 = self.config.transform.nodeRefs2XY(nodeId, self.nodes)
+        x1, y1 = self.config.transform.nodeRefs2XY(node1, self.nodes)
+        x2, y2 = self.config.transform.nodeRefs2XY(node2, self.nodes)
         
         vx1 = x1-x0
         vy1 = y1-y0
@@ -416,7 +414,7 @@ class ElementHandler(object):
         nodePoint = self.nodePoints[nodeId]
         
         for polyOsmId in polyOsmIdLst:
-            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId].buffer(Config.bufferDistance)])
+            unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId].buffer(self.config.bufferDistance)])
         if isinstance(unionAll, geometry.MultiPolygon) or isinstance(unionAll, geometry.GeometryCollection):
             for geom in unionAll.geoms:
                 if nodePoint.within(geom):
@@ -487,7 +485,7 @@ class ElementHandler(object):
         ok = True
         for tag in node.iter(tag = osm.Tag):
             try:
-                if tag.attrib[osm.Value] in Config.unhandleTag[tag.attrib[osm.Key]]:
+                if tag.attrib[osm.Value] in self.config.unhandleTag[tag.attrib[osm.Key]]:
                     ok = False
             except KeyError:
                 pass
@@ -499,7 +497,7 @@ class ElementHandler(object):
             elem = Output.elements[polyOsmId]
             for tag in elem.iter(tag = osm.Tag):
                 try:
-                    if tag.attrib[osm.Value] in Config.areaTags[tag.attrib[osm.Key]]:
+                    if tag.attrib[osm.Value] in self.config.areaTags[tag.attrib[osm.Key]]:
                         area = True
                         break
                 except KeyError:
@@ -528,7 +526,7 @@ class ElementHandler(object):
             changed = False
             for coord2 in polyStay.exterior.coords:
                 p2 = geometry.Point(coord2)
-                if p2.distance(p) < Config.errorDistance:
+                if p2.distance(p) < self.config.errorDistance:
                     polyExteriorLst.append(coord2)
                     changed = True
                     break
@@ -553,7 +551,7 @@ class ElementHandler(object):
         polyCleared = []
         for coord in polyChange.exterior.coords:
             p = geometry.Point(coord)
-            if polyStay.exterior.distance(p) < Config.errorDistance:
+            if polyStay.exterior.distance(p) < self.config.errorDistance:
                 polyCleared.append(coord)
         try:
             polyCleared = geometry.Polygon(polyCleared)
@@ -583,7 +581,7 @@ class ElementHandler(object):
             return multipoly
         elif isinstance(multipoly, geometry.MultiPolygon):
             nodeRefs = Output.wayNodes[polyOsmId]
-            ls = geometry.LineString(self.transform.nodeRefs2XY(nodeRefs, self.nodes))
+            ls = geometry.LineString(self.config.transform.nodeRefs2XY(nodeRefs, self.nodes))
             for poly in multipoly.geoms:
                 if ls.intersects(poly) and isinstance(poly, geometry.Polygon):
                     return poly
@@ -618,7 +616,7 @@ class ElementHandler(object):
             for pair in itertools.combinations(osmIdLst, 2):
                 osmId1, osmId2 = pair[0], pair[1]
                 poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
-                transition = poly1.buffer(Config.bufferDistance).intersection(poly2.buffer(Config.bufferDistance))
+                transition = poly1.buffer(self.config.bufferDistance).intersection(poly2.buffer(self.config.bufferDistance))
                 if isinstance(transition, geometry.base.BaseMultipartGeometry): 
                     distance = float("+infinity")
                     for geom in transition.geoms:

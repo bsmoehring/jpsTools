@@ -5,6 +5,7 @@ Created on 24.10.2017
 '''
 import sys
 
+from config import Config
 from coords import Transformation
 from handler import ElementHandler
 from data import Input
@@ -22,12 +23,14 @@ def main():
     inputData = Input(path + file)
 
     transform = Transformation(inputData)
+
+    config = Config(transform)
     
-    handler = ElementHandler(inputData, transform)
+    handler = ElementHandler(inputData, config)
 
     handler.readOSM()
     
-    OSMBuilder(path, transform)
+    OSMBuilder(path, config)
     
     JPSBuilder(path)
     

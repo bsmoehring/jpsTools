@@ -17,7 +17,9 @@ class Config:
     defaultMandatoryTags = {}
     transitionTags = {}
 
-    def __init__(self):
+    def __init__(self, transform):
+
+        self.transform = transform
 
         self.addFilterTag('railway', 'platform')
         self.addFilterTag('highway', 'steps')
@@ -51,13 +53,6 @@ class Config:
 
     def addDefaultMandatoryTag(self, key, value):
         self.defaultMandatoryTags[key] = value
-
-    def addMandatoryTags(self, tags={}):
-        for key, value in self.defaultMandatoryTags.items():
-            try:
-                tags[key]
-            except KeyError:
-                tags[key] = value
 
     def addTransitionTag(self, key, value):
         if key in self.transitionTags:
