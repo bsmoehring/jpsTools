@@ -2,7 +2,7 @@
 
 tool for converting osm-data into jupedsim geometry files
 
-# Requirements: 
+# Requirements:
 
 - Python3
 - shapely
@@ -18,3 +18,4 @@ tool for converting osm-data into jupedsim geometry files
 - Save the data of your choice as an .osm file
 - Run jpsTools.osmImport.main() with command-line argmuents [1] the folder of your osm file and [2] the filename
     e.g. 'resources/ Meckesheim.osm'
+
