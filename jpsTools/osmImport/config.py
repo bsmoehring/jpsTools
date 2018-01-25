@@ -25,7 +25,7 @@ class Config:
 
         self.addDefaultMandatoryTag('level', '0')
 
-        self.addTransitionTag('highway', 'transition')
+        self.addTransitionTag('jupedsim', 'transition')
 
     def addFilterTag(self, key, value):
         if key in self.filterTags:
@@ -53,13 +53,4 @@ class Config:
             self.transitionTags[key].append(value)
         else:
             self.transitionTags[key] = [value]
-        if key in self.filterTags:
-            self.filterTags[key].append(value)
-        else:
-            self.filterTags[key] = [value]
 
-    def loadConfig(self, configFile):
-        '''
-        loading required parameters for the network generation from an external source
-        '''
-        pass

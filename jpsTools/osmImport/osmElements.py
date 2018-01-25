@@ -25,7 +25,6 @@ class OSMBuilder(object):
             elem = Output.elements[osmId]
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
-        transitionId = 1
         print ('---')
         for transition in Output.transitionlst:
             try:
@@ -38,11 +37,9 @@ class OSMBuilder(object):
                 continue
             nodeRefs = list(set(nodeRefs))
             if len(nodeRefs)==2:
-                tags = {'origin':'JPSTools', 'highway':'transition', jps.Room1:transition.osmId1, jps.Room2:transition.osmId2}
-                OSMOut().addTransition(Way(transitionId, '', nodeRefs, tags))
-                print ('Transition', transitionId)
-                transitionId += 1
-            
+                tags = {'origin':'JPSTools', 'jupedsim':'transition', jps.Room1:transition.osmId1, jps.Room2:transition.osmId2}
+                OSMOut().addTransition(Way(len(OSMOut.transitions)+1, '', nodeRefs, tags))
+
     def polygon2osm(self, osmId, poly, elem = None):
         
         tags = {}

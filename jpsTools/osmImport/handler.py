@@ -1,7 +1,7 @@
 '''
 Created on 11.11.2017
 
-@author: user
+@author: bsmoehring
 '''
 from constants import osm, jps
 import shapely.geometry as geometry
@@ -30,12 +30,14 @@ class ElementHandler(object):
         for elem in self.tree.iter():
             if elem.tag in [osm.Way, osm.Relation]:
                 convert = False
-                for tag in elem:
-                    k = tag.get(osm.Key)
-                    v = tag.get(osm.Value)
+                for tag in elem.iter(tag=osm.Tag):
+                    k = tag.attrib[osm.Key]
+                    v = tag.attrib[osm.Value]
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
                         break
+                    if k in self.config.transitionTags and v in self.config.transitionTags[k]:
+                        pass
                 if convert:
                     poly = self.translate(elem)
                     self.storeElement(elem.attrib[osm.Id], elem, poly, [])
@@ -94,7 +96,6 @@ class ElementHandler(object):
         translate osm way to a shapely.geometry.polygon in order to to easily manipulate its shape.
         '''
         print('element:', way.attrib[osm.Id], '--> Way')
-        #area?
         area = False
         transition = False
         nodeRefs = []
