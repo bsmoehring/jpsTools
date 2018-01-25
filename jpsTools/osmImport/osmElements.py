@@ -4,7 +4,6 @@ Created on Dec 13, 2017
 @author: bsmoehring
 '''
 
-from config import Config
 from constants import osm, jps
 from data import Output
 from shapely import geometry
@@ -13,8 +12,8 @@ from lxml.etree import tostring
 
 class OSMBuilder(object):
     
-    def __init__(self, outputPath, transform):
-        self.transform = transform
+    def __init__(self, outputPath, config):
+        self.config = config
         self.translate2osm()
         self.buildOSMTree()
         self.tree2xml(outputPath)
@@ -57,15 +56,18 @@ class OSMBuilder(object):
                 v = tag.attrib[osm.Value]
                 tags[k] = v
             tags['area'] = 'yes'
-            
+        for k, v in self.config.defaultMandatoryTags.items():
+            if k not in tags:
+                tags[k] = v
+
         OSMOut().addWay(Way(osmId, originalId, nodeRefs, tags))
         
     def coords2nodeRefs(self, coords = [], allowAdding = True):
         nodeRefs = []
         nodeRefPrevious = ''
         for coord in coords:
-            lat, lon = self.transform.XY2WGS(coord[0], coord[1])
-            nodeRef = OSMOut().getOrAddNode(coord[0], coord[1], lat, lon, {}, allowAdding)
+            lat, lon = self.config.transform.XY2WGS(coord[0], coord[1])
+            nodeRef = OSMOut().getOrAddNode(coord[0], coord[1], lat, lon, self.config.errorDistance, {}, allowAdding)
             if nodeRef != nodeRefPrevious:
                 nodeRefs.append(nodeRef)
             nodeRefPrevious = nodeRef
@@ -113,7 +115,7 @@ class OSMBuilder(object):
         if outputPath.endswith('.osm'):
             pass
         else:
-            outputPath += 'testOSMout.osm' 
+            outputPath += 'osm2jps.osm'
         try:
             f = open(outputPath, 'w')
             f.write(out)
@@ -128,7 +130,7 @@ class OSMOut:
     ways = []
     transitions = []
         
-    def getOrAddNode(self, x, y, lat, lon, tags = {}, allowAdding = True):
+    def getOrAddNode(self, x, y, lat, lon, errorDistance, tags = {}, allowAdding = True):
         '''
         returning a node reference either from an existing node or from a newly created node
         '''
@@ -136,7 +138,7 @@ class OSMOut:
         pNew = geometry.Point(x, y)
         for nodeRef, node in self.nodes.items():  #iteritems():
             pOld = geometry.Point(node.x, node.y)
-            if pNew.distance(pOld) < Config.errorDistance:
+            if pNew.distance(pOld) < errorDistance:
                 return nodeRef
         
         #creating new node
@@ -191,14 +193,13 @@ class Way:
     '''
     tag = osm.Way
     
-    def __init__(self, id, originalId, nodeRefs = [], tags = {}):
+    def __init__(self, id, originalId, nodeRefs, tags):
         self.attribs = {}
         self.attribs[osm.Id] = str(id)
         self.attribs[jps.OriginalId] = originalId
         self.attribs['version'] = '9999999'
         self.nodeRefs = nodeRefs
         self.tags = tags
-        Config().addMandatoryTags(self.tags)
     
         
         

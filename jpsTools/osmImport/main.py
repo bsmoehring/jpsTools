@@ -3,6 +3,7 @@ Created on 24.10.2017
 
 @author: bsmoehring
 '''
+import sys
 
 from config import Config
 from coords import Transformation
@@ -13,20 +14,30 @@ from osmElements import OSMBuilder
 from plot import ElementPlotter
 
 def main():
-    
-    Config()
-    
-    inputData = Input(Config.inputFile)
-    
+
+    path = str(sys.argv[1])
+    file = str(sys.argv[2])
+    if not path.endswith('/'):
+        path += '/'
+
+    inputData = Input(path + file)
+
     transform = Transformation(inputData)
-    
-    handler = ElementHandler(inputData, transform)
-    
+
+    config = Config(transform)
+    # ADD OR MODIFY YOUR TAGS HERE:
+    config.addFilterTag('railway', 'platform')
+    config.addFilterTag('highway', 'steps')
+    config.addFilterTag('highway', 'footway')
+    config.addUnhandleTag('highway', 'elevator')
+
+    handler = ElementHandler(inputData, config)
+
     handler.readOSM()
     
-    OSMBuilder(Config.outputPath, transform)
+    OSMBuilder(path, config)
     
-    JPSBuilder(Config.outputPath)
+    JPSBuilder(path)
     
     ElementPlotter(transform).plotOutput()
 

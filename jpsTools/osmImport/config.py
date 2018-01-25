@@ -6,17 +6,6 @@ Created on 07.11.2017
 
 class Config:
 
-    inputFile = 'resources/Meckesheim.osm'
-    outputPath = 'resources'
-
-    #outputPath = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/Alexanderplatz/Alexanderplatz.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/Meckesheim.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/koeln.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Data/test/test1.osm'
-    #inputFile = 'D:/Wichtiges/TUBerlin/Masterarbeit/Format_Conversions/testOSMout.osm'
-
     stanardWidth = 2 #meters
     #points are merged if their distance is below errorDistance
     errorDistance = 0.01
@@ -28,13 +17,9 @@ class Config:
     defaultMandatoryTags = {}
     transitionTags = {}
 
-    def __init__(self):
+    def __init__(self, transform):
 
-        self.addFilterTag('railway', 'platform')
-        self.addFilterTag('highway', 'steps')
-        self.addFilterTag('highway', 'footway')
-
-        #self.addUnhandleTag('highway', 'elevator')
+        self.transform = transform
 
         self.addAreaTag('area', 'yes')
 
@@ -62,13 +47,6 @@ class Config:
 
     def addDefaultMandatoryTag(self, key, value):
         self.defaultMandatoryTags[key] = value
-
-    def addMandatoryTags(self, tags={}):
-        for key, value in self.defaultMandatoryTags.items():
-            try:
-                tags[key]
-            except KeyError:
-                tags[key] = value
 
     def addTransitionTag(self, key, value):
         if key in self.transitionTags:
