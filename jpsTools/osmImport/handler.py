@@ -19,29 +19,17 @@ class ElementHandler(object):
     '''
     def __init__(self, inputData, config):
         self.config = config
-        self.tree = inputData.tree
-        self.nodes = inputData.allNodes
+        self.elements = inputData.elements
+        self.nodes = inputData.nodes
         self.nodePoints = {}
         for nodeId, node in self.nodes.items():
             self.nodePoints[nodeId] = geometry.Point(self.config.transform.WGS2XY(node))
+
+    def runHandler(self):
     
-    def readOSM(self):
-    
-        for elem in self.tree.iter():
-            if elem.tag in [osm.Way, osm.Relation]:
-                convert = False
-                for tag in elem.iter(tag=osm.Tag):
-                    k = tag.attrib[osm.Key]
-                    v = tag.attrib[osm.Value]
-                    if k in self.config.filterTags and v in self.config.filterTags[k]:
-                        convert = True
-                        break
-                    if k in self.config.transitionTags and v in self.config.transitionTags[k]:
-                        pass
-                if convert:
-                    poly = self.translate(elem)
-                    self.storeElement(elem.attrib[osm.Id], elem, poly, [])
-        
+        for osmId, elem in self.elements.items():
+            self.translateElem(elem)
+
         print('---')
         print(Output.usedNodes)
         print(Output.polygons)
@@ -60,14 +48,14 @@ class ElementHandler(object):
         for nodeId, polyOsmIdLst in Output.usedNodes.items():
             self.getTransitions(nodeId, Output.usedNodes[nodeId])
         
-    def translate(self, elem):
+    def translateElem(self, elem):
         print('---')
         print(elem.attrib[osm.Id])
-        wayRefs = []
+        osmIds = []
         
         if elem.tag == osm.Way:
             #Way
-            wayRefs.append(elem.attrib[osm.Id])
+            osmIds.append(elem.attrib[osm.Id])
         elif elem.tag == osm.Relation:
             #Relation
             print('Element:', elem.attrib[osm.Id], '--> Relation')
@@ -76,17 +64,18 @@ class ElementHandler(object):
                     if member.attrib.get(osm.Role) == osm.Outer:
                         #outer member
                         print('Outer Member -> Way')
-                        wayRefs.append(member.attrib.get(osm.Ref))
+                        osmIds.append(member.attrib.get(osm.Ref))
                     elif member.attrib[osm.Role] == osm.Inner:
                         #inner member
                         print(member.attrib[osm.Ref], 'is an inner Member -> Not handled yet!')
                     else:
                         #no outer/inner
                         print(member.attrib[osm.Ref], 'is tagged: ', member.attrib[osm.Role], '--> no procedure implemented) yet.')
-        if wayRefs:
-            for way in self.tree.iter(tag=osm.Way):
-                if way.attrib.get(osm.Id) in wayRefs:
-                    return self.way2polygon(way)
+        if osmIds:
+            for osmId in osmIds:
+                poly = self.way2polygon(self.elements[osmId])
+                self.storeElement(elem.attrib[osm.Id], elem, poly, [])
+
         else:
             print('Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?') 
             raise Exception

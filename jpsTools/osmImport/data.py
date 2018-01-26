@@ -12,21 +12,42 @@ class Input(object):
     class to store the input-xml as tree and all nodes of this file separately as nodes
     '''
 
-    def __init__(self, inputFile):
+    def __init__(self, config):
         '''
         Constructor
         '''
 
-        self.tree = ET.parse(inputFile)
-        self.allNodes = {}
+        self.tree = ET.parse(config.path+config.file)
+        self.nodes = {}
+        self.elements = {}
+
+        self.readOSM(config)
+
+        print(self.tree)
+        print(self.nodes)
+        print('Input parsed!')
+
+
+
+    def readOSM(self, config):
 
         for node in self.tree.iter(tag=osm.Node):
             key = node.attrib.get(osm.Id)
-            self.allNodes[key] = node
-        logging.info('Input loaded.')
+            self.nodes[key] = node
 
-        print(self.tree)
-        print(self.allNodes)
+        for elem in self.tree.iter():
+            if elem.tag in [osm.Way, osm.Relation]:
+                convert = False
+                for tag in elem.iter(tag=osm.Tag):
+                    k = tag.attrib[osm.Key]
+                    v = tag.attrib[osm.Value]
+                    if k in config.filterTags and v in config.filterTags[k]:
+                        convert = True
+                        break
+                    if k in config.transitionTags and v in config.transitionTags[k]:
+                        pass
+                if convert:
+                    self.elements[elem.attrib[osm.Id]] = elem
 
 class Output(object):
     '''

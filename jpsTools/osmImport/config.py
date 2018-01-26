@@ -17,9 +17,16 @@ class Config:
     defaultMandatoryTags = {}
     transitionTags = {}
 
-    def __init__(self, transform):
+    def __init__(self, path, file):
 
-        self.transform = transform
+        if not path.endswith('/'):
+            path += '/'
+
+        self.path = path
+
+        self.file = file
+
+        self.transform = None
 
         self.addAreaTag('area', 'yes')
 

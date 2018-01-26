@@ -12,11 +12,11 @@ from lxml.etree import tostring
 
 class OSMBuilder(object):
     
-    def __init__(self, outputPath, config):
+    def __init__(self, config):
         self.config = config
         self.translate2osm()
         self.buildOSMTree()
-        self.tree2xml(outputPath)
+        self.tree2xml(config.path)
         
     def translate2osm(self):
         print ('---')
