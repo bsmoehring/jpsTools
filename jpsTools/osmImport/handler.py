@@ -184,10 +184,10 @@ class ElementHandler(object):
                 poly1, poly2 = self.adjustCaseEndEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
             elif self.isEndOfElement(nodeId, osmId1):
                 #one end of line
-                poly2, poly1 = self.adjustCaseMidEnd(nodeId, osmId2, osmId1, poly2, poly1, unionAll)
+                poly2, poly1 = self.adjustCaseMidEnd(nodeId, osmId2, osmId1, poly2, poly1, union, unionAll)
             elif self.isEndOfElement(nodeId, osmId2):
                 #one end of line
-                poly1, poly2 = self.adjustCaseMidEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
+                poly1, poly2 = self.adjustCaseMidEnd(nodeId, osmId1, osmId2, poly1, poly2, union, unionAll)
             elif not self.isEndOfElement(nodeId, osmId1) and not self.isEndOfElement(nodeId, osmId2):
                 #both middle points
                 self.adjustCaseMultiple(nodeId, polyOsmIdLst, unionCleared, unionAll)
@@ -289,11 +289,11 @@ class ElementHandler(object):
                     print(poly)
                     raise Exception
            
-    def adjustCaseMidEnd(self, nodeId, osmIdMid, osmIdEnd, polyMid, polyEnd, unionAll):
+    def adjustCaseMidEnd(self, nodeId, osmIdMid, osmIdEnd, polyMid, polyEnd, union, unionAll):
         '''
         returning two adjusted polygons. case T-junction.
         '''
-        polyEnd = polyEnd.difference(polyMid)
+        polyEnd = polyEnd.difference(union.buffer(self.config.bufferDistance))
         polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
         polyMid, polyEnd = self.mergePolys(polyMid, polyEnd, unionAll)
         polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
@@ -415,16 +415,13 @@ class ElementHandler(object):
             raise UnhandleThisNodeException
         '''
         all combinations of polygons in poly
+        if distance to unionAll is < epsilon -> use point for intersection poly
         '''
         polyintersects = []
         for polyOsmIdA, polyOsmIdB in itertools.combinations(polyOsmIdLst, 2):
             polyA = Output.polygons[polyOsmIdA]
             polyB = Output.polygons[polyOsmIdB]
             polyintersects.append(polyA.intersection(polyB))
-    
-        '''
-        if distance to unionAll is < epsilon -> use point for intersection poly
-        '''
         union = ops.cascaded_union(polyintersects)
         if isinstance(union, geometry.MultiPolygon) or isinstance(union, geometry.GeometryCollection):
             for geom in union.geoms:
@@ -541,7 +538,7 @@ class ElementHandler(object):
         polyCleared = []
         for coord in polyChange.exterior.coords:
             p = geometry.Point(coord)
-            if polyStay.exterior.distance(p) < self.config.errorDistance:
+            if polyStay.boundary.distance(p) < self.config.errorDistance:
                 polyCleared.append(coord)
         try:
             polyCleared = geometry.Polygon(polyCleared)
@@ -564,7 +561,7 @@ class ElementHandler(object):
             
     def filterRelevantPoly(self, multipoly, polyOsmId):
         '''
-        return largest Polygon from given MultiP olygon.
+        return largest Polygon from given MultiPolygon.
         Method should later be optimized!
         '''    
         if isinstance(multipoly, geometry.Polygon):
