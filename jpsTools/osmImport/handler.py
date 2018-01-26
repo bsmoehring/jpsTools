@@ -160,7 +160,7 @@ class ElementHandler(object):
 
         union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
         if not self.checkPolygons([union, unionCleared, unionAll]):
-            return
+            raise UnhandleThisNodeException
         '''
         handle if more than 2 elements related to point
         '''
@@ -238,9 +238,11 @@ class ElementHandler(object):
                 for nodeRef in nodeRefs:
                     nodeRefsNew.append(nodeRef)
                     if nodeRef == nodeId:
-                        nodeRefsLst.append(nodeRefsNew)
+                        if len(nodeRefsNew)>1:
+                            nodeRefsLst.append(nodeRefsNew)
                         nodeRefsNew = [nodeRef]
-                nodeRefsLst.append(nodeRefsNew)
+                if len(nodeRefsNew) > 1:
+                    nodeRefsLst.append(nodeRefsNew)
                 '''
                 make LineStrings from nodeRefs
                 '''
@@ -293,9 +295,9 @@ class ElementHandler(object):
         '''
         returning two adjusted polygons. case T-junction.
         '''
-        polyEnd = polyEnd.difference(union.buffer(self.config.bufferDistance))
+        polyEnd = polyEnd.difference(polyMid)
         polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
-        polyMid, polyEnd = self.mergePolys(polyMid, polyEnd, unionAll)
+        polyMid, polyEnd = self.mergePolys(osmIdMid, osmIdEnd, polyMid, polyEnd, unionAll)
         polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
         polyMid = self.filterPolyPointsByDistance(unionAll, polyMid)
         return polyMid, polyEnd
@@ -309,10 +311,10 @@ class ElementHandler(object):
         poly1 = self.filterRelevantPoly(poly1, osmId1)
         poly2 = poly2.difference(b1)
         poly2 = self.filterRelevantPoly(poly2, osmId2)
-        poly1, poly2 = self.mergePolys(poly1, poly2, unionAll)
+        poly1, poly2 = self.mergePolys(osmId1, osmId2, poly1, poly2, unionAll)
         return poly1, poly2
         
-    def mergePolys(self, poly1, poly2, unionAll):
+    def mergePolys(self, osmId1, osmId2, poly1, poly2, unionAll):
         '''
         returning two polygons that should share the same coords at intersecting areas.
         union of the exterior LineString of Polygons. then filtering the closest Polygon. 
@@ -372,10 +374,10 @@ class ElementHandler(object):
         vx4 = -vx3
         vy4 = -vy3
         
-        x1 = x0 + 5*vx1
-        y1 = y0 + 5*vy1
-        x2 = x0 + 5*vx2
-        y2 = y0 + 5*vy2
+        x1 = x0 + 0.1*vx1
+        y1 = y0 + 0.1*vy1
+        x2 = x0 + 0.1*vx2
+        y2 = y0 + 0.1*vy2
         x3 = x0 + 5*vx3
         y3 = y0 + 5*vy3
         x4 = x0 + 5*vx4
@@ -561,26 +563,34 @@ class ElementHandler(object):
             
     def filterRelevantPoly(self, multipoly, polyOsmId):
         '''
-        return largest Polygon from given MultiPolygon.
-        Method should later be optimized!
+        if multipolygon:
+        return Polygon with the longest intersection of the original element from given MultiPolygon.
+        If no longest intersection:
+        return largest polygon
         '''    
         if isinstance(multipoly, geometry.Polygon):
             return multipoly
         elif isinstance(multipoly, geometry.MultiPolygon):
             nodeRefs = Output.wayNodes[polyOsmId]
             ls = geometry.LineString(self.config.transform.nodeRefs2XY(nodeRefs, self.nodes))
+            intersectionLength = 0
+            longestIntersectionPoly = None
             for poly in multipoly.geoms:
                 if ls.intersects(poly) and isinstance(poly, geometry.Polygon):
-                    return poly
+                    if ls.intersection(poly).length > intersectionLength:
+                        intersectionLength = ls.intersection(poly).length
+                        longestIntersectionPoly = poly
+            if isinstance(longestIntersectionPoly, geometry.Polygon):
+                return longestIntersectionPoly
         
             area = float("-infinity")
             for polygon in multipoly:
-                if polygon.area > area:
+                if isinstance(polygon, geometry.Polygon) and polygon.area > area:
                     area = polygon.area
                     poly = polygon
             return poly
         else:
-            raise UnhandleThisNodeException
+            raise Exception
     
     def isEndOfElement(self, nodeId, wayId):
         '''
