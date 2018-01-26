@@ -295,7 +295,7 @@ class ElementHandler(object):
         '''
         returning two adjusted polygons. case T-junction.
         '''
-        polyEnd = polyEnd.difference(polyMid)
+        polyEnd = polyEnd.difference(union)
         polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
         polyMid, polyEnd = self.mergePolys(osmIdMid, osmIdEnd, polyMid, polyEnd, unionAll)
         polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
