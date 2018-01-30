@@ -295,7 +295,7 @@ class ElementHandler(object):
         '''
         returning two adjusted polygons. case T-junction.
         '''
-        polyEnd = polyEnd.difference(union)
+        polyEnd = polyEnd.difference(union.buffer(self.config.bufferDistance))
         polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
         polyMid, polyEnd = self.mergePolys(osmIdMid, osmIdEnd, polyMid, polyEnd, unionAll)
         polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
@@ -409,7 +409,7 @@ class ElementHandler(object):
             unionAll = ops.unary_union([unionAll, Output.polygons[polyOsmId].buffer(self.config.bufferDistance)])
         if isinstance(unionAll, geometry.MultiPolygon) or isinstance(unionAll, geometry.GeometryCollection):
             for geom in unionAll.geoms:
-                if nodePoint.within(geom):
+                if nodePoint.within(geom.buffer(self.config.bufferDistance)):
                     unionAll = geom
                     break
         if not isinstance(unionAll, geometry.Polygon):
