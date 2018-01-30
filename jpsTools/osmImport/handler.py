@@ -74,7 +74,7 @@ class ElementHandler(object):
         if osmIds:
             for osmId in osmIds:
                 poly = self.way2polygon(self.elements[osmId])
-                self.storeElement(elem.attrib[osm.Id], elem, poly, [])
+                self.storeElement(elem.attrib[osm.Id], elem, poly)
 
         else:
             print('Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?') 
@@ -85,15 +85,21 @@ class ElementHandler(object):
         translate osm way to a shapely.geometry.polygon in order to to easily manipulate its shape.
         '''
         print('element:', way.attrib[osm.Id], '--> Way')
-        area = False
-        transition = False
+        #get NodeRefs
         nodeRefs = []
+        for child in way.iter(tag = osm.NodeRef):
+            nodeRefs.append(child.attrib[osm.Ref])
+        area = False
+
         width = self.config.stanardWidth
         #search for specific Tags
         for child in way.iter(tag = osm.Tag):
             try:
                 if child.attrib[osm.Value] in self.config.areaTags[child.attrib[osm.Key]]:
-                    area = True
+                    if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
+                        area = True
+                    else:
+                        raise Exception
             except KeyError:
                 pass
             try:
@@ -101,42 +107,13 @@ class ElementHandler(object):
                     width = float(child.attrib[osm.Value])
             except KeyError:
                 pass
-            try:
-                if child.attrib[osm.Value] in self.config.transitionTags[child.attrib[osm.Key]]:
-                    transition = True
-            except KeyError:
-                pass
-        #get NodeRefs
-        for child in way.iter(tag = osm.NodeRef):
-            nodeRefs.append(child.attrib[osm.Ref])  
+
         XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
+
+
         if area:
             #check if first and last nodes are the same
-            if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs [-1]:
-                #polygon
-                poly = geometry.Polygon(XYList)
-            else:
-                #area == yes, but no polygon structure
-                print(way.attrib[osm.Id], 'has wrong tags. Area=yes but first and last node references are not the same or less than 3 nodes')
-                raise Exception
-        elif transition:
-            if len(nodeRefs) == 2:
-                osmId1, osmId2 = ''
-                for child in way.iter(tag = osm.Tag):
-                    try:
-                        if child.attrib[osm.Key] == jps.Room1:
-                            osmId1 = child.attrib[osm.Value]
-                    except KeyError:
-                        pass
-                    try:
-                        if child.attrib[osm.Key] == jps.Room1:
-                            osmId2 = child.attrib[osm.Value]
-                    except KeyError:
-                        pass
-                Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
-            else:
-                print('Tranasition must have exactly 2 nodeReferences')
-                raise Exception
+            poly = geometry.Polygon(XYList)
         else:
             #LineString
             print(way.attrib[osm.Id], 'is a LineString and needs to be buffered to create a Polygon.')
@@ -159,8 +136,9 @@ class ElementHandler(object):
         self.checkNodeUnhandling(nodeId, polyOsmIdLst)
 
         union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, polyOsmIdLst)
-        if not self.checkPolygons([union, unionCleared, unionAll]):
-            raise UnhandleThisNodeException
+        for poly in [union, unionCleared, unionAll]:
+            if not isinstance(poly, geometry.Polygon) or poly.is_empty:
+                raise UnhandleThisNodeException
         '''
         handle if more than 2 elements related to point
         '''
@@ -442,29 +420,16 @@ class ElementHandler(object):
         storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
         use the List nodeRefs instead of the elements tags if it's given
         '''
-        if not self.checkPolygons([poly]):
-            raise Exception
         if nodeRefs:
-            for elemChild in elem.iter(tag = osm.NodeRef):
+            for elemChild in elem.iter(tag=osm.NodeRef):
                 elem.remove(elemChild)
             for nodeRef in nodeRefs:
-                ElementTree.SubElement(elem, osm.NodeRef, {osm.Ref:nodeRef})
-            
-        #parse nodes
-        else:
-            for nd in elem.iter(tag = osm.NodeRef):
-                nodeRefs.append(nd.attrib[osm.Ref])
-        #add nodes and elemId to usedNodes
-        for nodeRef in nodeRefs: 
-            if nodeRef in Output.usedNodes:
-                #make sure that every node is added only once
-                if osmId not in Output.usedNodes[nodeRef]:
-                    Output.usedNodes[nodeRef].append(osmId)
-            else:
-                Output.usedNodes[nodeRef] = [osmId]
-        Output.wayNodes[osmId] = nodeRefs
-        Output.polygons[osmId] = poly  
-        Output.elements[osmId] = elem 
+                ElementTree.SubElement(elem, osm.NodeRef, {osm.Ref: nodeRef})
+
+        if not isinstance(poly, geometry.Polygon) or poly.is_empty:
+            raise Exception
+
+        Output().storeElement(osmId, elem, poly)
             
     def checkNodeUnhandling(self, nodeId, polyOsmIdLst):
         '''
@@ -494,16 +459,6 @@ class ElementHandler(object):
             if not area:
                 return
         raise UnhandleThisNodeException
-    
-    def checkPolygons(self, polyLst = []):
-        '''
-        return true if all polygons in list are not empty and polygons
-        '''
-        for poly in polyLst:
-            if not isinstance(poly, geometry.Polygon) or poly.is_empty:
-                print(poly)
-                return False
-        return True
     
     def fuseClosePoints(self, polyStay, polyChange):
         '''

@@ -24,8 +24,6 @@ def main():
 
     inputData = Input(config)
 
-    config.transform = Transformation(inputData)
-
     handler = ElementHandler(inputData, config)
 
     handler.runHandler()

@@ -5,7 +5,9 @@ Created on 21.11.2017
 '''
 import logging
 from xml.etree import ElementTree as ET
-from constants import osm
+from constants import osm, jps
+from coords import Transformation
+from shapely import geometry
 
 class Input(object):
     '''
@@ -16,20 +18,19 @@ class Input(object):
         '''
         Constructor
         '''
-
-        self.tree = ET.parse(config.path+config.file)
+        self.config = config
+        self.tree = ET.parse(self.config.path+self.config.file)
+        self.config.transform = Transformation(self.tree)
         self.nodes = {}
         self.elements = {}
 
-        self.readOSM(config)
+        self.readOSM()
 
         print(self.tree)
         print(self.nodes)
         print('Input parsed!')
 
-
-
-    def readOSM(self, config):
+    def readOSM(self):
 
         for node in self.tree.iter(tag=osm.Node):
             key = node.attrib.get(osm.Id)
@@ -38,16 +39,39 @@ class Input(object):
         for elem in self.tree.iter():
             if elem.tag in [osm.Way, osm.Relation]:
                 convert = False
+                transition = False
                 for tag in elem.iter(tag=osm.Tag):
                     k = tag.attrib[osm.Key]
                     v = tag.attrib[osm.Value]
-                    if k in config.filterTags and v in config.filterTags[k]:
+                    if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
-                        break
-                    if k in config.transitionTags and v in config.transitionTags[k]:
-                        pass
-                if convert:
+                    if k in self.config.transitionTags and v in self.config.transitionTags[k]:
+                        transition = True
+                if convert and transition:
+                    raise Exception
+                elif convert:
                     self.elements[elem.attrib[osm.Id]] = elem
+                elif transition:
+                    self.readTransition(elem)
+
+    def readTransition(self, elem):
+
+        for child in elem.iter(tag = osm.Tag):
+            try:
+                if child.attrib[osm.Key] == jps.Room1:
+                    osmId1 = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Room1:
+                    osmId2 = child.attrib[osm.Value]
+            except KeyError:
+                pass
+        nodeRefs = []
+        for child in elem.iter(tag=osm.NodeRef):
+            nodeRefs.append(child.attrib[osm.Ref])
+        XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
+        Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
 
 class Output(object):
     '''
@@ -73,3 +97,23 @@ class Output(object):
             self.osmId1 = osmId1
             self.osmId2 = osmId2
             print('Transition', osmId1, osmId2, geometry)
+
+    def storeElement(self, osmId, elem, poly):
+        '''
+        storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
+        use the List nodeRefs instead of the elements tags if it's given
+        '''
+        nodeRefs = []
+        for nd in elem.iter(tag=osm.NodeRef):
+            nodeRefs.append(nd.attrib[osm.Ref])
+        # add nodes and elemId to usedNodes
+        for nodeRef in nodeRefs:
+            if nodeRef in self.usedNodes:
+                # make sure that every node is added only once
+                if osmId not in self.usedNodes[nodeRef]:
+                    self.usedNodes[nodeRef].append(osmId)
+            else:
+                self.usedNodes[nodeRef] = [osmId]
+        self.wayNodes[osmId] = nodeRefs
+        self.polygons[osmId] = poly
+        self.elements[osmId] = elem
