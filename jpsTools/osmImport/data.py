@@ -22,7 +22,7 @@ class Input(object):
         self.tree = ET.parse(self.config.path+self.config.file)
         self.config.transform = Transformation(self.tree)
         self.nodes = {}
-        self.elements = {}
+        self.elementsToHandle = {}
 
         self.readOSM()
 
@@ -37,9 +37,10 @@ class Input(object):
             self.nodes[key] = node
 
         for elem in self.tree.iter():
+            convert = False
+            transition = False
+            area = False
             if elem.tag in [osm.Way, osm.Relation]:
-                convert = False
-                transition = False
                 for tag in elem.iter(tag=osm.Tag):
                     k = tag.attrib[osm.Key]
                     v = tag.attrib[osm.Value]
@@ -47,14 +48,26 @@ class Input(object):
                         convert = True
                     if k in self.config.transitionTags and v in self.config.transitionTags[k]:
                         transition = True
-                if convert and transition:
-                    raise Exception
-                elif convert:
-                    self.elements[elem.attrib[osm.Id]] = elem
-                elif transition:
-                    self.readTransition(elem)
+                    if k in self.config.areaTags and v in self.config.areaTags[k]:
+                        area = True
 
-    def readTransition(self, elem):
+            if not convert and not transition and not area:
+                continue
+            elif area and transition:
+                raise Exception
+            nodeRefs = []
+            for child in elem.iter(tag=osm.NodeRef):
+                nodeRefs.append(child.attrib[osm.Ref])
+            XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
+            if area:
+                self.translateArea(elem, XYList)
+            elif transition:
+                self.translateTransition(elem, XYList)
+            elif convert:
+                self.elementsToHandle[elem.attrib[osm.Id]] = elem
+
+
+    def translateTransition(self, elem, XYList):
 
         for child in elem.iter(tag = osm.Tag):
             try:
@@ -67,11 +80,15 @@ class Input(object):
                     osmId2 = child.attrib[osm.Value]
             except KeyError:
                 pass
-        nodeRefs = []
-        for child in elem.iter(tag=osm.NodeRef):
-            nodeRefs.append(child.attrib[osm.Ref])
-        XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
         Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
+
+    def translateArea(self, elem, XYList):
+
+        if len(XYList) > 2 and XYList[0] == XYList[-1]:
+            poly = geometry.Polygon(XYList)
+            Output().storeElement(elem.attrib[osm.Id], elem, poly)
+        else:
+            raise Exception
 
 class Output(object):
     '''

@@ -4,9 +4,8 @@ Created on 11.11.2017
 @author: bsmoehring
 '''
 from constants import osm, jps
-import shapely.geometry as geometry
+from shapely import geometry, ops
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
-from shapely import ops
 from data import Output
 from xml.etree import ElementTree
 import math, itertools
@@ -19,7 +18,7 @@ class ElementHandler(object):
     '''
     def __init__(self, inputData, config):
         self.config = config
-        self.elements = inputData.elements
+        self.elementsToHandle = inputData.elementsToHandle
         self.nodes = inputData.nodes
         self.nodePoints = {}
         for nodeId, node in self.nodes.items():
@@ -27,7 +26,7 @@ class ElementHandler(object):
 
     def runHandler(self):
     
-        for osmId, elem in self.elements.items():
+        for osmId, elem in self.elementsToHandle.items():
             self.translateElem(elem)
 
         print('---')
@@ -46,7 +45,7 @@ class ElementHandler(object):
                 except UnhandleThisNodeException:
                     print(nodeId, 'not handled!')
         for nodeId, polyOsmIdLst in Output.usedNodes.items():
-            self.getTransitions(nodeId, Output.usedNodes[nodeId])
+            self.getTransitions(nodeId, polyOsmIdLst)
         
     def translateElem(self, elem):
         print('---')
@@ -73,7 +72,7 @@ class ElementHandler(object):
                         print(member.attrib[osm.Ref], 'is tagged: ', member.attrib[osm.Role], '--> no procedure implemented) yet.')
         if osmIds:
             for osmId in osmIds:
-                poly = self.way2polygon(self.elements[osmId])
+                poly = self.way2polygon(self.elementsToHandle[osmId])
                 self.storeElement(elem.attrib[osm.Id], elem, poly)
 
         else:
@@ -94,14 +93,6 @@ class ElementHandler(object):
         width = self.config.stanardWidth
         #search for specific Tags
         for child in way.iter(tag = osm.Tag):
-            try:
-                if child.attrib[osm.Value] in self.config.areaTags[child.attrib[osm.Key]]:
-                    if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
-                        area = True
-                    else:
-                        raise Exception
-            except KeyError:
-                pass
             try:
                 if child.attrib[osm.Key] == osm.Width:
                     width = float(child.attrib[osm.Value])
@@ -405,7 +396,7 @@ class ElementHandler(object):
         union = ops.cascaded_union(polyintersects)
         if isinstance(union, geometry.MultiPolygon) or isinstance(union, geometry.GeometryCollection):
             for geom in union.geoms:
-                if isinstance(geom, geometry.Polygon) and nodePoint.within(geom):
+                if isinstance(geom, geometry.Polygon) and nodePoint.within(geom.buffer(self.config.bufferDistance)):
                     union = geom
                     break
         if isinstance(union, geometry.Polygon):
@@ -420,14 +411,15 @@ class ElementHandler(object):
         storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
         use the List nodeRefs instead of the elements tags if it's given
         '''
+
+        if not isinstance(poly, geometry.Polygon) or poly.is_empty:
+            raise Exception
+
         if nodeRefs:
             for elemChild in elem.iter(tag=osm.NodeRef):
                 elem.remove(elemChild)
             for nodeRef in nodeRefs:
                 ElementTree.SubElement(elem, osm.NodeRef, {osm.Ref: nodeRef})
-
-        if not isinstance(poly, geometry.Polygon) or poly.is_empty:
-            raise Exception
 
         Output().storeElement(osmId, elem, poly)
             
@@ -563,26 +555,22 @@ class ElementHandler(object):
     def getTransitions(self, nodeId, osmIdLst = []):
         '''
         '''
-        try:
-            union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
-            for pair in itertools.combinations(osmIdLst, 2):
-                osmId1, osmId2 = pair[0], pair[1]
-                poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
-                transition = poly1.buffer(self.config.bufferDistance).intersection(poly2.buffer(self.config.bufferDistance))
-                if isinstance(transition, geometry.base.BaseMultipartGeometry): 
-                    distance = float("+infinity")
-                    for geom in transition.geoms:
-                        if geom.distance(self.nodePoints[nodeId]) < distance:
-                            transition = geom
+        union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
+        for pair in itertools.combinations(osmIdLst, 2):
+            osmId1, osmId2 = pair[0], pair[1]
+            poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
+            transition = poly1.buffer(self.config.bufferDistance).intersection(poly2.buffer(self.config.bufferDistance))
+            if isinstance(transition, geometry.base.BaseMultipartGeometry):
+                distance = float("+infinity")
+                for geom in transition.geoms:
+                    if isinstance(geom, geometry.Polygon) and geom.distance(self.nodePoints[nodeId]) < distance:
+                        transition = geom
+            if isinstance(transition, geometry.Polygon):
+                transition = self.filterPolyPointsByDistance(unionAll, transition)
                 if isinstance(transition, geometry.Polygon):
-                    transition = self.filterPolyPointsByDistance(unionAll, transition)
-                    if isinstance(transition, geometry.Polygon):
-                        Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
-                    else:
-                        raise UnhandleThisNodeException
-        except UnhandleThisNodeException:
-            print('Transition at node ', nodeId, 'not handled')
-            return
+                    Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
+            else:
+                continue
 
 class UnhandleThisNodeException(Exception):
     pass

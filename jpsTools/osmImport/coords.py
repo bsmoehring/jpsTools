@@ -71,4 +71,4 @@ class Transformation(object):
                     print(nodeRef, 'is not in the nodes list. ->OSM inconsistency?')
             return XYList
         else:
-            print('Dont know how to handle this Element ', nodeRefs)
+            raise Exception
