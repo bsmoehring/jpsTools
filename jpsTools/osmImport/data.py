@@ -19,7 +19,9 @@ class Input(object):
         Constructor
         '''
         self.config = config
-        self.tree = ET.parse(self.config.path+self.config.file)
+        source = open(self.config.path+self.config.file)
+        self.tree = ET.parse(source)
+        source.close()
         self.config.transform = Transformation(self.tree)
         self.nodes = {}
         self.elementsToHandle = {}
@@ -75,7 +77,7 @@ class Input(object):
             except KeyError:
                 pass
             try:
-                if child.attrib[osm.Key] == jps.Room1:
+                if child.attrib[osm.Key] == jps.Room2:
                     osmId2 = child.attrib[osm.Value]
             except KeyError:
                 pass
