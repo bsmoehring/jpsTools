@@ -39,14 +39,13 @@ class ElementHandler(object):
         handle all nodes that are part of more than 1 polygon and aren't tagged for unhandling:
         '''
         for nodeId, polyOsmIdLst in Output.usedNodes.items():
-            if len(polyOsmIdLst) > 1:
-                try:
-                    self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
-                except UnhandleThisNodeException:
-                    print(nodeId, 'not handled!')
+            try:
+                self.handlePolysAroundNode(nodeId, list(polyOsmIdLst))
+            except UnhandleThisNodeException:
+                print(nodeId, 'not handled!')
         for nodeId, polyOsmIdLst in Output.usedNodes.items():
             try:
-                self.getTransitions(nodeId, polyOsmIdLst)
+                self.getTransitionsForNode(nodeId, polyOsmIdLst)
             except UnhandleThisNodeException:
                 pass
         
@@ -120,8 +119,17 @@ class ElementHandler(object):
         :param polyOsmId:
         :return:
         '''
-        pass
-    
+        print('---')
+        print('exit for element ', polyOsmId, ' at ', nodeId)
+
+        poly = Output.polygons[polyOsmId]
+        b1, b2 = self.getBisectorPolygons(nodeId, polyOsmId, polyOsmId)
+        poly = poly.difference(b1)
+        poly = self.filterRelevantPoly(poly, polyOsmId)
+        if isinstance(poly, geometry.Polygon):
+            Output.polygons[polyOsmId] = poly
+        self.getTransition(nodeId, polyOsmId, '-1', poly, b1)
+
     def handlePolysAroundNode(self, nodeId, polyOsmIdLst):
         '''
         defining how to handle all polygons around a specific node by their relation to each other.
@@ -129,6 +137,11 @@ class ElementHandler(object):
         :param polyOsmIdLst:
         :return:
         '''
+        if len(polyOsmIdLst)==1 and self.isEndOfElement(nodeId, polyOsmIdLst[0]):
+            return
+            #self.defineExit(nodeId, polyOsmIdLst[0])
+        elif len(polyOsmIdLst)<=1: return
+
         print('---')
         print('adjusting node', nodeId)
         print('polygons', polyOsmIdLst)
@@ -552,29 +565,32 @@ class ElementHandler(object):
         else:
             raise Exception
         
-    def getTransitions(self, nodeId, osmIdLst = []):
+    def getTransitionsForNode(self, nodeId, osmIdLst = []):
         '''
-
         :param nodeId:
         :param osmIdLst:
         :return:
         '''
-        union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
         for pair in itertools.combinations(osmIdLst, 2):
             osmId1, osmId2 = pair[0], pair[1]
             poly1, poly2 = Output.polygons[osmId1], Output.polygons[osmId2]
-            transition = poly1.buffer(self.config.bufferDistance).intersection(poly2.buffer(self.config.bufferDistance))
-            if isinstance(transition, geometry.base.BaseMultipartGeometry):
-                distance = float("+infinity")
-                for geom in transition.geoms:
-                    if isinstance(geom, geometry.Polygon) and geom.distance(self.nodePoints[nodeId]) < distance:
-                        transition = geom
+            self.getTransition(nodeId, osmId1, osmId2, poly1, poly2)
+
+    def getTransition(self, nodeId, osmId1, osmId2, poly1, poly2):
+
+        transition = poly1.buffer(self.config.bufferDistance).intersection(poly2.buffer(self.config.bufferDistance))
+        if isinstance(transition, geometry.base.BaseMultipartGeometry):
+            distance = float("+infinity")
+            for geom in transition.geoms:
+                if isinstance(geom, geometry.Polygon) and geom.distance(self.nodePoints[nodeId]) < distance:
+                    transition = geom
+        if isinstance(transition, geometry.Polygon):
+            unionAll = poly1.buffer(self.config.bufferDistance).union(poly2.buffer(self.config.bufferDistance))
+            transition = self.filterPolyPointsByDistance(unionAll, transition)
             if isinstance(transition, geometry.Polygon):
-                transition = self.filterPolyPointsByDistance(unionAll, transition)
-                if isinstance(transition, geometry.Polygon):
-                    Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
-            else:
-                continue
+                Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
+        else:
+            return
 
     def getBisectorPolygons(self, nodeId, osmId1, osmId2):
         '''
@@ -637,11 +653,14 @@ class ElementHandler(object):
         poly1 = geometry.Polygon([[x1, y1], [x3, y3], [x4, y4], [x1, y1]])
         poly2 = geometry.Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
 
+        return poly1, poly2
+        '''
         intersect = poly1.intersection(poly2)
         if isinstance(intersect, geometry.LineString):
             return poly1, poly2
-        else:
+        elif isinstance(intersect, geometry.Polygon):
             raise Exception
+        '''
 
 class UnhandleThisNodeException(Exception):
     pass
