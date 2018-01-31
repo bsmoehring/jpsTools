@@ -22,9 +22,9 @@ def main():
     config.addFilterTag('highway', 'footway')
     config.addUnhandleTag('highway', 'elevator')
 
-    inputData = Input(config)
+    Input(config)
 
-    handler = ElementHandler(inputData, config)
+    handler = ElementHandler(config)
 
     try:
         if str(sys.argv[3]) == 'handle':

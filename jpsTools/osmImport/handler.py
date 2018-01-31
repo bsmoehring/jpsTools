@@ -6,7 +6,7 @@ Created on 11.11.2017
 from constants import osm, jps
 from shapely import geometry, ops
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
-from data import Output
+from data import Output, Input
 from xml.etree import ElementTree
 import math, itertools
 import copy
@@ -16,10 +16,10 @@ class ElementHandler(object):
     '''
     classdocs
     '''
-    def __init__(self, inputData, config):
+    def __init__(self, config):
         self.config = config
-        self.elementsToHandle = inputData.elementsToHandle
-        self.nodes = inputData.nodes
+        self.elementsToHandle = Input.elementsToHandle
+        self.nodes = Input.nodes
         self.nodePoints = {}
         for nodeId, node in self.nodes.items():
             self.nodePoints[nodeId] = geometry.Point(self.config.transform.WGS2XY(node))

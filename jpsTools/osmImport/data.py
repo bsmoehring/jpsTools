@@ -13,6 +13,8 @@ class Input(object):
     '''
     class to store the input-xml as tree and all nodes of this file separately as nodes
     '''
+    elementsToHandle = {}
+    nodes = {}
 
     def __init__(self, config):
         '''
@@ -23,8 +25,6 @@ class Input(object):
         self.tree = ET.parse(source)
         source.close()
         self.config.transform = Transformation(self.tree)
-        self.nodes = {}
-        self.elementsToHandle = {}
 
         self.readOSM()
 
