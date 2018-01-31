@@ -85,6 +85,8 @@ class ElementHandler(object):
     def way2polygon(self, osmId):
         '''
         translate osm way to a shapely.geometry.polygon in order to to easily manipulate its shape.
+        :param osmId:
+        :return:
         '''
         print('element:', osmId, '--> Way')
         way = self.elementsToHandle[osmId]
@@ -112,12 +114,20 @@ class ElementHandler(object):
         
         return poly
     
-    def way2transition(self, way):
+    def defineExit(self, nodeId, polyOsmId):
+        '''
+        :param nodeId:
+        :param polyOsmId:
+        :return:
+        '''
         pass
     
     def handlePolysAroundNode(self, nodeId, polyOsmIdLst):
         '''
         defining how to handle all polygons around a specific node by their relation to each other.
+        :param nodeId:
+        :param polyOsmIdLst:
+        :return:
         '''
         print('---')
         print('adjusting node', nodeId)
@@ -176,6 +186,11 @@ class ElementHandler(object):
         then differenciating all polygons around the center polygon (unionCleared).
         if the handled node is in the middle of the element, the element is split into two seperate polygons.
         all references of the split polygon are updated in data.Output.
+        :param nodeId:
+        :param polyOsmIdLst:
+        :param unionCleared:
+        :param unionAll:
+        :return:
         '''
         if not isinstance(unionCleared, geometry.Polygon) or unionCleared == None:
             print(nodeId, 'not handled')
@@ -261,6 +276,13 @@ class ElementHandler(object):
     def adjustCaseMidEnd(self, nodeId, osmIdMid, osmIdEnd, polyMid, polyEnd, union):
         '''
         returning two adjusted polygons. case T-junction.
+        :param nodeId:
+        :param osmIdMid:
+        :param osmIdEnd:
+        :param polyMid:
+        :param polyEnd:
+        :param union:
+        :return:
         '''
         polyEnd = polyEnd.difference(polyMid)
         polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
@@ -270,6 +292,12 @@ class ElementHandler(object):
     def adjustCaseEndEnd(self, nodeId, osmId1, osmId2, poly1, poly2):
         '''
         returning two adjusted polygons. case end-end-connection
+        :param nodeId:
+        :param osmId1:
+        :param osmId2:
+        :param poly1:
+        :param poly2:
+        :return:
         '''
         b1, b2 = self.getBisectorPolygons(nodeId, osmId1, osmId2)
         poly1 = poly1.difference(b2)
@@ -282,7 +310,12 @@ class ElementHandler(object):
     def mergePolys(self, osmId1, osmId2, poly1, poly2):
         '''
         returning two polygons that should share the same coords at intersecting areas.
-        union of the exterior LineString of Polygons. then filtering the closest Polygon. 
+        union of the exterior LineString of Polygons. then filtering the closest Polygon.
+        :param osmId1:
+        :param osmId2:
+        :param poly1:
+        :param poly2:
+        :return:
         '''
         lineString1 = geometry.LineString(list(poly1.buffer(self.config.bufferDistance).boundary.coords))
         lineString2 = geometry.LineString(list(poly2.buffer(self.config.bufferDistance).boundary.coords))
@@ -302,6 +335,9 @@ class ElementHandler(object):
     def collectAdjustmentInformation(self, nodeId, polyOsmIdLst = []):
         '''
         returns union, unionAll, unionCleared, polyEndInfo
+        :param nodeId:
+        :param polyOsmIdLst:
+        :return:
         '''
         for osmId in polyOsmIdLst:
             if nodeId in Output.wayNodes[osmId]:
@@ -349,6 +385,11 @@ class ElementHandler(object):
         '''
         storing references of the approved polygon in usedNodes{}, polygons{}, elements{} and wayNodes{}
         use the List nodeRefs instead of the elements tags if it's given
+        :param osmId:
+        :param elem:
+        :param poly:
+        :param nodeRefs:
+        :return:
         '''
 
         if not isinstance(poly, geometry.Polygon) or poly.is_empty:
@@ -365,6 +406,9 @@ class ElementHandler(object):
     def checkNodeUnhandling(self, nodeId, polyOsmIdLst):
         '''
         returns false if one of the nodes tags is in the unhandle dictionary
+        :param nodeId:
+        :param polyOsmIdLst:
+        :return:
         '''
         node = self.nodes[nodeId]
         ok = True
@@ -394,6 +438,9 @@ class ElementHandler(object):
     def fuseClosePoints(self, polyStay, polyChange):
         '''
         moves the vertices of polyChange to vertices of PolyStay if their very close. solving numeric issues
+        :param polyStay:
+        :param polyChange:
+        :return:
         '''
         polyExteriorLst = []
         for coord in polyChange.exterior.coords:
@@ -418,6 +465,9 @@ class ElementHandler(object):
     def filterPolyPointsByDistance(self, polyStay, polyChange): 
         '''
         returns the Polygon polyChange, cleared from points that aren't close to the outside of Polygon polyStay
+        :param polyStay:
+        :param polyChange:
+        :return:
         '''
         if not isinstance(polyStay, geometry.Polygon) or not isinstance(polyChange, geometry.Polygon):
             print(polyStay)
@@ -438,6 +488,9 @@ class ElementHandler(object):
         '''
         return a poly of a list that is the closest in area to the polyOld
         TODO: filter list of polygons. returning each polygon with largest intersecting area
+        :param polyOld:
+        :param polyLst:
+        :return:
         '''
         diff = float('inf')
         polyNew = polyOld
@@ -453,7 +506,10 @@ class ElementHandler(object):
         return Polygon with the longest intersection of the original element from given MultiPolygon.
         If no longest intersection:
         return largest polygon
-        '''    
+        :param multipoly:
+        :param polyOsmId:
+        :return:
+        '''
         if isinstance(multipoly, geometry.Polygon):
             return multipoly
         elif isinstance(multipoly, geometry.MultiPolygon):
@@ -481,8 +537,11 @@ class ElementHandler(object):
     
     def isEndOfElement(self, nodeId, wayId):
         '''
-        returns true of the node is an endpoint of way. 
+        returns true of the node is an endpoint of way.
         rings/polygons might start and end at the same node. it is in this case not considered an endpoint.
+        :param nodeId:
+        :param wayId:
+        :return:
         '''
         nodeRefs = Output.wayNodes[wayId]
         if nodeId == nodeRefs[0] or nodeId == nodeRefs[-1]:
@@ -495,6 +554,10 @@ class ElementHandler(object):
         
     def getTransitions(self, nodeId, osmIdLst = []):
         '''
+
+        :param nodeId:
+        :param osmIdLst:
+        :return:
         '''
         union, unionCleared, unionAll = self.collectAdjustmentInformation(nodeId, osmIdLst)
         for pair in itertools.combinations(osmIdLst, 2):
@@ -517,6 +580,10 @@ class ElementHandler(object):
         '''
         returning two polygons. Each of them is containing the two elements bisector as an line.
         Elements must share node nodeId.
+        :param nodeId:
+        :param osmId1:
+        :param osmId2:
+        :return:
         '''
         nodeRefsNew = Output.wayNodes[osmId1]
         nodeRefsOld = Output.wayNodes[osmId2]
