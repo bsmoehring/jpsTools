@@ -68,7 +68,6 @@ class Input(object):
 
 
     def translateTransition(self, elem, XYList):
-
         for child in elem.iter(tag = osm.Tag):
             try:
                 if child.attrib[osm.Key] == jps.Room1:
@@ -80,6 +79,14 @@ class Input(object):
                     osmId2 = child.attrib[osm.Value]
             except KeyError:
                 pass
+
+        try: osmId1
+        except NameError:
+            osmId1 = '-1'
+        try: osmId2
+        except NameError:
+            osmId2 = '-1'
+
         Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
 
     def translateArea(self, elem, XYList):
