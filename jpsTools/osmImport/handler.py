@@ -27,7 +27,7 @@ class ElementHandler(object):
     def runHandler(self):
     
         for osmId, elem in self.elementsToHandle.items():
-            self.translateElem(elem)
+            self.translateElem(osmId, elem)
 
         print('---')
         print(Output.usedNodes)
@@ -45,19 +45,22 @@ class ElementHandler(object):
                 except UnhandleThisNodeException:
                     print(nodeId, 'not handled!')
         for nodeId, polyOsmIdLst in Output.usedNodes.items():
-            self.getTransitions(nodeId, polyOsmIdLst)
+            try:
+                self.getTransitions(nodeId, polyOsmIdLst)
+            except UnhandleThisNodeException:
+                pass
         
-    def translateElem(self, elem):
+    def translateElem(self, osmId, elem):
         print('---')
-        print(elem.attrib[osm.Id])
+        print(osmId)
         osmIds = []
         
         if elem.tag == osm.Way:
             #Way
-            osmIds.append(elem.attrib[osm.Id])
+            osmIds.append(osmId)
         elif elem.tag == osm.Relation:
             #Relation
-            print('Element:', elem.attrib[osm.Id], '--> Relation')
+            print('Element:', osmId, '--> Relation')
             for member in elem.iter(tag=osm.Member):
                 if member.attrib[osm.Type] == osm.Way:
                     if member.attrib.get(osm.Role) == osm.Outer:
@@ -72,23 +75,23 @@ class ElementHandler(object):
                         print(member.attrib[osm.Ref], 'is tagged: ', member.attrib[osm.Role], '--> no procedure implemented) yet.')
         if osmIds:
             for osmId in osmIds:
-                poly = self.way2polygon(self.elementsToHandle[osmId])
-                self.storeElement(elem.attrib[osm.Id], elem, poly)
+                poly = self.way2polygon(osmId)
+                self.storeElement(osmId, elem, poly)
 
         else:
-            print('Element:', elem.attrib[osm.Id], 'is a:', elem.tag, '. How to handle this?') 
+            print('Element:', osmId, 'is a:', elem.tag, '. How to handle this?')
             raise Exception
                 
-    def way2polygon(self, way):
+    def way2polygon(self, osmId):
         '''
         translate osm way to a shapely.geometry.polygon in order to to easily manipulate its shape.
         '''
-        print('element:', way.attrib[osm.Id], '--> Way')
+        print('element:', osmId, '--> Way')
+        way = self.elementsToHandle[osmId]
         #get NodeRefs
         nodeRefs = []
         for child in way.iter(tag = osm.NodeRef):
             nodeRefs.append(child.attrib[osm.Ref])
-        area = False
 
         width = self.config.stanardWidth
         #search for specific Tags
@@ -101,16 +104,11 @@ class ElementHandler(object):
 
         XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
 
-
-        if area:
-            #check if first and last nodes are the same
-            poly = geometry.Polygon(XYList)
-        else:
-            #LineString
-            print(way.attrib[osm.Id], 'is a LineString and needs to be buffered to create a Polygon.')
-            ls = geometry.LineString(XYList)
-            #polygon from linestring
-            poly = ls.buffer(width/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=self.config.stanardWidth)
+        #LineString
+        print(way.attrib[osm.Id], 'is a LineString and needs to be buffered to create a Polygon.')
+        ls = geometry.LineString(XYList)
+        #polygon from linestring
+        poly = ls.buffer(width/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=width)
         
         return poly
     
@@ -150,13 +148,13 @@ class ElementHandler(object):
             #handle if 2 elements
             if self.isEndOfElement(nodeId, osmId1) and self.isEndOfElement(nodeId, osmId2):
                 #both ends of line
-                poly1, poly2 = self.adjustCaseEndEnd(nodeId, osmId1, osmId2, poly1, poly2, unionAll)
+                poly1, poly2 = self.adjustCaseEndEnd(nodeId, osmId1, osmId2, poly1, poly2)
             elif self.isEndOfElement(nodeId, osmId1):
                 #one end of line
-                poly2, poly1 = self.adjustCaseMidEnd(nodeId, osmId2, osmId1, poly2, poly1, union, unionAll)
+                poly2, poly1 = self.adjustCaseMidEnd(nodeId, osmId2, osmId1, poly2, poly1, union)
             elif self.isEndOfElement(nodeId, osmId2):
                 #one end of line
-                poly1, poly2 = self.adjustCaseMidEnd(nodeId, osmId1, osmId2, poly1, poly2, union, unionAll)
+                poly1, poly2 = self.adjustCaseMidEnd(nodeId, osmId1, osmId2, poly1, poly2, union)
             elif not self.isEndOfElement(nodeId, osmId1) and not self.isEndOfElement(nodeId, osmId2):
                 #both middle points
                 self.adjustCaseMultiple(nodeId, polyOsmIdLst, unionCleared, unionAll)
@@ -182,7 +180,7 @@ class ElementHandler(object):
         if not isinstance(unionCleared, geometry.Polygon) or unionCleared == None:
             print(nodeId, 'not handled')
             raise Exception
-        newElem = ElementTree.Element(osm.Way, {osm.Id:'', 'origin':'JPSTools'})
+        newElem = ElementTree.Element(osm.Way, {osm.Id:str(nodeId), 'origin':'JPSTools'})
         ElementTree.SubElement(newElem, osm.Tag, {osm.Key:'highway', osm.Value:'footway'})
         ElementTree.SubElement(newElem, osm.Tag, {osm.Key:'area', osm.Value:'yes'})
         self.storeElement(nodeId, newElem, unionCleared, [nodeId])
@@ -209,7 +207,7 @@ class ElementHandler(object):
                     if nodeRef == nodeId:
                         if len(nodeRefsNew)>1:
                             nodeRefsLst.append(nodeRefsNew)
-                        nodeRefsNew = [nodeRef]
+                            nodeRefsNew = [nodeRef]
                 if len(nodeRefsNew) > 1:
                     nodeRefsLst.append(nodeRefsNew)
                 '''
@@ -243,14 +241,14 @@ class ElementHandler(object):
                     del Output.polygons[polyOsmId]
                     del Output.wayNodes[polyOsmId]
                     Output.usedNodes[nodeId].remove(polyOsmId)
-                    for key, osmIdWayLst in Output.usedNodes.items(): #itervalues():
+                    for key, osmIdWayLst in Output.usedNodes.items():
                         if polyOsmId in osmIdWayLst:
                             osmIdWayLst.remove(polyOsmId)
                 else:
                     print(poly)
                     print(unionCleared)
                     #possible solution: split poly
-                    print('not handling')
+                    raise Exception
             else:
                 poly = self.filterRelevantPoly(poly, polyOsmId)
                 poly = self.fuseClosePoints(Output.polygons[nodeId], poly)
@@ -260,18 +258,16 @@ class ElementHandler(object):
                     print(poly)
                     raise Exception
            
-    def adjustCaseMidEnd(self, nodeId, osmIdMid, osmIdEnd, polyMid, polyEnd, union, unionAll):
+    def adjustCaseMidEnd(self, nodeId, osmIdMid, osmIdEnd, polyMid, polyEnd, union):
         '''
         returning two adjusted polygons. case T-junction.
         '''
-        polyEnd = polyEnd.difference(union.buffer(self.config.bufferDistance))
+        polyEnd = polyEnd.difference(polyMid)
         polyEnd = self.filterRelevantPoly(polyEnd, osmIdEnd)
-        polyMid, polyEnd = self.mergePolys(osmIdMid, osmIdEnd, polyMid, polyEnd, unionAll)
-        polyEnd = self.filterPolyPointsByDistance(unionAll, polyEnd)
-        polyMid = self.filterPolyPointsByDistance(unionAll, polyMid)
+        polyMid, polyEnd = self.mergePolys(osmIdMid, osmIdEnd, polyMid, polyEnd)
         return polyMid, polyEnd
     
-    def adjustCaseEndEnd(self, nodeId, osmId1, osmId2, poly1, poly2, unionAll):
+    def adjustCaseEndEnd(self, nodeId, osmId1, osmId2, poly1, poly2):
         '''
         returning two adjusted polygons. case end-end-connection
         '''
@@ -280,86 +276,28 @@ class ElementHandler(object):
         poly1 = self.filterRelevantPoly(poly1, osmId1)
         poly2 = poly2.difference(b1)
         poly2 = self.filterRelevantPoly(poly2, osmId2)
-        poly1, poly2 = self.mergePolys(osmId1, osmId2, poly1, poly2, unionAll)
+        poly1, poly2 = self.mergePolys(osmId1, osmId2, poly1, poly2)
         return poly1, poly2
         
-    def mergePolys(self, osmId1, osmId2, poly1, poly2, unionAll):
+    def mergePolys(self, osmId1, osmId2, poly1, poly2):
         '''
         returning two polygons that should share the same coords at intersecting areas.
         union of the exterior LineString of Polygons. then filtering the closest Polygon. 
         '''
-        lineString1 = geometry.LineString(list(poly1.buffer(self.config.bufferDistance).exterior.coords))
-        lineString2 = geometry.LineString(list(poly2.buffer(self.config.bufferDistance).exterior.coords))
-        unionExteriors = lineString1.union(lineString2)
-        polyLst = [geom for geom in ops.polygonize(unionExteriors)]
-        poly1 = self.filterClosestPoly(poly1, polyLst)
-        poly2 = self.filterClosestPoly(poly2, polyLst)
+        lineString1 = geometry.LineString(list(poly1.buffer(self.config.bufferDistance).boundary.coords))
+        lineString2 = geometry.LineString(list(poly2.buffer(self.config.bufferDistance).boundary.coords))
+        boundaries = lineString1.union(lineString2)
+        multipoly = geometry.MultiPolygon([geom for geom in ops.polygonize(boundaries)])
+        poly1 = self.filterRelevantPoly(multipoly, osmId1)
+        poly2 = self.filterRelevantPoly(multipoly, osmId2)
+        unionAll = poly1.buffer(self.config.bufferDistance).union(poly2.buffer(self.config.bufferDistance))
+        if not isinstance(unionAll, geometry.Polygon):
+            raise Exception
+        poly1 = self.filterPolyPointsByDistance(unionAll, poly1)
+        poly2 = self.filterPolyPointsByDistance(unionAll, poly2)
         poly1 = self.fuseClosePoints(unionAll, poly1)
         poly2 = self.fuseClosePoints(unionAll, poly2)
         return poly1, poly2
-        
-    def getBisectorPolygons(self, nodeId, osmId1, osmId2):
-        '''
-        returning two polygons. Each of them is containing the two elements bisector as an line. 
-        Elements must share node nodeId.
-        '''
-        nodeRefsNew = Output.wayNodes[osmId1]
-        nodeRefsOld = Output.wayNodes[osmId2]
-        if nodeId == nodeRefsNew[0]:
-            node1 = nodeRefsNew[1]
-        elif nodeId == nodeRefsNew[-1]:
-            node1 = nodeRefsNew[-2]
-        if nodeId == nodeRefsOld[0]:
-            node2 = nodeRefsOld[1]
-        elif nodeId == nodeRefsOld[-1]:
-            node2 = nodeRefsOld[-2]
-        
-        x0, y0 = self.config.transform.nodeRefs2XY(nodeId, self.nodes)
-        x1, y1 = self.config.transform.nodeRefs2XY(node1, self.nodes)
-        x2, y2 = self.config.transform.nodeRefs2XY(node2, self.nodes)
-        
-        vx1 = x1-x0
-        vy1 = y1-y0
-        vx2 = x2-x0
-        vy2 = y2-y0
-        
-        v1len = math.sqrt(math.pow(vx1, 2) + math.pow(vy1, 2))
-        v2len = math.sqrt(math.pow(vx2, 2) + math.pow(vy2, 2))
-        
-        vx1 = vx1/v1len
-        vy1 = vy1/v1len
-        vx2 = vx2/v2len
-        vy2 = vy2/v2len
-        
-        t1 = math.atan2(vy1, vx1)
-        t2 = math.atan2(vy2, vx2)
-        t = (t1 + t2)/2
-        
-        vx3 = math.cos(t)
-        vy3 = math.sin(t)
-        v3len = math.sqrt(math.pow(vx3, 2) + math.pow(vy3, 2))
-        vx3 = vx3/v3len
-        vy3 = vy3/v3len
-        vx4 = -vx3
-        vy4 = -vy3
-        
-        x1 = x0 + 0.1*vx1
-        y1 = y0 + 0.1*vy1
-        x2 = x0 + 0.1*vx2
-        y2 = y0 + 0.1*vy2
-        x3 = x0 + 5*vx3
-        y3 = y0 + 5*vy3
-        x4 = x0 + 5*vx4
-        y4 = y0 + 5*vy4
-        
-        poly1 = geometry.Polygon([[x1, y1], [x3, y3], [x4, y4], [x1, y1]])
-        poly2 = geometry.Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
-        
-        intersect = poly1.intersection(poly2)
-        if isinstance(intersect, geometry.LineString):
-            return poly1, poly2
-        else:
-            raise Exception
         
     def collectAdjustmentInformation(self, nodeId, polyOsmIdLst = []):
         '''
@@ -382,6 +320,7 @@ class ElementHandler(object):
                     unionAll = geom
                     break
         if not isinstance(unionAll, geometry.Polygon):
+            print(nodeId, ' not handled')
             print(unionAll)
             raise UnhandleThisNodeException
         '''
@@ -416,7 +355,7 @@ class ElementHandler(object):
             raise Exception
 
         if nodeRefs:
-            for elemChild in elem.iter(tag=osm.NodeRef):
+            for elemChild in elem.findall(osm.NodeRef):
                 elem.remove(elemChild)
             for nodeRef in nodeRefs:
                 ElementTree.SubElement(elem, osm.NodeRef, {osm.Ref: nodeRef})
@@ -487,7 +426,7 @@ class ElementHandler(object):
         polyCleared = []
         for coord in polyChange.exterior.coords:
             p = geometry.Point(coord)
-            if polyStay.boundary.distance(p) < self.config.errorDistance:
+            if polyStay.exterior.distance(p) < self.config.errorDistance:
                 polyCleared.append(coord)
         try:
             polyCleared = geometry.Polygon(polyCleared)
@@ -535,6 +474,7 @@ class ElementHandler(object):
                 if isinstance(polygon, geometry.Polygon) and polygon.area > area:
                     area = polygon.area
                     poly = polygon
+        if isinstance(poly, geometry.Polygon):
             return poly
         else:
             raise Exception
@@ -545,8 +485,9 @@ class ElementHandler(object):
         rings/polygons might start and end at the same node. it is in this case not considered an endpoint.
         '''
         nodeRefs = Output.wayNodes[wayId]
-        if (nodeId == nodeRefs[0] or nodeId == nodeRefs[-1]) and nodeRefs[0] != nodeRefs[-1]:
-            return True
+        if nodeId == nodeRefs[0] or nodeId == nodeRefs[-1]:
+                if nodeRefs[0] != nodeRefs[-1]:
+                    return True
         elif nodeId in nodeRefs:
             return False
         else:
@@ -571,6 +512,69 @@ class ElementHandler(object):
                     Output.transitionlst.append(Output.Transition(transition, osmId1, osmId2))
             else:
                 continue
+
+    def getBisectorPolygons(self, nodeId, osmId1, osmId2):
+        '''
+        returning two polygons. Each of them is containing the two elements bisector as an line.
+        Elements must share node nodeId.
+        '''
+        nodeRefsNew = Output.wayNodes[osmId1]
+        nodeRefsOld = Output.wayNodes[osmId2]
+        if nodeId == nodeRefsNew[0]:
+            node1 = nodeRefsNew[1]
+        elif nodeId == nodeRefsNew[-1]:
+            node1 = nodeRefsNew[-2]
+        if nodeId == nodeRefsOld[0]:
+            node2 = nodeRefsOld[1]
+        elif nodeId == nodeRefsOld[-1]:
+            node2 = nodeRefsOld[-2]
+
+        x0, y0 = self.config.transform.nodeRefs2XY(nodeId, self.nodes)
+        x1, y1 = self.config.transform.nodeRefs2XY(node1, self.nodes)
+        x2, y2 = self.config.transform.nodeRefs2XY(node2, self.nodes)
+
+        vx1 = x1 - x0
+        vy1 = y1 - y0
+        vx2 = x2 - x0
+        vy2 = y2 - y0
+
+        v1len = math.sqrt(math.pow(vx1, 2) + math.pow(vy1, 2))
+        v2len = math.sqrt(math.pow(vx2, 2) + math.pow(vy2, 2))
+
+        vx1 = vx1 / v1len
+        vy1 = vy1 / v1len
+        vx2 = vx2 / v2len
+        vy2 = vy2 / v2len
+
+        t1 = math.atan2(vy1, vx1)
+        t2 = math.atan2(vy2, vx2)
+        t = (t1 + t2) / 2
+
+        vx3 = math.cos(t)
+        vy3 = math.sin(t)
+        v3len = math.sqrt(math.pow(vx3, 2) + math.pow(vy3, 2))
+        vx3 = vx3 / v3len
+        vy3 = vy3 / v3len
+        vx4 = -vx3
+        vy4 = -vy3
+
+        x1 = x0 + 0.1 * vx1
+        y1 = y0 + 0.1 * vy1
+        x2 = x0 + 0.1 * vx2
+        y2 = y0 + 0.1 * vy2
+        x3 = x0 + 5 * vx3
+        y3 = y0 + 5 * vy3
+        x4 = x0 + 5 * vx4
+        y4 = y0 + 5 * vy4
+
+        poly1 = geometry.Polygon([[x1, y1], [x3, y3], [x4, y4], [x1, y1]])
+        poly2 = geometry.Polygon([[x2, y2], [x3, y3], [x4, y4], [x2, y2]])
+
+        intersect = poly1.intersection(poly2)
+        if isinstance(intersect, geometry.LineString):
+            return poly1, poly2
+        else:
+            raise Exception
 
 class UnhandleThisNodeException(Exception):
     pass
