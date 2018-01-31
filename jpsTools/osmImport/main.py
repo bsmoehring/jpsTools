@@ -26,13 +26,16 @@ def main():
 
     handler = ElementHandler(inputData, config)
 
-    handler.runHandler()
+    try:
+        if str(sys.argv[3]) == 'handle':
+            handler.runHandler()
+    except IndexError: pass
     
     OSMBuilder(config)
     
     JPSBuilder(config.path)
     
-    #ElementPlotter(config.transform).plotOutput()
+    ElementPlotter(config.transform).plotOutput()
 
 if      __name__ == "__main__":
     main()
