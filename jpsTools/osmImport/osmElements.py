@@ -27,37 +27,41 @@ class OSMBuilder(object):
                 self.polygon2osm(osmId, poly, elem)
         print ('---')
         for transition in Output.transitionlst:
-            try:
-                if isinstance(transition.geometry, geometry.Polygon):
-                    nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
-                elif isinstance(transition.geometry, geometry.LineString):
-                    nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
-            except AttributeError:
-                print ('not handling Transition ', transition.osmId1, transition.osmId2)
-                continue
-            nodeRefs = list(set(nodeRefs))
-            if len(nodeRefs)==2:
-                tags = {'origin':'JPSTools', 'jupedsim':'transition', jps.Room1:transition.osmId1, jps.Room2:transition.osmId2}
-                OSMOut().addTransition(Way(len(OSMOut.transitions)+1, '', nodeRefs, tags))
+            self.transition2osm(transition)
 
     def polygon2osm(self, osmId, poly, elem = None):
         
         tags = {}
+        tags.update(self.config.areaTags)
         nodeRefs = self.coords2nodeRefs(poly.exterior._get_coords(), True)
-        originalId = elem.attrib[osm.Id]
         if elem == None:
             tags = {osm.Id:osmId, 'origin':'JPSTools', 'highway':'footway', 'area':'yes'}
         else:
             for tag in elem.iter(tag = osm.Tag):
-                k = tag.attrib[osm.Key] 
+                k = tag.attrib[osm.Key]
                 v = tag.attrib[osm.Value]
                 tags[k] = v
-            tags['area'] = 'yes'
+        tags[jps.Id] = osmId
         for k, v in self.config.defaultMandatoryTags.items():
             if k not in tags:
                 tags[k] = v
 
-        OSMOut().addWay(Way(osmId, originalId, nodeRefs, tags))
+        OSMOut().addWay(Way(osmId, nodeRefs, tags))
+
+    def transition2osm(self, transition):
+        try:
+            if isinstance(transition.geometry, geometry.Polygon):
+                nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
+            elif isinstance(transition.geometry, geometry.LineString):
+                nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
+        except AttributeError:
+            print('not handling Transition ', transition.osmId1, transition.osmId2)
+            return
+        nodeRefs = list(set(nodeRefs))
+        if len(nodeRefs) == 2:
+            tags = {'origin': 'JPSTools', 'jupedsim': 'transition', jps.Room1: transition.osmId1,
+                    jps.Room2: transition.osmId2}
+            OSMOut().addTransition(Way(len(OSMOut.transitions) + 1, nodeRefs, tags))
         
     def coords2nodeRefs(self, coords = [], allowAdding = True):
         nodeRefs = []
@@ -190,10 +194,9 @@ class Way:
     '''
     tag = osm.Way
     
-    def __init__(self, id, originalId, nodeRefs, tags):
+    def __init__(self, id, nodeRefs, tags):
         self.attribs = {}
         self.attribs[osm.Id] = str(id)
-        self.attribs[jps.OriginalId] = originalId
         self.attribs['version'] = '9999999'
         self.nodeRefs = nodeRefs
         self.tags = tags
