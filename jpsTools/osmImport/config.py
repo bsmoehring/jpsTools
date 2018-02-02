@@ -47,10 +47,7 @@ class Config:
             self.unhandleTag[key] = [value]
 
     def addAreaTag(self, key, value):
-        if key in self.areaTags:
-            self.areaTags[key].append(value)
-        else:
-            self.areaTags[key] = [value]
+        self.areaTags[key] = value
 
     def addDefaultMandatoryTag(self, key, value):
         self.defaultMandatoryTags[key] = value

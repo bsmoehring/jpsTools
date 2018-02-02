@@ -110,7 +110,7 @@ class ElementHandler(object):
         ls = geometry.LineString(XYList)
         #polygon from linestring
         poly = ls.buffer(width/2, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre, mitre_limit=width)
-        
+
         return poly
     
     def defineExit(self, nodeId, polyOsmId):
@@ -439,7 +439,7 @@ class ElementHandler(object):
             elem = Output.elements[polyOsmId]
             for tag in elem.iter(tag = osm.Tag):
                 try:
-                    if tag.attrib[osm.Value] in self.config.areaTags[tag.attrib[osm.Key]]:
+                    if tag.attrib[osm.Value] == self.config.areaTags[tag.attrib[osm.Key]]:
                         area = True
                         break
                 except KeyError:
