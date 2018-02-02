@@ -50,9 +50,10 @@ class Input(object):
                         convert = True
                     if k in self.config.transitionTags and v in self.config.transitionTags[k]:
                         transition = True
-                    if k in self.config.areaTags and v in self.config.areaTags[k]:
+                    if k in self.config.areaTags and v == self.config.areaTags[k]:
                         area = True
-
+                    if k == jps.Id:
+                        elem.attrib[osm.Id]=v
             if not convert and not transition and not area:
                 continue
             elif area and transition:
