@@ -15,7 +15,8 @@ class Config:
     areaTags = {}
     unhandleTag = {}
     defaultMandatoryTags = {}
-    transitionTags = {}
+    jpsGoalTags = {}
+    jpsTransitionTags = {}
 
     def __init__(self, path, file):
 
@@ -31,6 +32,8 @@ class Config:
         self.addAreaTag('area', 'yes')
 
         self.addDefaultMandatoryTag('level', '0')
+
+        self.addGoalTag('jupedsim', 'goal')
 
         self.addTransitionTag('jupedsim', 'transition')
 
@@ -53,8 +56,9 @@ class Config:
         self.defaultMandatoryTags[key] = value
 
     def addTransitionTag(self, key, value):
-        if key in self.transitionTags:
-            self.transitionTags[key].append(value)
-        else:
-            self.transitionTags[key] = [value]
+        self.jpsTransitionTags[key] = value
+
+    def addGoalTag(self, key, value):
+        self.jpsGoalTags[key] = value
+
 

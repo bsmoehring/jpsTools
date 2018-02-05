@@ -42,30 +42,33 @@ class Input(object):
             convert = False
             transition = False
             area = False
+            goal = False
             if elem.tag in [osm.Way, osm.Relation]:
                 for tag in elem.iter(tag=osm.Tag):
                     k = tag.attrib[osm.Key]
                     v = tag.attrib[osm.Value]
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
-                    if k in self.config.transitionTags and v in self.config.transitionTags[k]:
-                        transition = True
                     if k in self.config.areaTags and v == self.config.areaTags[k]:
                         area = True
+                    if k in self.config.jpsTransitionTags and v == self.config.jpsTransitionTags[k]:
+                        transition = True
+                    if k in self.config.jpsGoalTags and v == self.config.jpsGoalTags[k]:
+                        goal = True
                     if k == jps.Id:
                         elem.attrib[osm.Id]=v
-            if not convert and not transition and not area:
-                continue
-            elif area and transition:
-                raise Exception
+
             nodeRefs = []
             for child in elem.iter(tag=osm.NodeRef):
                 nodeRefs.append(child.attrib[osm.Ref])
             XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
+
             if area:
                 self.translateArea(elem, XYList)
             elif transition:
                 self.translateTransition(elem, XYList)
+            elif goal:
+                self.translateGoal(elem, XYList)
             elif convert:
                 self.elementsToHandle[elem.attrib[osm.Id]] = elem
 
@@ -100,6 +103,16 @@ class Input(object):
         else:
             raise Exception
 
+    def translateGoal(self, elem, XYList):
+        if len(XYList) > 2 and XYList[0] == XYList[-1]:
+            poly = geometry.Polygon(XYList)
+            tags = {}
+            for tag in elem.iter(tag=osm.Tag):
+                tags[tag.attrib[osm.Key]] = tag.attrib[osm.Value]
+            Output.goalLst.append(Output.Goal(geometry.Polygon(XYList), tags))
+        else:
+            raise Exception
+
 class Output(object):
     '''
     class to store output data
@@ -114,6 +127,8 @@ class Output(object):
     wayNodes = {}
     #[Transition]
     transitionlst = []
+    #[goal]
+    goalLst = []
 
     class Transition():
         '''
@@ -124,6 +139,14 @@ class Output(object):
             self.osmId1 = osmId1
             self.osmId2 = osmId2
             print('Transition', osmId1, osmId2, geometry)
+
+    class Goal():
+        '''
+
+        '''
+        def __init__(self, geometry, tags):
+            self.geometry = geometry
+            self.tags = tags
 
     def storeElement(self, osmId, elem, poly):
         '''
