@@ -12,8 +12,10 @@ class JPSBuilder(object):
     
     def __init__(self, outputPath):
         self.translate2jps()
-        self.buildJPSTree()
-        self.tree2xml(outputPath)
+        outGeometry = self.buildJPSGEOtree()
+        self.tree2xml(outGeometry, outputPath+'jps_geo.xml')
+        outIni = self.buildJPSINItree()
+        self.tree2xml(outIni, outputPath+'jps_ini.xml')
     
     def translate2jps(self):
         print ('---')
@@ -22,10 +24,11 @@ class JPSBuilder(object):
         print ('---')
         for way in OSMOut.ways:
             self.way2jps(way)
-        #for transition in Output.transitionlst:
-         #   self.transition2jps(transition)
+        print('---')
+        for way in OSMOut.goals:
+            self.goal2jps(way)
                     
-    def buildJPSTree(self):
+    def buildJPSGEOtree(self):
         '''
         form an xml string from all geometry objects
         '''
@@ -56,7 +59,7 @@ class JPSBuilder(object):
             SubElement(outTransition, jps.Vertex, transition.vertex1.attribs)
             SubElement(outTransition, jps.Vertex, transition.vertex2.attribs)
             
-        self.outGeometry = outGeometry
+        return outGeometry
 
     def way2jps(self, way):
         '''
@@ -83,20 +86,62 @@ class JPSBuilder(object):
         vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
         jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN', way.tags[jps.Room1], 0, way.tags[jps.Room2], 0, [nodeRef1, nodeRef2])
         Geometry().addTransition(jpsTransition)
+
+    def goal2jps(self, way):
+        '''
+        translate osm way to jps Elements with required attributes
+        '''
+        vertices = []
+        for nodeRef in way.nodeRefs:
+            vertices.append(Vertex(OSMOut.nodes[nodeRef].x, OSMOut.nodes[nodeRef].y))
+        IniFile().addGoal(Goal(vertices, way.tags))
+
+    def buildJPSINItree(self):
+        '''
+        form an xml string from all geometry objects
+        '''
+        print('---')
+
+        # required attributes of the geometry element
+        attribs = {}
+        attribs['version'] = '0.8'
+        attribs['caption'] = 'second life'
+        attribs['unit'] = 'm'
+        # attribs['xml:nsxsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
+        # attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'
+
+        outIni = Element(IniFile().tag, attribs)
+        outRouting = SubElement(outIni, 'routing')
+        outGoals = SubElement(outRouting, 'goals')
+        for goal in IniFile().goals:
+            outGoal = SubElement(outGoals, 'goal', goal.attribs)
+            for vertex in goal.vertices:
+                SubElement(outGoal, jps.Vertex, vertex.attribs)
+                # print vertex.attribs
+        return outIni
     
-    def tree2xml(self, outputPath):
+    def tree2xml(self, tree, outputFile):
         '''
         writes the ElementTree geometry to a xml file
         '''
-        out = tostring(self.outGeometry, pretty_print=True,encoding='unicode')
-        if outputPath.endswith('.xml'):
-            pass
-        else:
-            outputPath += 'jps_geo.xml'
-            f = open(outputPath, 'w')
-            f.write(out)
-            f.close()
-            print ('output written to %s' % outputPath)
+        out = tostring(tree, pretty_print=True,encoding='unicode')
+
+        f = open(outputFile, 'w')
+        f.write(out)
+        f.close()
+        print ('output written to %s' % outputFile)
+
+class IniFile:
+    tag = 'JuPedSim'
+    goals = []
+
+    def addGoal(self, goal):
+        '''
+
+        :param goal:
+        :return:
+        '''
+        self.goals.append(goal)
             
 class Geometry:
     tag = jps.Geometry 
@@ -210,4 +255,14 @@ class Transition:
         self.attribs[jps.Room2] = room2_id
         self.attribs[jps.Subroom2] = str(subroom2_id)
         self.nodeRefs = nodeRefs
+
+class Goal:
+    '''
+    goal
+    '''
+    tag = jps.Goal
+
+    def __init__(self, vertices = [], tags = {}):
+        self.attribs = tags
+        self.vertices = vertices
         

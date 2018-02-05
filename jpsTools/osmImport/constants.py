@@ -57,4 +57,5 @@ class jps(object):
     Subroom1 = 'subroom1_id'
     Room2 = 'room2_id'
     Subroom2 = 'subroom2_id'
+    Goal = 'goal'
 

@@ -35,7 +35,7 @@ def main():
     
     JPSBuilder(config.path)
     
-    ElementPlotter(config.transform).plotOutput()
+    #ElementPlotter(config.transform).plotOutput()
 
 if      __name__ == "__main__":
     main()

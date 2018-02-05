@@ -70,7 +70,7 @@ class OSMBuilder(object):
             if isinstance(goal.geometry, geometry.Polygon):
                 nodeRefs = self.coords2nodeRefs(goal.geometry.exterior._get_coords())
         except AttributeError:
-            print('not handling Transition ', goal.attribs[jps.Id], goal.geometry)
+            print('not handling Transition ', goal.tags, goal.geometry)
             return
         if len(nodeRefs) > 2:
             OSMOut().addGoal(Way(len(OSMOut.goals) + 1, nodeRefs, goal.tags))
