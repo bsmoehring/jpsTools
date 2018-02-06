@@ -199,6 +199,7 @@ class Subroom:
         self.polygons = []
         self.attribs = {}
         self.attribs[jps.Caption] = caption
+        self.attribs[jps.Class] = jps.Subroom
         
     def addPolygon(self, p, nodeRefs = []):
         if isinstance(p, Polygon) and len(p.vertices) == 2:
