@@ -44,6 +44,11 @@ class Input(object):
             area = False
             goal = False
             if elem.tag in [osm.Way, osm.Relation]:
+                try:
+                    if elem.attrib['action']=='delete':
+                        continue
+                except KeyError:
+                    pass
                 for tag in elem.iter(tag=osm.Tag):
                     k = tag.attrib[osm.Key]
                     v = tag.attrib[osm.Value]
