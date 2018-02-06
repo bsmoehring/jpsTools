@@ -65,7 +65,7 @@ class JPSBuilder(object):
         '''
         translate osm way to jps Elements with required attributes
         '''          
-        jpsRoom = Room(way.attribs[osm.Id], way.tags[osm.Level])
+        jpsRoom = Room(way.attribs[osm.Id])
         jpsSubroom = Subroom()
         index = 0
         while index < len(way.nodeRefs)-1:
@@ -86,6 +86,7 @@ class JPSBuilder(object):
         vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
         jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN', way.tags[jps.Room1], 0, way.tags[jps.Room2], 0, [nodeRef1, nodeRef2])
         Geometry().addTransition(jpsTransition)
+        IniFile().addTransition(jpsTransition)
 
     def goal2jps(self, way):
         '''
@@ -118,6 +119,15 @@ class JPSBuilder(object):
             for vertex in goal.vertices:
                 SubElement(outGoal, jps.Vertex, vertex.attribs)
                 # print vertex.attribs
+        outTrafficConstraints = SubElement(outIni, 'traffic_constraints')
+        outDoors = SubElement(outTrafficConstraints, 'doors')
+        for transition in IniFile().transitions:
+            attribs = {}
+            attribs['trans_id']=transition.attribs[jps.Id]
+            attribs[jps.Caption]=transition.attribs[jps.Caption]
+            attribs['state']='open'
+            SubElement(outDoors, 'door', attribs)
+
         return outIni
     
     def tree2xml(self, tree, outputFile):
@@ -134,6 +144,7 @@ class JPSBuilder(object):
 class IniFile:
     tag = 'JuPedSim'
     goals = []
+    transitions = []
 
     def addGoal(self, goal):
         '''
@@ -142,7 +153,15 @@ class IniFile:
         :return:
         '''
         self.goals.append(goal)
-            
+
+    def addTransition(self, transition):
+        '''
+
+        :param transition:
+        :return:
+        '''
+        self.transitions.append(transition)
+
 class Geometry:
     tag = jps.Geometry 
     rooms = []
@@ -176,10 +195,9 @@ class Room:
     '''
     tag = jps.Room
     
-    def __init__(self, osmId, level, caption='hall'):
+    def __init__(self, osmId, caption='hall'):
         self.attribs = {}
         self.attribs[jps.Id] = osmId
-        self.attribs['level'] = str(level)
         self.attribs[jps.Caption] = caption
         self.subrooms = []
     
