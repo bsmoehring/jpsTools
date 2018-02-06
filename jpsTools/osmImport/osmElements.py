@@ -37,18 +37,15 @@ class OSMBuilder(object):
         tags = {}
         tags.update(self.config.areaTags)
         nodeRefs = self.coords2nodeRefs(poly.exterior._get_coords(), True)
-        if elem == None:
-            tags = {osm.Id:osmId, 'origin':'JPSTools', 'highway':'footway', 'area':'yes'}
-        else:
-            for tag in elem.iter(tag = osm.Tag):
-                k = tag.attrib[osm.Key]
-                v = tag.attrib[osm.Value]
-                tags[k] = v
+        for tag in elem.iter(tag = osm.Tag):
+            k = tag.attrib[osm.Key]
+            v = tag.attrib[osm.Value]
+            tags[k] = v
         tags[jps.Id] = osmId
         for k, v in self.config.defaultMandatoryTags.items():
             if k not in tags:
                 tags[k] = v
-        OSMOut().addWay(Way(osmId, nodeRefs, tags))
+        OSMOut().addWay(Way(nodeRefs, tags, osmId))
 
     def transition2osm(self, transition):
         try:
@@ -61,9 +58,9 @@ class OSMBuilder(object):
             return
         nodeRefs = list(set(nodeRefs))
         if len(nodeRefs) == 2:
-            tags = {'origin': 'JPSTools', 'jupedsim': 'transition', jps.Room1: transition.osmId1,
+            tags = {'jupedsim': 'transition', jps.Room1: transition.osmId1,
                     jps.Room2: transition.osmId2}
-            OSMOut().addTransition(Way(len(OSMOut.transitions) + 1, nodeRefs, tags))
+            OSMOut().addTransition(Way(nodeRefs, tags, str(OSMOut().getIdCount())))
 
     def goal2osm(self, goal):
         try:
@@ -73,7 +70,7 @@ class OSMBuilder(object):
             print('not handling Transition ', goal.tags, goal.geometry)
             return
         if len(nodeRefs) > 2:
-            OSMOut().addGoal(Way(len(OSMOut.goals) + 1, nodeRefs, goal.tags))
+            OSMOut().addGoal(Way(nodeRefs, goal.tags, str(OSMOut().getIdCount())))
 
     def coords2nodeRefs(self, coords = [], allowAdding = True):
         nodeRefs = []
@@ -143,6 +140,10 @@ class OSMOut:
     ways = []
     transitions = []
     goals = []
+
+    def getIdCount(self):
+        count = len(self.ways)+len(self.transitions)+len(self.goals)+1
+        return count
         
     def getOrAddNode(self, x, y, lat, lon, errorDistance, tags = {}, allowAdding = True):
         '''
@@ -224,9 +225,9 @@ class Way:
     '''
     tag = osm.Way
     
-    def __init__(self, id, nodeRefs, tags):
+    def __init__(self, nodeRefs, tags, id):
         self.attribs = {}
-        self.attribs[osm.Id] = str(id)
+        self.attribs[osm.Id] = id
         self.attribs['version'] = '9999999'
         self.nodeRefs = nodeRefs
         self.tags = tags

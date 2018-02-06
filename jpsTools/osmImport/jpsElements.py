@@ -179,7 +179,6 @@ class Room:
     def __init__(self, osmId, level, caption='hall'):
         self.attribs = {}
         self.attribs[jps.Id] = osmId
-        self.attribs[jps.OriginalId] = osmId
         self.attribs['level'] = str(level)
         self.attribs[jps.Caption] = caption
         self.subrooms = []
@@ -206,7 +205,6 @@ class Subroom:
             for transition in Geometry.transitions:
                 if set(transition.nodeRefs) == set(nodeRefs):
                     return
-        p.attribs[jps.Id] = str(len(self.polygons))
         self.polygons.append(p)
     
 class Polygon:
