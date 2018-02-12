@@ -15,31 +15,27 @@ from plot import ElementPlotter
 
 def main():
 
-    path = str(sys.argv[1])
-    file = str(sys.argv[2])
-    if not path.endswith('/'):
-        path += '/'
-
-    inputData = Input(path + file)
-
-    transform = Transformation(inputData)
-
-    config = Config(transform)
+    config = Config(str(sys.argv[1]), str(sys.argv[2]))
     # ADD OR MODIFY YOUR TAGS HERE:
     config.addFilterTag('railway', 'platform')
     config.addFilterTag('highway', 'steps')
     config.addFilterTag('highway', 'footway')
     config.addUnhandleTag('highway', 'elevator')
 
-    handler = ElementHandler(inputData, config)
+    Input(config)
 
-    handler.readOSM()
+    handler = ElementHandler(config)
+
+    try:
+        if str(sys.argv[3]) == 'handle':
+            handler.runHandler()
+    except IndexError: pass
     
-    OSMBuilder(path, config)
+    OSMBuilder(config)
     
-    JPSBuilder(path)
+    JPSBuilder(config.path)
     
-    ElementPlotter(transform).plotOutput()
+    #ElementPlotter(config.transform).plotOutput()
 
 if      __name__ == "__main__":
     main()

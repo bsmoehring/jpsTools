@@ -12,11 +12,11 @@ from lxml.etree import tostring
 
 class OSMBuilder(object):
     
-    def __init__(self, outputPath, config):
+    def __init__(self, config):
         self.config = config
         self.translate2osm()
         self.buildOSMTree()
-        self.tree2xml(outputPath)
+        self.tree2xml(config.path)
         
     def translate2osm(self):
         print ('---')
@@ -25,43 +25,68 @@ class OSMBuilder(object):
             elem = Output.elements[osmId]
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
-        transitionId = 1
         print ('---')
         for transition in Output.transitionlst:
-            try:
-                if isinstance(transition.geometry, geometry.Polygon):
-                    nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
-                elif isinstance(transition.geometry, geometry.LineString):
-                    nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
-            except AttributeError:
-                print ('not handling Transition ', transition.osmId1, transition.osmId2)
-                continue
-            nodeRefs = list(set(nodeRefs))
-            if len(nodeRefs)==2:
-                tags = {'origin':'JPSTools', 'highway':'transition', jps.Room1:transition.osmId1, jps.Room2:transition.osmId2}
-                OSMOut().addTransition(Way(transitionId, '', nodeRefs, tags))
-                print ('Transition', transitionId)
-                transitionId += 1
-            
+            self.transition2osm(transition)
+        print ('---')
+        for goal in Output.goalLst:
+            self.goal2osm(goal)
+
     def polygon2osm(self, osmId, poly, elem = None):
         
         tags = {}
+        tags.update(self.config.areaTags)
         nodeRefs = self.coords2nodeRefs(poly.exterior._get_coords(), True)
-        originalId = elem.attrib[osm.Id]
-        if elem == None:
-            tags = {osm.Id:osmId, 'origin':'JPSTools', 'highway':'footway', 'area':'yes'}
-        else:
-            for tag in elem.iter(tag = osm.Tag):
-                k = tag.attrib[osm.Key] 
-                v = tag.attrib[osm.Value]
-                tags[k] = v
-            tags['area'] = 'yes'
+        for tag in elem.iter(tag = osm.Tag):
+            k = tag.attrib[osm.Key]
+            v = tag.attrib[osm.Value]
+            tags[k] = v
+        tags[jps.Id] = osmId
         for k, v in self.config.defaultMandatoryTags.items():
             if k not in tags:
                 tags[k] = v
+        OSMOut().addWay(Way(nodeRefs, tags, osmId))
 
-        OSMOut().addWay(Way(osmId, originalId, nodeRefs, tags))
-        
+    def transition2osm(self, transition):
+        try:
+            if isinstance(transition.geometry, geometry.Polygon):
+                nodeRefs = self.coords2nodeRefs(transition.geometry.exterior._get_coords())
+            elif isinstance(transition.geometry, geometry.LineString):
+                nodeRefs = self.coords2nodeRefs(transition.geometry.coords)
+        except AttributeError:
+            print('not handling Transition ', transition.osmId1, transition.osmId2)
+            return
+        nodeRefs = list(set(nodeRefs))
+        if len(nodeRefs)== 2:
+            tags = {jps.JuPedSim: jps.Transition}
+            if transition.osmId1 == jps.OutsideTransitionRef:
+                tags[jps.Room1] = jps.OutsideTransitionRef
+                tags[jps.Subroom1] = jps.OutsideTransitionRef
+            else:
+                tags[jps.Room1] = transition.osmId1
+                tags[jps.Subroom1] = jps.InsideSubroomRef
+            if transition.osmId2 == jps.OutsideTransitionRef:
+                tags[jps.Room2] = jps.OutsideTransitionRef
+                tags[jps.Subroom2] = jps.OutsideTransitionRef
+            else:
+                tags[jps.Room2] = transition.osmId2
+                tags[jps.Subroom2] = jps.InsideSubroomRef
+            if tags[jps.Room1] == jps.OutsideTransitionRef and tags[jps.Room2] == jps.OutsideTransitionRef:
+                raise Exception
+            OSMOut().addTransition(Way(nodeRefs, tags, str(OSMOut().getIdCount())))
+        else:
+            raise Exception
+
+    def goal2osm(self, goal):
+        try:
+            if isinstance(goal.geometry, geometry.Polygon):
+                nodeRefs = self.coords2nodeRefs(goal.geometry.exterior._get_coords())
+        except AttributeError:
+            print('not handling Transition ', goal.tags, goal.geometry)
+            return
+        if len(nodeRefs) > 2:
+            OSMOut().addGoal(Way(nodeRefs, goal.tags, str(OSMOut().getIdCount())))
+
     def coords2nodeRefs(self, coords = [], allowAdding = True):
         nodeRefs = []
         nodeRefPrevious = ''
@@ -91,19 +116,19 @@ class OSMBuilder(object):
                 SubElement(outNode, tag.tag, tag.attribs)
         
         for way in OSMOut.ways:
-            outWay = SubElement(osmTree, way.tag, way.attribs)
-            for nodeRef in way.nodeRefs:
-                SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
-            for k, v in way.tags.items():
-                SubElement(outWay, osm.Tag, {osm.Key:k, osm.Value:v})   
+            self.way2subElement(osmTree, way)
         for way in OSMOut.transitions:
-            outWay = SubElement(osmTree, way.tag, way.attribs)
-            for nodeRef in way.nodeRefs:
-                SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
-            for k, v in way.tags.items():
-                SubElement(outWay, osm.Tag, {osm.Key:k, osm.Value:v})      
-            
+            self.way2subElement(osmTree, way)
+        for way in OSMOut.goals:
+            self.way2subElement(osmTree, way)
         self.osmTree = osmTree
+
+    def way2subElement(self, osmTree, way):
+        outWay = SubElement(osmTree, way.tag, way.attribs)
+        for nodeRef in way.nodeRefs:
+            SubElement(outWay, osm.NodeRef, {osm.Ref: str(nodeRef)})
+        for k, v in way.tags.items():
+            SubElement(outWay, osm.Tag, {osm.Key: k, osm.Value: v})
     
     def tree2xml(self, outputPath):
         '''
@@ -129,6 +154,11 @@ class OSMOut:
     nodes = {}
     ways = []
     transitions = []
+    goals = []
+
+    def getIdCount(self):
+        count = len(self.ways)+len(self.transitions)+len(self.goals)+1
+        return count
         
     def getOrAddNode(self, x, y, lat, lon, errorDistance, tags = {}, allowAdding = True):
         '''
@@ -160,6 +190,9 @@ class OSMOut:
         
     def addTransition(self, way):
         '''
+
+        :param way:
+        :return:
         '''
         if isinstance(way, Way) and len(way.nodeRefs) == 2:
             for transition in self.transitions:
@@ -171,6 +204,20 @@ class OSMOut:
         
     def addRelation(self, relation):
         pass
+
+    def addGoal(self, way):
+        '''
+
+        :param goal:
+        :return:
+        '''
+        if isinstance(way, Way):
+            for transition in self.transitions:
+                if set(transition.nodeRefs) == set(way.nodeRefs):
+                    return
+            self.goals.append(way)
+        else:
+            raise Exception
     
 class Node:
     '''
@@ -193,10 +240,9 @@ class Way:
     '''
     tag = osm.Way
     
-    def __init__(self, id, originalId, nodeRefs, tags):
+    def __init__(self, nodeRefs, tags, id):
         self.attribs = {}
-        self.attribs[osm.Id] = str(id)
-        self.attribs[jps.OriginalId] = originalId
+        self.attribs[osm.Id] = id
         self.attribs['version'] = '9999999'
         self.nodeRefs = nodeRefs
         self.tags = tags

@@ -17,10 +17,10 @@ class Transformation(object):
     maxx = 0
     maxy = 0
 
-    def __init__(self, input):
+    def __init__(self, tree):
         print('---')
         try:
-            bounds = input.tree.find(osm.Bounds)
+            bounds = tree.find(osm.Bounds)
             minlat = float(bounds.attrib.get(osm.MinLat))
             minlon = float(bounds.attrib.get(osm.MinLon))
             maxlat = float(bounds.attrib.get(osm.MaxLat))
@@ -28,7 +28,7 @@ class Transformation(object):
         except (AttributeError):
             minlat, minlon = float('+inf'), float('+inf')
             maxlat, maxlon = float('-inf'), float('-inf')
-            for node in input.tree.iter(tag=osm.Node):
+            for node in tree.iter(tag=osm.Node):
                 lat, lon = float(node.attrib[osm.Lat]), float(node.attrib[osm.Lon])
                 if lat > maxlat:
                     maxlat = lat
@@ -71,4 +71,4 @@ class Transformation(object):
                     print(nodeRef, 'is not in the nodes list. ->OSM inconsistency?')
             return XYList
         else:
-            print('Dont know how to handle this Element ', nodeRefs)
+            raise Exception

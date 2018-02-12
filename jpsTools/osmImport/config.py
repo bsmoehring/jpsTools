@@ -8,24 +8,34 @@ class Config:
 
     stanardWidth = 2 #meters
     #points are merged if their distance is below errorDistance
-    errorDistance = 0.01
-    bufferDistance = errorDistance / 10
+    errorDistance = 0.05
+    bufferDistance = errorDistance / 50
 
     filterTags = {}
     areaTags = {}
     unhandleTag = {}
     defaultMandatoryTags = {}
-    transitionTags = {}
+    jpsGoalTags = {}
+    jpsTransitionTags = {}
 
-    def __init__(self, transform):
+    def __init__(self, path, file):
 
-        self.transform = transform
+        if not path.endswith('/'):
+            path += '/'
+
+        self.path = path
+
+        self.file = file
+
+        self.transform = None
 
         self.addAreaTag('area', 'yes')
 
         self.addDefaultMandatoryTag('level', '0')
 
-        self.addTransitionTag('highway', 'transition')
+        self.addGoalTag('jupedsim', 'goal')
+
+        self.addTransitionTag('jupedsim', 'transition')
 
     def addFilterTag(self, key, value):
         if key in self.filterTags:
@@ -40,26 +50,15 @@ class Config:
             self.unhandleTag[key] = [value]
 
     def addAreaTag(self, key, value):
-        if key in self.areaTags:
-            self.areaTags[key].append(value)
-        else:
-            self.areaTags[key] = [value]
+        self.areaTags[key] = value
 
     def addDefaultMandatoryTag(self, key, value):
         self.defaultMandatoryTags[key] = value
 
     def addTransitionTag(self, key, value):
-        if key in self.transitionTags:
-            self.transitionTags[key].append(value)
-        else:
-            self.transitionTags[key] = [value]
-        if key in self.filterTags:
-            self.filterTags[key].append(value)
-        else:
-            self.filterTags[key] = [value]
+        self.jpsTransitionTags[key] = value
 
-    def loadConfig(self, configFile):
-        '''
-        loading required parameters for the network generation from an external source
-        '''
-        pass
+    def addGoalTag(self, key, value):
+        self.jpsGoalTags[key] = value
+
+
