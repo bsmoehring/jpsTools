@@ -57,10 +57,25 @@ class OSMBuilder(object):
             print('not handling Transition ', transition.osmId1, transition.osmId2)
             return
         nodeRefs = list(set(nodeRefs))
-        if len(nodeRefs) == 2:
-            tags = {'jupedsim': 'transition', jps.Room1: transition.osmId1,
-                    jps.Room2: transition.osmId2}
+        if len(nodeRefs)== 2:
+            tags = {jps.JuPedSim: jps.Transition}
+            if transition.osmId1 == jps.OutsideTransitionRef:
+                tags[jps.Room1] = jps.OutsideTransitionRef
+                tags[jps.Subroom1] = jps.OutsideTransitionRef
+            else:
+                tags[jps.Room1] = transition.osmId1
+                tags[jps.Subroom1] = jps.InsideSubroomRef
+            if transition.osmId2 == jps.OutsideTransitionRef:
+                tags[jps.Room2] = jps.OutsideTransitionRef
+                tags[jps.Subroom2] = jps.OutsideTransitionRef
+            else:
+                tags[jps.Room2] = transition.osmId2
+                tags[jps.Subroom2] = jps.InsideSubroomRef
+            if tags[jps.Room1] == jps.OutsideTransitionRef and tags[jps.Room2] == jps.OutsideTransitionRef:
+                raise Exception
             OSMOut().addTransition(Way(nodeRefs, tags, str(OSMOut().getIdCount())))
+        else:
+            raise Exception
 
     def goal2osm(self, goal):
         try:

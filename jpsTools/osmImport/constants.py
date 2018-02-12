@@ -38,6 +38,7 @@ class jps(object):
     '''
     This class aims to store required strings for the jps input files
     '''
+    JuPedSim = 'jupedsim'
     Geometry = 'geometry'
     Rooms = 'rooms'
     Room = 'room'
@@ -57,6 +58,8 @@ class jps(object):
     Subroom1 = 'subroom1_id'
     Room2 = 'room2_id'
     Subroom2 = 'subroom2_id'
+    OutsideTransitionRef = '-1'
+    InsideSubroomRef = '0'
     Goal = 'goal'
     Class = 'class'
 

@@ -84,7 +84,9 @@ class JPSBuilder(object):
         nodeRef2 = way.nodeRefs[1]
         vertex1 = Vertex(OSMOut.nodes[nodeRef1].x, OSMOut.nodes[nodeRef1].y)
         vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
-        jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN', way.tags[jps.Room1], 0, way.tags[jps.Room2], 0, [nodeRef1, nodeRef2])
+        jpsTransition = Transition(vertex1, vertex2, len(Geometry.transitions), 'NaN', 'NaN',
+                                   way.tags[jps.Room1], way.tags[jps.Subroom1],
+                                   way.tags[jps.Room2], way.tags[jps.Subroom2], [nodeRef1, nodeRef2])
         Geometry().addTransition(jpsTransition)
         IniFile().addTransition(jpsTransition)
 
@@ -260,7 +262,8 @@ class Transition:
     '''
     tag = jps.Transition
     
-    def __init__(self, vertex_1, vertex_2, id, caption, type, room1_id, subroom1_id, room2_id, subroom2_id, nodeRefs = []):
+    def __init__(self, vertex_1, vertex_2, id, caption, type, room1_id, subroom1_id,
+                 room2_id, subroom2_id, nodeRefs = []):
         self.vertex1 = vertex_1
         self.vertex2 = vertex_2
         self.attribs = {}
@@ -268,9 +271,9 @@ class Transition:
         self.attribs[jps.Caption] = caption
         self.attribs[jps.Type] = type
         self.attribs[jps.Room1] = room1_id
-        self.attribs[jps.Subroom1] = str(subroom1_id)
+        self.attribs[jps.Subroom1] = subroom1_id
         self.attribs[jps.Room2] = room2_id
-        self.attribs[jps.Subroom2] = str(subroom2_id)
+        self.attribs[jps.Subroom2] = subroom2_id
         self.nodeRefs = nodeRefs
 
 class Goal:
