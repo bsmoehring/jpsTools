@@ -8,8 +8,8 @@ class Config:
 
     stanardWidth = 2 #meters
     #points are merged if their distance is below errorDistance
-    errorDistance = 0.01
-    bufferDistance = errorDistance / 10
+    errorDistance = 0.05
+    bufferDistance = errorDistance / 50
 
     filterTags = {}
     areaTags = {}
