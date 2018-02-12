@@ -118,8 +118,9 @@ class JPSBuilder(object):
         outGoals = SubElement(outRouting, 'goals')
         for goal in IniFile().goals:
             outGoal = SubElement(outGoals, 'goal', goal.attribs)
+            outPolygon = SubElement(outGoal, jps.Polygon)
             for vertex in goal.vertices:
-                SubElement(outGoal, jps.Vertex, vertex.attribs)
+                SubElement(outPolygon, jps.Vertex, vertex.attribs)
                 # print vertex.attribs
         outTrafficConstraints = SubElement(outIni, 'traffic_constraints')
         outDoors = SubElement(outTrafficConstraints, 'doors')

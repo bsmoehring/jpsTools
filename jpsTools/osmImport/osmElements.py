@@ -85,6 +85,8 @@ class OSMBuilder(object):
             print('not handling Transition ', goal.tags, goal.geometry)
             return
         if len(nodeRefs) > 2:
+            if 'final' not in goal.tags:
+                goal.tags['final'] = 'True'
             OSMOut().addGoal(Way(nodeRefs, goal.tags, str(OSMOut().getIdCount())))
 
     def coords2nodeRefs(self, coords = [], allowAdding = True):
