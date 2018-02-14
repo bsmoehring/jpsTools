@@ -491,6 +491,9 @@ class ElementHandler(object):
             p = geometry.Point(coord)
             if polyStay.exterior.distance(p) < self.config.errorDistance:
                 polyCleared.append(coord)
+            for interior in polyStay.interiors:
+                if interior.distance(p) < self.config.errorDistance:
+                    polyCleared.append(coord)
         try:
             polyCleared = geometry.Polygon(polyCleared)
             return polyCleared
@@ -582,8 +585,10 @@ class ElementHandler(object):
         if isinstance(transition, geometry.base.BaseMultipartGeometry):
             distance = float("+infinity")
             for geom in transition.geoms:
-                if isinstance(geom, geometry.Polygon) and geom.distance(self.nodePoints[nodeId]) < distance:
+                d = geom.distance(self.nodePoints[nodeId])
+                if isinstance(geom, geometry.Polygon) and d < distance:
                     transition = geom
+                    distance = d
         if isinstance(transition, geometry.Polygon):
             unionAll = poly1.buffer(self.config.bufferDistance).union(poly2.buffer(self.config.bufferDistance))
             transition = self.filterPolyPointsByDistance(unionAll, transition)

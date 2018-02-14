@@ -75,7 +75,7 @@ class OSMBuilder(object):
                 raise Exception
             OSMOut().addTransition(Way(nodeRefs, tags, str(OSMOut().getIdCount())))
         else:
-            raise Exception
+            pass
 
     def goal2osm(self, goal):
         try:
