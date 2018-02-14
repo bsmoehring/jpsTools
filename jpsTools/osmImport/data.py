@@ -16,7 +16,7 @@ class Input(object):
     elementsToHandle = {}
     nodes = {}
 
-    def __init__(self, config):
+    def __init__(self, config, handle):
         '''
         Constructor
         '''
@@ -26,23 +26,25 @@ class Input(object):
         source.close()
         self.config.transform = Transformation(self.tree)
 
-        self.readOSM()
+        self.readOSM(handle)
 
         print(self.tree)
         print(self.nodes)
         print('Input parsed!')
 
-    def readOSM(self):
+    def readOSM(self, handle = False):
 
         for node in self.tree.iter(tag=osm.Node):
             key = node.attrib.get(osm.Id)
             self.nodes[key] = node
 
-        for elem in self.tree.iter():
-            convert = False
+        for elem in self.tree.iter(tag=osm.Way):
+            subroom = False
             transition = False
-            area = False
+            crossing = False
             goal = False
+            convert = False
+            area = False
             if elem.tag in [osm.Way, osm.Relation]:
                 try:
                     if elem.attrib['action']=='delete':
@@ -52,61 +54,127 @@ class Input(object):
                 for tag in elem.iter(tag=osm.Tag):
                     k = tag.attrib[osm.Key]
                     v = tag.attrib[osm.Value]
+                    if k == jps.JuPedSim and v == jps.Subroom:
+                        subroom = True
+                    if k == jps.JuPedSim and v == jps.Crossing:
+                        crossing = True
+                    if k == jps.JuPedSim and v == jps.Transition:
+                        transition = True
+                    if k == jps.JuPedSim and v == jps.Goal:
+                        goal = True
+                    if k in self.config.filterTags and v in self.config.filterTags[k]:
+                        convert = True
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
                     if k in self.config.areaTags and v == self.config.areaTags[k]:
                         area = True
-                    if k in self.config.jpsTransitionTags and v == self.config.jpsTransitionTags[k]:
-                        transition = True
-                    if k in self.config.jpsGoalTags and v == self.config.jpsGoalTags[k]:
-                        goal = True
-                    if k == jps.Id:
-                        elem.attrib[osm.Id]=v
 
             nodeRefs = []
             for child in elem.iter(tag=osm.NodeRef):
                 nodeRefs.append(child.attrib[osm.Ref])
             XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
 
-            if area:
-                self.translateArea(elem, XYList)
+            if subroom:
+                self.translateSubroom(elem, XYList)
+            elif crossing:
+                self.translateCrossing(elem, XYList)
             elif transition:
                 self.translateTransition(elem, XYList)
             elif goal:
                 self.translateGoal(elem, XYList)
+            if not handle:
+                continue
+            elif area:
+                self.translateArea(elem, XYList)
             elif convert:
                 self.elementsToHandle[elem.attrib[osm.Id]] = elem
 
+    def translateSubroom(self, elem, XYList):
+        for child in elem.iter(tag=osm.Tag):
+            try:
+                if child.attrib[osm.Key] == jps.Room:
+                    room_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom:
+                    subroom_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+        try: subroom_id
+        except NameError: subroom_id='0'
+        if len(XYList) > 2 and XYList[0] == XYList[-1]:
+            poly = geometry.Polygon(XYList)
+            subroom = Output.Subroom(geometry=poly, subroom_id=subroom_id)
+            if room_id in Output.subroomDic:
+                Output.subroomDic[room_id].append(subroom)
+            else:
+                Output.subroomDic[room_id] = [subroom]
+        else:
+            raise Exception
+
+    def translateCrossing(self, elem, XYList):
+        for child in elem.iter(tag = osm.Tag):
+            try:
+                if child.attrib[osm.Key] == jps.Room:
+                    room_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom1:
+                    subroom1_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom2:
+                    subroom2_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+        crossing = Output.Crossing(geometry.LineString(XYList), room_id, subroom1_id, subroom2_id)
+        if room_id in Output.crossingDic:
+            Output.crossingDic[room_id].append(crossing)
+        else: Output.crossingDic[room_id] = [crossing]
 
     def translateTransition(self, elem, XYList):
         for child in elem.iter(tag = osm.Tag):
             try:
                 if child.attrib[osm.Key] == jps.Room1:
-                    osmId1 = child.attrib[osm.Value]
+                    room1_id = child.attrib[osm.Value]
             except KeyError:
                 pass
             try:
                 if child.attrib[osm.Key] == jps.Room2:
-                    osmId2 = child.attrib[osm.Value]
+                    room2_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom1:
+                    subroom1_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom2:
+                    subroom2_id = child.attrib[osm.Value]
             except KeyError:
                 pass
 
-        try: osmId1
+        try: room1_id
         except NameError:
-            osmId1 = '-1'
-        try: osmId2
+            room1_id = '-1'
+        try: room2_id
         except NameError:
-            osmId2 = '-1'
+            room2_id = '-1'
+        try:
+            subroom1_id
+        except NameError:
+            subroom1_id = '0'
+        try:
+            subroom2_id
+        except NameError:
+            subroom2_id = '0'
 
-        Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
-
-    def translateArea(self, elem, XYList):
-
-        if len(XYList) > 2 and XYList[0] == XYList[-1]:
-            poly = geometry.Polygon(XYList)
-            Output().storeElement(elem.attrib[osm.Id], elem, poly)
-        else:
-            raise Exception
+        Output.transitionlst.append(Output.Transition(geometry.LineString(XYList),
+                                                      room1_id, room2_id, subroom1_id, subroom2_id))
 
     def translateGoal(self, elem, XYList):
         if len(XYList) > 2 and XYList[0] == XYList[-1]:
@@ -115,6 +183,14 @@ class Input(object):
             for tag in elem.iter(tag=osm.Tag):
                 tags[tag.attrib[osm.Key]] = tag.attrib[osm.Value]
             Output.goalLst.append(Output.Goal(geometry.Polygon(XYList), tags))
+        else:
+            raise Exception
+
+    def translateArea(self, elem, XYList):
+
+        if len(XYList) > 2 and XYList[0] == XYList[-1]:
+            poly = geometry.Polygon(XYList)
+            Output().storeElement(elem.attrib[osm.Id], elem, poly)
         else:
             raise Exception
 
@@ -130,20 +206,50 @@ class Output(object):
     elements = {}
     #osmId Way = [osmId Node]
     wayNodes = {}
+
+
+    #room_id = [Subroom]
+    subroomDic = {}
+    #roomId = [Crossing]
+    crossingDic = {}
     #[Transition]
     transitionlst = []
     #[goal]
     goalLst = []
 
+    class Subroom():
+        '''
+
+        '''
+        def __init__(self, geometry, subroom_id):
+            self.geometry = geometry
+            self.subroom_id = subroom_id
+            print('Subroom', subroom_id, geometry)
+
     class Transition():
         '''
 
         '''
-        def __init__(self, geometry, osmId1, osmId2):
+        def __init__(self, geometry, room1_id, room2_id, subroom1_id, subroom2_id):
             self.geometry = geometry
-            self.osmId1 = osmId1
-            self.osmId2 = osmId2
-            print('Transition', osmId1, osmId2, geometry)
+            self.room1_id = room1_id
+            self.room2_id = room2_id
+            self.subroom1_id = subroom1_id
+            self.subroom2_id = subroom2_id
+            print('Transition', room1_id, room2_id, geometry)
+
+    class Crossing():
+        '''
+
+        '''
+        def __init__(self, geometry, room_id, subroom1_id, subroom2_id):
+            self.geometry = geometry
+            self.room_id = room_id
+            try: self.crossing_id = str(len(Output.crossingDic[room_id]))
+            except KeyError: self.crossing_id = '0'
+            self.subroom1_id = subroom1_id
+            self.subroom2_id = subroom2_id
+            print('Crossing', room_id, subroom1_id, subroom2_id, geometry)
 
     class Goal():
         '''

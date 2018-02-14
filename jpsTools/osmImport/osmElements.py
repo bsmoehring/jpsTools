@@ -25,6 +25,14 @@ class OSMBuilder(object):
             elem = Output.elements[osmId]
             if isinstance(poly, geometry.Polygon):
                 self.polygon2osm(osmId, poly, elem)
+        print('---')
+        for room_id, subroomLst in Output.subroomDic.items():
+            for subroom in subroomLst:
+                self.subroom2osm(subroom, room_id)
+        print('---')
+        for room_id, crossingLst in Output.crossingDic.items():
+            for crossing in crossingLst:
+                self.crossing2osm(crossing, room_id)
         print ('---')
         for transition in Output.transitionlst:
             self.transition2osm(transition)
@@ -47,6 +55,14 @@ class OSMBuilder(object):
                 tags[k] = v
         OSMOut().addWay(Way(nodeRefs, tags, osmId))
 
+    def subroom2osm(self, subroom, room_id):
+        if isinstance(subroom.geometry, geometry.Polygon):
+            nodeRefs = self.coords2nodeRefs(subroom.geometry.exterior._get_coords())
+        else:
+            raise Exception
+        tags = {}
+        OSMOut().addSubroom(Way(nodeRefs, tags, subroom.subroom_id), room_id)
+
     def transition2osm(self, transition):
         try:
             if isinstance(transition.geometry, geometry.Polygon):
@@ -59,23 +75,39 @@ class OSMBuilder(object):
         nodeRefs = list(set(nodeRefs))
         if len(nodeRefs)== 2:
             tags = {jps.JuPedSim: jps.Transition}
-            if transition.osmId1 == jps.OutsideTransitionRef:
+            if transition.room1_id == jps.OutsideTransitionRef:
                 tags[jps.Room1] = jps.OutsideTransitionRef
                 tags[jps.Subroom1] = jps.OutsideTransitionRef
             else:
-                tags[jps.Room1] = transition.osmId1
-                tags[jps.Subroom1] = jps.InsideSubroomRef
-            if transition.osmId2 == jps.OutsideTransitionRef:
+                tags[jps.Room1] = transition.room1_id
+                tags[jps.Subroom1] = transition.subroom1_id
+            if transition.room2_id == jps.OutsideTransitionRef:
                 tags[jps.Room2] = jps.OutsideTransitionRef
                 tags[jps.Subroom2] = jps.OutsideTransitionRef
             else:
-                tags[jps.Room2] = transition.osmId2
-                tags[jps.Subroom2] = jps.InsideSubroomRef
+                tags[jps.Room2] = transition.room2_id
+                tags[jps.Subroom2] = transition.subroom2_id
             if tags[jps.Room1] == jps.OutsideTransitionRef and tags[jps.Room2] == jps.OutsideTransitionRef:
                 raise Exception
             OSMOut().addTransition(Way(nodeRefs, tags, str(OSMOut().getIdCount())))
         else:
             pass
+
+    def crossing2osm(self, crossing, room_id):
+        try:
+            if isinstance(crossing.geometry, geometry.Polygon):
+                nodeRefs = self.coords2nodeRefs(crossing.geometry.exterior._get_coords())
+            elif isinstance(crossing.geometry, geometry.LineString):
+                nodeRefs = self.coords2nodeRefs(crossing.geometry.coords)
+        except AttributeError:
+            print('not handling Crossing ', crossing.room_id, crossing.subroom1_id, crossing.subroom2_id)
+            return
+        nodeRefs = list(set(nodeRefs))
+        if len(nodeRefs) == 2:
+            tags = {jps.JuPedSim:jps.Crossing}
+            tags[jps.Subroom1] = crossing.subroom1_id
+            tags[jps.Subroom2] = crossing.subroom2_id
+            OSMOut().addCrossing(Way(nodeRefs, tags, crossing.crossing_id), room_id)
 
     def goal2osm(self, goal):
         try:
@@ -119,6 +151,12 @@ class OSMBuilder(object):
         
         for way in OSMOut.ways:
             self.way2subElement(osmTree, way)
+        for subroomLst in OSMOut.subrooms.values():
+            for way in subroomLst:
+                self.way2subElement(osmTree, way)
+        for crossingLst in OSMOut.crossings.values():
+            for way in crossingLst:
+                self.way2subElement(osmTree, way)
         for way in OSMOut.transitions:
             self.way2subElement(osmTree, way)
         for way in OSMOut.goals:
@@ -155,6 +193,8 @@ class OSMOut:
     tag = osm.Osm
     nodes = {}
     ways = []
+    subrooms = {}
+    crossings = {}
     transitions = []
     goals = []
 
@@ -189,7 +229,38 @@ class OSMOut:
             self.ways.append(way)
         else:
             raise Exception
-        
+
+    def addSubroom(self, way, room_id):
+        '''
+
+        :param subroom:
+        :return:
+        '''
+        if not isinstance(way, Way):
+            raise Exception
+        if room_id in self.subrooms:
+            self.subrooms[room_id].append(way)
+        else:
+            self.subrooms[room_id] = [way]
+
+    def addCrossing(self, way, room_id):
+        '''
+
+        :param way:
+        :return:
+        '''
+        if not isinstance(way, Way) or not len(way.nodeRefs) == 2:
+            raise Exception
+        try:
+            for crossing in self.crossings[room_id]:
+                if set(crossing.nodeRefs) == set(way.nodeRefs):
+                    return
+        except KeyError: pass
+        if room_id in self.crossings:
+            self.crossings[room_id].append(way)
+        else:
+            self.crossings[room_id] = [way]
+
     def addTransition(self, way):
         '''
 

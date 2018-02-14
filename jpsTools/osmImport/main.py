@@ -15,6 +15,11 @@ from plot import ElementPlotter
 
 def main():
 
+    try:
+        if str(sys.argv[3]) == 'handle':
+            handle=True
+    except IndexError:
+        handle = False
     config = Config(str(sys.argv[1]), str(sys.argv[2]))
     # ADD OR MODIFY YOUR TAGS HERE:
     config.addFilterTag('railway', 'platform')
@@ -22,14 +27,11 @@ def main():
     config.addFilterTag('highway', 'footway')
     config.addUnhandleTag('highway', 'elevator')
 
-    Input(config)
+    Input(config, handle)
 
-    handler = ElementHandler(config)
+    if handle:
+        ElementHandler(config, handle).runHandler()
 
-    try:
-        if str(sys.argv[3]) == 'handle':
-            handler.runHandler()
-    except IndexError: pass
     
     OSMBuilder(config)
     
