@@ -100,11 +100,13 @@ class OSMBuilder(object):
             elif isinstance(crossing.geometry, geometry.LineString):
                 nodeRefs = self.coords2nodeRefs(crossing.geometry.coords)
         except AttributeError:
-            print('not handling Crossing ', crossing.room_id, crossing.subroom1_id, crossing.subroom2_id)
+            print('not handling Crossing ', crossing.crossing_id, crossing.room_id, crossing.subroom1_id, crossing.subroom2_id)
             return
         nodeRefs = list(set(nodeRefs))
         if len(nodeRefs) == 2:
             tags = {jps.JuPedSim:jps.Crossing}
+            tags[jps.Id] = crossing.crossing_id
+            tags[jps.Room] = crossing.room_id
             tags[jps.Subroom1] = crossing.subroom1_id
             tags[jps.Subroom2] = crossing.subroom2_id
             OSMOut().addCrossing(Way(nodeRefs, tags, crossing.crossing_id), room_id)
@@ -251,12 +253,10 @@ class OSMOut:
         '''
         if not isinstance(way, Way) or not len(way.nodeRefs) == 2:
             raise Exception
-        try:
+        if room_id in self.crossings:
             for crossing in self.crossings[room_id]:
                 if set(crossing.nodeRefs) == set(way.nodeRefs):
                     return
-        except KeyError: pass
-        if room_id in self.crossings:
             self.crossings[room_id].append(way)
         else:
             self.crossings[room_id] = [way]

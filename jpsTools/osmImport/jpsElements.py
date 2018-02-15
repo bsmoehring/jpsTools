@@ -18,11 +18,12 @@ class JPSBuilder(object):
         self.tree2xml(outIni, outputPath+'jps_ini.xml')
     
     def translate2jps(self):
+        print('---')
+        for way in OSMOut.transitions:
+            self.transition2jps(way)
         print ('---')
         for room_id, subroomLst in OSMOut.subrooms.items():
             self.room2jps(room_id, subroomLst)
-        for way in OSMOut.transitions:
-            self.transition2jps(way)
         print ('---')
         for way in OSMOut.ways:
             self.way2jps(way)
@@ -55,11 +56,12 @@ class JPSBuilder(object):
                     for vertex in polygon.vertices:
                         SubElement(outPoly, jps.Vertex, vertex.attribs)
                         #print vertex.attribs
-            outCrossings = SubElement(outRoom, jps.Crossings)
-            for crossing in room.crossings:
-                outCrossing = SubElement(outCrossings, crossing.tag, crossing.attribs)
-                SubElement(outCrossing, jps.Vertex, crossing.vertex1.attribs)
-                SubElement(outCrossing, jps.Vertex, crossing.vertex2.attribs)
+            if room.crossings:
+                outCrossings = SubElement(outRoom, jps.Crossings)
+                for crossing in room.crossings:
+                    outCrossing = SubElement(outCrossings, crossing.tag, crossing.attribs)
+                    SubElement(outCrossing, jps.Vertex, crossing.vertex1.attribs)
+                    SubElement(outCrossing, jps.Vertex, crossing.vertex2.attribs)
 
         outTransitions = SubElement(outGeometry, jps.Transitions)
         for transition in Geometry().transitions:
@@ -134,7 +136,7 @@ class JPSBuilder(object):
         nodeRef2 = way.nodeRefs[1]
         vertex1 = Vertex(OSMOut.nodes[nodeRef1].x, OSMOut.nodes[nodeRef1].y)
         vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
-        jpsCrossing = Crossing(vertex_1=vertex1, vertex_2=vertex2,
+        jpsCrossing = Crossing(crossing_id=way.tags[jps.Id], vertex_1=vertex1, vertex_2=vertex2,
                                subroom1_id=way.tags[jps.Subroom1], subroom2_id=way.tags[jps.Subroom2],
                                nodeRefs=[nodeRef1, nodeRef2])
         return jpsCrossing
@@ -248,8 +250,7 @@ class Room:
         subroom.attribs[jps.Id] = subroom.attribs[jps.Id]
         self.subrooms.append(subroom)
 
-    def addCrossing(self, crossing):#
-        crossing.attribs[jps.Id] = str(len(self.crossings))
+    def addCrossing(self, crossing):
         self.crossings.append(crossing)
     
 class Subroom:
@@ -270,8 +271,9 @@ class Subroom:
     def addPolygon(self, p, room_id, nodeRefs = []):
         if isinstance(p, Polygon) and len(p.vertices) == 2:
             for transition in Geometry.transitions:
-                if set(transition.nodeRefs) == set(nodeRefs):
-                    return
+                if transition.attribs[jps.Room1]==room_id or transition.attribs[jps.Room2]==room_id:
+                    if set(transition.nodeRefs) == set(nodeRefs):
+                        return
             for crossing in Geometry.rooms[room_id].crossings:
                 if set(crossing.nodeRefs) == set(nodeRefs):
                     return
@@ -331,10 +333,11 @@ class Crossing:
     '''
     tag = jps.Crossing
 
-    def __init__(self, vertex_1, vertex_2, subroom1_id, subroom2_id, nodeRefs=[]):
+    def __init__(self, crossing_id, vertex_1, vertex_2, subroom1_id, subroom2_id, nodeRefs=[]):
         self.vertex1 = vertex_1
         self.vertex2 = vertex_2
         self.attribs = {}
+        self.attribs[jps.Id] = crossing_id
         self.attribs[jps.Subroom1] = subroom1_id
         self.attribs[jps.Subroom2] = subroom2_id
         self.nodeRefs = nodeRefs

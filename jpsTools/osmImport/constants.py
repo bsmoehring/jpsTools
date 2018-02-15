@@ -54,7 +54,7 @@ class jps(object):
     Transitions = 'transitions'
     Transition = 'transition'
     Crossing = 'crossing'
-    Crossings = 'Crossings'
+    Crossings = 'crossings'
     Type = 'type'
     Room1 = 'room1_id'
     Subroom1 = 'subroom1_id'

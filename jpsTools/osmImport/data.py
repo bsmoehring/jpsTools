@@ -130,7 +130,10 @@ class Input(object):
                     subroom2_id = child.attrib[osm.Value]
             except KeyError:
                 pass
-        crossing = Output.Crossing(geometry.LineString(XYList), room_id, subroom1_id, subroom2_id)
+        crossing_id = 0
+        for crossingLst in Output.crossingDic.values():
+            crossing_id += len(crossingLst)
+        crossing = Output.Crossing(geometry.LineString(XYList), str(crossing_id), room_id, subroom1_id, subroom2_id)
         if room_id in Output.crossingDic:
             Output.crossingDic[room_id].append(crossing)
         else: Output.crossingDic[room_id] = [crossing]
@@ -242,11 +245,10 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, geometry, room_id, subroom1_id, subroom2_id):
+        def __init__(self, geometry, crossing_id, room_id, subroom1_id, subroom2_id):
             self.geometry = geometry
             self.room_id = room_id
-            try: self.crossing_id = str(len(Output.crossingDic[room_id]))
-            except KeyError: self.crossing_id = '0'
+            self.crossing_id = crossing_id
             self.subroom1_id = subroom1_id
             self.subroom2_id = subroom2_id
             print('Crossing', room_id, subroom1_id, subroom2_id, geometry)
