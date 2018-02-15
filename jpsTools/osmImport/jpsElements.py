@@ -4,7 +4,7 @@ Created on 07.11.2017
 @author: bsmoehring
 '''
 from constants import jps, osm
-from osmElements import OSMOut
+from data import Output, Input
 from lxml.etree import SubElement, Element
 from lxml.etree import tostring 
 
@@ -19,17 +19,17 @@ class JPSBuilder(object):
     
     def translate2jps(self):
         print('---')
-        for way in OSMOut.transitions:
+        for way in Output.transitionlst:
             self.transition2jps(way)
         print ('---')
-        for room_id, subroomLst in OSMOut.subrooms.items():
+        for room_id, subroomLst in Output.subroomDic.items():
             self.room2jps(room_id, subroomLst)
         print ('---')
-        for way in OSMOut.ways:
-            self.way2jps(way)
+        #for way in OSMOut.ways:
+        #    self.way2jps(way)
         print('---')
-        for way in OSMOut.goals:
-            self.goal2jps(way)
+        for goal in Output.goalLst:
+            self.goal2jps(goal)
                     
     def buildJPSGEOtree(self):
         '''
@@ -71,21 +71,21 @@ class JPSBuilder(object):
             
         return outGeometry
 
-    def way2jps(self, way):
-        '''
-        translate osm way to jps Elements with required attributes
-        '''          
-        jpsRoom = Room(way.attribs[osm.Id])
-        jpsSubroom = Subroom()
-        index = 0
-        while index < len(way.nodeRefs)-1:
-            jpsVertex1 = Vertex(OSMOut.nodes[way.nodeRefs[index]].x, OSMOut.nodes[way.nodeRefs[index]].y)
-            jpsVertex2 = Vertex(OSMOut.nodes[way.nodeRefs[index+1]].x, OSMOut.nodes[way.nodeRefs[index+1]].y)
-            jpsWall = Polygon([jpsVertex1, jpsVertex2])
-            jpsSubroom.addPolygon(jpsWall, way.attribs[osm.Id], [way.nodeRefs[index], way.nodeRefs[index+1]])
-            index += 1
-        jpsRoom.addSubroom(jpsSubroom)
-        Geometry().addRoom(jpsRoom)
+    #def way2jps(self, way):
+    #    '''
+    #    translate osm way to jps Elements with required attributes
+    #    '''
+    #    jpsRoom = Room(way.attribs[osm.Id])
+    #    jpsSubroom = Subroom()
+    #    index = 0
+    #    while index < len(way.nodeRefs)-1:
+    #        jpsVertex1 = Vertex(OSMOut.nodes[way.nodeRefs[index]].x, OSMOut.nodes[way.nodeRefs[index]].y)
+    #        jpsVertex2 = Vertex(OSMOut.nodes[way.nodeRefs[index+1]].x, OSMOut.nodes[way.nodeRefs[index+1]].y)
+    #        jpsWall = Polygon([jpsVertex1, jpsVertex2])
+    #        jpsSubroom.addPolygon(jpsWall, way.attribs[osm.Id], [way.nodeRefs[index], way.nodeRefs[index+1]])
+    #        index += 1
+    #    jpsRoom.addSubroom(jpsSubroom)
+    #    Geometry().addRoom(jpsRoom)
 
     def room2jps(self, room_id, subroomLst = []):
         '''
@@ -96,59 +96,59 @@ class JPSBuilder(object):
         '''
         jpsRoom = Room(room_id)
         try:
-            for way in OSMOut.crossings[room_id]:
-                jpsRoom.addCrossing(self.crossing2jps(way))
+            for crossing in Output.crossingDic[room_id]:
+                jpsRoom.addCrossing(self.crossing2jps(crossing))
         except KeyError: pass
         Geometry().addRoom(room_id, jpsRoom)
-        for way in subroomLst:
-            jpsSubroom = Subroom(way.attribs[jps.Id])
+        for subroom in subroomLst:
+            jpsSubroom = Subroom(subroom.subroom_id)
             index = 0
-            while index < len(way.nodeRefs) - 1:
-                jpsVertex1 = Vertex(OSMOut.nodes[way.nodeRefs[index]].x, OSMOut.nodes[way.nodeRefs[index]].y)
-                jpsVertex2 = Vertex(OSMOut.nodes[way.nodeRefs[index + 1]].x, OSMOut.nodes[way.nodeRefs[index + 1]].y)
+            while index < len(subroom.nodeRefs) - 1:
+                jpsVertex1 = Vertex(Input.nodes[subroom.nodeRefs[index]].attrib[jps.PX], Input.nodes[subroom.nodeRefs[index]].attrib[jps.PY])
+                jpsVertex2 = Vertex(Input.nodes[subroom.nodeRefs[index + 1]].attrib[jps.PX], Input.nodes[subroom.nodeRefs[index + 1]].attrib[jps.PY])
                 jpsWall = Polygon([jpsVertex1, jpsVertex2])
-                jpsSubroom.addPolygon(jpsWall, room_id, [way.nodeRefs[index], way.nodeRefs[index + 1]])
+                jpsSubroom.addPolygon(jpsWall, room_id, [subroom.nodeRefs[index], subroom.nodeRefs[index + 1]])
                 index += 1
             Geometry().rooms[room_id].addSubroom(jpsSubroom)
 
         
-    def transition2jps(self, way):
+    def transition2jps(self, transition):
         '''
         '''
-        nodeRef1 = way.nodeRefs[0]
-        nodeRef2 = way.nodeRefs[1]
-        vertex1 = Vertex(OSMOut.nodes[nodeRef1].x, OSMOut.nodes[nodeRef1].y)
-        vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
+        nodeRef1 = transition.nodeRef1
+        nodeRef2 = transition.nodeRef2
+        vertex1 = Vertex(Input.nodes[nodeRef1].attrib[jps.PX], Input.nodes[nodeRef1].attrib[jps.PY])
+        vertex2 = Vertex(Input.nodes[nodeRef2].attrib[jps.PX], Input.nodes[nodeRef2].attrib[jps.PY])
         id = len(Geometry.transitions)
         jpsTransition = Transition(vertex1, vertex2, id, 'NaN', 'NaN',
-                                   way.tags[jps.Room1], way.tags[jps.Subroom1],
-                                   way.tags[jps.Room2], way.tags[jps.Subroom2], [nodeRef1, nodeRef2])
+                                   transition.room1_id, transition.subroom1_id,
+                                   transition.room2_id, transition.subroom2_id, [nodeRef1, nodeRef2])
         Geometry().addTransition(jpsTransition)
         IniFile().addTransition(jpsTransition)
 
-    def crossing2jps(self, way):
+    def crossing2jps(self, crossing):
         '''
 
-        :param way:
+        :param crossing:
         :return:
         '''
-        nodeRef1 = way.nodeRefs[0]
-        nodeRef2 = way.nodeRefs[1]
-        vertex1 = Vertex(OSMOut.nodes[nodeRef1].x, OSMOut.nodes[nodeRef1].y)
-        vertex2 = Vertex(OSMOut.nodes[nodeRef2].x, OSMOut.nodes[nodeRef2].y)
-        jpsCrossing = Crossing(crossing_id=way.tags[jps.Id], vertex_1=vertex1, vertex_2=vertex2,
-                               subroom1_id=way.tags[jps.Subroom1], subroom2_id=way.tags[jps.Subroom2],
+        nodeRef1 = crossing.nodeRefs[0]
+        nodeRef2 = crossing.nodeRefs[1]
+        vertex1 = Vertex(Input.nodes[nodeRef1].attrib[jps.PX], Input.nodes[nodeRef1].attrib[jps.PY])
+        vertex2 = Vertex(Input.nodes[nodeRef2].attrib[jps.PX], Input.nodes[nodeRef2].attrib[jps.PY])
+        jpsCrossing = Crossing(crossing_id=crossing.crossing_id, vertex_1=vertex1, vertex_2=vertex2,
+                               subroom1_id=crossing.subroom1_id, subroom2_id=crossing.subroom2_id,
                                nodeRefs=[nodeRef1, nodeRef2])
         return jpsCrossing
 
-    def goal2jps(self, way):
+    def goal2jps(self, goal):
         '''
         translate osm way to jps Elements with required attributes
         '''
         vertices = []
-        for nodeRef in way.nodeRefs:
-            vertices.append(Vertex(OSMOut.nodes[nodeRef].x, OSMOut.nodes[nodeRef].y))
-        IniFile().addGoal(Goal(vertices, way.tags))
+        for nodeRef in goal.nodeRefs:
+            vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
+        IniFile().addGoal(Goal(vertices, goal.tags))
 
     def buildJPSINItree(self):
         '''

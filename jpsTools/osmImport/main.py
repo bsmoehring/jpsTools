@@ -33,7 +33,7 @@ def main():
         ElementHandler(config, handle).runHandler()
 
     
-    OSMBuilder(config)
+    #OSMBuilder(config)
     
     JPSBuilder(config.path)
     

@@ -36,6 +36,9 @@ class Input(object):
 
         for node in self.tree.iter(tag=osm.Node):
             key = node.attrib.get(osm.Id)
+            x, y = self.config.transform.WGS2XY(node)
+            node.attrib[jps.PX] = x
+            node.attrib[jps.PY] = y
             self.nodes[key] = node
 
         for elem in self.tree.iter(tag=osm.Way):
@@ -75,13 +78,13 @@ class Input(object):
             XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
 
             if subroom:
-                self.translateSubroom(elem, XYList)
+                self.translateSubroom(elem, nodeRefs)
             elif crossing:
-                self.translateCrossing(elem, XYList)
+                self.translateCrossing(elem, nodeRefs)
             elif transition:
-                self.translateTransition(elem, XYList)
+                self.translateTransition(elem, nodeRefs)
             elif goal:
-                self.translateGoal(elem, XYList)
+                self.translateGoal(elem, nodeRefs)
             if not handle:
                 continue
             elif area:
@@ -89,7 +92,7 @@ class Input(object):
             elif convert:
                 self.elementsToHandle[elem.attrib[osm.Id]] = elem
 
-    def translateSubroom(self, elem, XYList):
+    def translateSubroom(self, elem, nodeRefs):
         for child in elem.iter(tag=osm.Tag):
             try:
                 if child.attrib[osm.Key] == jps.Room:
@@ -103,9 +106,8 @@ class Input(object):
                 pass
         try: subroom_id
         except NameError: subroom_id='0'
-        if len(XYList) > 2 and XYList[0] == XYList[-1]:
-            poly = geometry.Polygon(XYList)
-            subroom = Output.Subroom(geometry=poly, subroom_id=subroom_id)
+        if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id)
             if room_id in Output.subroomDic:
                 Output.subroomDic[room_id].append(subroom)
             else:
@@ -113,7 +115,7 @@ class Input(object):
         else:
             raise Exception
 
-    def translateCrossing(self, elem, XYList):
+    def translateCrossing(self, elem, nodeRefs):
         for child in elem.iter(tag = osm.Tag):
             try:
                 if child.attrib[osm.Key] == jps.Room:
@@ -133,12 +135,12 @@ class Input(object):
         crossing_id = 0
         for crossingLst in Output.crossingDic.values():
             crossing_id += len(crossingLst)
-        crossing = Output.Crossing(geometry.LineString(XYList), str(crossing_id), room_id, subroom1_id, subroom2_id)
+        crossing = Output.Crossing(nodeRefs, str(crossing_id), room_id, subroom1_id, subroom2_id)
         if room_id in Output.crossingDic:
             Output.crossingDic[room_id].append(crossing)
         else: Output.crossingDic[room_id] = [crossing]
 
-    def translateTransition(self, elem, XYList):
+    def translateTransition(self, elem, nodeRefs):
         for child in elem.iter(tag = osm.Tag):
             try:
                 if child.attrib[osm.Key] == jps.Room1:
@@ -176,16 +178,17 @@ class Input(object):
         except NameError:
             subroom2_id = '0'
 
-        Output.transitionlst.append(Output.Transition(geometry.LineString(XYList),
-                                                      room1_id, room2_id, subroom1_id, subroom2_id))
+        if len(nodeRefs) != 2 or nodeRefs[0] == nodeRefs[-1]:
+            raise Exception
 
-    def translateGoal(self, elem, XYList):
-        if len(XYList) > 2 and XYList[0] == XYList[-1]:
-            poly = geometry.Polygon(XYList)
+        Output.transitionlst.append(Output.Transition(nodeRefs[0], nodeRefs[1], room1_id, room2_id, subroom1_id, subroom2_id))
+
+    def translateGoal(self, elem, nodeRefs):
+        if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
             tags = {}
             for tag in elem.iter(tag=osm.Tag):
                 tags[tag.attrib[osm.Key]] = tag.attrib[osm.Value]
-            Output.goalLst.append(Output.Goal(geometry.Polygon(XYList), tags))
+            Output.goalLst.append(Output.Goal(nodeRefs, tags))
         else:
             raise Exception
 
@@ -224,17 +227,18 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, geometry, subroom_id):
-            self.geometry = geometry
+        def __init__(self, nodeRefs, subroom_id):
+            self.nodeRefs = nodeRefs
             self.subroom_id = subroom_id
-            print('Subroom', subroom_id, geometry)
+            print('Subroom', subroom_id, nodeRefs)
 
     class Transition():
         '''
 
         '''
-        def __init__(self, geometry, room1_id, room2_id, subroom1_id, subroom2_id):
-            self.geometry = geometry
+        def __init__(self, nodeRef1, nodeRef2, room1_id, room2_id, subroom1_id, subroom2_id):
+            self.nodeRef1 = nodeRef1
+            self.nodeRef2 = nodeRef2
             self.room1_id = room1_id
             self.room2_id = room2_id
             self.subroom1_id = subroom1_id
@@ -245,8 +249,8 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, geometry, crossing_id, room_id, subroom1_id, subroom2_id):
-            self.geometry = geometry
+        def __init__(self, nodeRefs, crossing_id, room_id, subroom1_id, subroom2_id):
+            self.nodeRefs = nodeRefs
             self.room_id = room_id
             self.crossing_id = crossing_id
             self.subroom1_id = subroom1_id
@@ -257,8 +261,8 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, geometry, tags):
-            self.geometry = geometry
+        def __init__(self, nodeRefs, tags):
+            self.nodeRefs = nodeRefs
             self.tags = tags
 
     def storeElement(self, osmId, elem, poly):
