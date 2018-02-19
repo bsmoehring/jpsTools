@@ -104,10 +104,24 @@ class Input(object):
                     subroom_id = child.attrib[osm.Value]
             except KeyError:
                 pass
+            try:
+                if child.attrib[osm.Key] == jps.Class:
+                    jpsCaption = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Caption:
+                    jpsClass = child.attrib[osm.Value]
+            except KeyError:
+                pass
         try: subroom_id
         except NameError: subroom_id='0'
+        try: jpsCaption
+        except NameError: jpsCaption=''
+        try: jpsClass
+        except NameError: jpsClass=jps.Subroom
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
-            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id)
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption)
             if room_id in Output.subroomDic:
                 Output.subroomDic[room_id].append(subroom)
             else:
@@ -166,9 +180,11 @@ class Input(object):
         try: room1_id
         except NameError:
             room1_id = '-1'
+            subroom1_id = '-1'
         try: room2_id
         except NameError:
             room2_id = '-1'
+            subroom2_id = '-1'
         try:
             subroom1_id
         except NameError:
@@ -186,8 +202,13 @@ class Input(object):
     def translateGoal(self, elem, nodeRefs):
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
             tags = {}
+            tags['final']='True'
             for tag in elem.iter(tag=osm.Tag):
-                tags[tag.attrib[osm.Key]] = tag.attrib[osm.Value]
+                try:
+                    if tag.attrib[osm.Key] == jps.Goal:
+                        tags[jps.Id] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
             Output.goalLst.append(Output.Goal(nodeRefs, tags))
         else:
             raise Exception
@@ -227,9 +248,11 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, nodeRefs, subroom_id):
+        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption):
             self.nodeRefs = nodeRefs
             self.subroom_id = subroom_id
+            self.jpsClass = jpsClass
+            self.jpsCaption = jpsCaption
             print('Subroom', subroom_id, nodeRefs)
 
     class Transition():
