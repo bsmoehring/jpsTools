@@ -146,10 +146,7 @@ class Input(object):
                     subroom2_id = child.attrib[osm.Value]
             except KeyError:
                 pass
-        crossing_id = 0
-        for crossingLst in Output.crossingDic.values():
-            crossing_id += len(crossingLst)
-        crossing = Output.Crossing(nodeRefs, str(crossing_id), room_id, subroom1_id, subroom2_id)
+        crossing = Output.Crossing(nodeRefs, Output.getCrossTransId(Output), room_id, subroom1_id, subroom2_id)
         if room_id in Output.crossingDic:
             Output.crossingDic[room_id].append(crossing)
         else: Output.crossingDic[room_id] = [crossing]
@@ -197,7 +194,7 @@ class Input(object):
         if len(nodeRefs) != 2 or nodeRefs[0] == nodeRefs[-1]:
             raise Exception
 
-        Output.transitionlst.append(Output.Transition(nodeRefs[0], nodeRefs[1], room1_id, room2_id, subroom1_id, subroom2_id))
+        Output.transitionlst.append(Output.Transition(nodeRefs[0], nodeRefs[1], Output.getCrossTransId(Output), room1_id, room2_id, subroom1_id, subroom2_id))
 
     def translateGoal(self, elem, nodeRefs):
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
@@ -244,6 +241,17 @@ class Output(object):
     #[goal]
     goalLst = []
 
+    def getCrossTransId(self):
+        '''
+
+        :return:
+        '''
+        crossing_id = 0
+        for crossingLst in self.crossingDic.values():
+            crossing_id += len(crossingLst)
+        crossing_id += len(self.transitionlst)
+        return str(crossing_id)
+
     class Subroom():
         '''
 
@@ -259,13 +267,14 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, nodeRef1, nodeRef2, room1_id, room2_id, subroom1_id, subroom2_id):
+        def __init__(self, nodeRef1, nodeRef2, transition_id, room1_id, room2_id, subroom1_id, subroom2_id):
             self.nodeRef1 = nodeRef1
             self.nodeRef2 = nodeRef2
             self.room1_id = room1_id
             self.room2_id = room2_id
             self.subroom1_id = subroom1_id
             self.subroom2_id = subroom2_id
+            self.transition_id = transition_id
             print('Transition', room1_id, room2_id, geometry)
 
     class Crossing():

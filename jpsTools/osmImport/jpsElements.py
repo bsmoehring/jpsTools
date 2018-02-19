@@ -119,8 +119,8 @@ class JPSBuilder(object):
         nodeRef2 = transition.nodeRef2
         vertex1 = Vertex(Input.nodes[nodeRef1].attrib[jps.PX], Input.nodes[nodeRef1].attrib[jps.PY])
         vertex2 = Vertex(Input.nodes[nodeRef2].attrib[jps.PX], Input.nodes[nodeRef2].attrib[jps.PY])
-        id = len(Geometry.transitions)
-        jpsTransition = Transition(vertex1, vertex2, id, 'NaN', 'NaN',
+        transition_id = transition.transition_id
+        jpsTransition = Transition(vertex1, vertex2, transition_id, 'NaN', 'NaN',
                                    transition.room1_id, transition.subroom1_id,
                                    transition.room2_id, transition.subroom2_id, [nodeRef1, nodeRef2])
         Geometry().addTransition(jpsTransition)
@@ -313,12 +313,12 @@ class Transition:
     '''
     tag = jps.Transition
     
-    def __init__(self, vertex_1, vertex_2, id, caption, type, room1_id, subroom1_id,
+    def __init__(self, vertex_1, vertex_2, transition_id, caption, type, room1_id, subroom1_id,
                  room2_id, subroom2_id, nodeRefs = []):
         self.vertex1 = vertex_1
         self.vertex2 = vertex_2
         self.attribs = {}
-        self.attribs[jps.Id] = str(id)
+        self.attribs[jps.Id] = transition_id
         self.attribs[jps.Caption] = caption
         self.attribs[jps.Type] = type
         self.attribs[jps.Room1] = room1_id
