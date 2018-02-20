@@ -213,6 +213,16 @@ class Input(object):
                         tags[jps.Id] = tag.attrib[osm.Value]
                 except KeyError:
                     pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Room:
+                        tags[jps.Room_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Subroom:
+                        tags[jps.Subroom_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
             Output.goalLst.append(Output.Goal(nodeRefs, tags))
         else:
             raise Exception

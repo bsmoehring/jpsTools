@@ -182,6 +182,22 @@ class JPSBuilder(object):
             attribs['state']='open'
             SubElement(outDoors, 'door', attribs)
 
+        outAgents = SubElement(outIni, 'agents', {'operational_model_id':'3'})
+        outAgentsDistribution = SubElement(outAgents, 'agents_distribution')
+        group_id = 1
+        for goalFrom in IniFile().goals:
+            for goalTo in IniFile().goals:
+                attribs = {}
+                attribs['group_id'] = str(group_id)
+                attribs['agent_parameter_id'] = '1'
+                attribs[jps.Room_ID] = goalFrom.attribs[jps.Room_ID]
+                attribs[jps.Subroom_ID] = goalFrom.attribs[jps.Subroom_ID]
+                attribs['number'] = '1'
+                attribs['router_id'] = '1'
+                attribs['goal_id'] = goalTo.attribs[jps.Id]
+                SubElement(outAgentsDistribution, 'group', attribs)
+                group_id += 1
+
         return outIni
     
     def tree2xml(self, tree, outputFile):
