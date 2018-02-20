@@ -146,7 +146,10 @@ class Input(object):
                     subroom2_id = child.attrib[osm.Value]
             except KeyError:
                 pass
-        crossing = Output.Crossing(nodeRefs, Output.getCrossTransId(Output), room_id, subroom1_id, subroom2_id)
+            crossing_id = 0
+            for crossinglst in Output.crossingDic.values():
+                crossing_id += len(crossinglst)
+        crossing = Output.Crossing(nodeRefs, str(crossing_id), room_id, subroom1_id, subroom2_id)
         if room_id in Output.crossingDic:
             Output.crossingDic[room_id].append(crossing)
         else: Output.crossingDic[room_id] = [crossing]
@@ -174,14 +177,18 @@ class Input(object):
             except KeyError:
                 pass
 
-        try: room1_id
+        try:
+            if room1_id == jps.OutsideTransitionRef:
+                subroom1_id = jps.OutsideTransitionRef
         except NameError:
-            room1_id = '-1'
-            subroom1_id = '-1'
-        try: room2_id
+            room1_id = jps.OutsideTransitionRef
+            subroom1_id = jps.OutsideTransitionRef
+        try:
+            if room2_id == jps.OutsideTransitionRef:
+                subroom2_id = jps.OutsideTransitionRef
         except NameError:
-            room2_id = '-1'
-            subroom2_id = '-1'
+            room2_id = jps.OutsideTransitionRef
+            subroom2_id = jps.OutsideTransitionRef
         try:
             subroom1_id
         except NameError:
@@ -194,7 +201,7 @@ class Input(object):
         if len(nodeRefs) != 2 or nodeRefs[0] == nodeRefs[-1]:
             raise Exception
 
-        Output.transitionlst.append(Output.Transition(nodeRefs[0], nodeRefs[1], Output.getCrossTransId(Output), room1_id, room2_id, subroom1_id, subroom2_id))
+        Output.transitionlst.append(Output.Transition(nodeRefs[0], nodeRefs[1], str(len(Output.transitionlst)+1), room1_id, room2_id, subroom1_id, subroom2_id))
 
     def translateGoal(self, elem, nodeRefs):
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
