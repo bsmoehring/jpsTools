@@ -101,7 +101,7 @@ class JPSBuilder(object):
         except KeyError: pass
         Geometry().addRoom(room_id, jpsRoom)
         for subroom in subroomLst:
-            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, subroom.jpsCaption)
+            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, subroom.jpsCaption, subroom.jpsC_z)
             index = 0
             while index < len(subroom.nodeRefs) - 1:
                 jpsVertex1 = Vertex(Input.nodes[subroom.nodeRefs[index]].attrib[jps.PX], Input.nodes[subroom.nodeRefs[index]].attrib[jps.PY])
@@ -277,12 +277,15 @@ class Subroom:
     '''
     tag = jps.Subroom
     
-    def __init__(self, subroom_id, jpsClass, caption):
+    def __init__(self, subroom_id, jpsClass, caption, jpsC_z):
         self.polygons = []
         self.attribs = {}
         self.attribs[jps.Id] = subroom_id
         self.attribs[jps.Caption] = caption
         self.attribs[jps.Class] = jpsClass
+        self.attribs[jps.A_x] = '0'
+        self.attribs[jps.B_y] = '0'
+        self.attribs[jps.C_z] = jpsC_z
         
     def addPolygon(self, p, room_id, nodeRefs = []):
         if isinstance(p, Polygon) and len(p.vertices) == 2:

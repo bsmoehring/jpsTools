@@ -65,4 +65,7 @@ class jps(object):
     OutsideTransitionRef = '-1'
     Goal = 'goal'
     Class = 'class'
+    A_x = 'A_x'
+    B_y = 'B_y'
+    C_z = 'C_z'
 

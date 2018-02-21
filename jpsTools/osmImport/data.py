@@ -114,6 +114,11 @@ class Input(object):
                     jpsClass = child.attrib[osm.Value]
             except KeyError:
                 pass
+            try:
+                if child.attrib[osm.Key] == osm.Level:
+                    level = child.attrib[osm.Value]
+            except KeyError:
+                pass
         try: subroom_id
         except NameError: subroom_id='0'
         try: jpsCaption
@@ -121,7 +126,10 @@ class Input(object):
         try: jpsClass
         except NameError: jpsClass=jps.Subroom
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
-            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption, room_id=room_id)
+            try: jpsC_z = str(self.config.levelAltsDic[level])
+            except KeyError: jpsC_z = ''
+            except  UnboundLocalError: jpsC_z = ''
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption, jpsC_z=jpsC_z, room_id=room_id)
             if room_id in Output.subroomDic:
                 Output.subroomDic[room_id].append(subroom)
             else:
@@ -274,11 +282,12 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption, room_id):
+        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption, jpsC_z, room_id):
             self.nodeRefs = nodeRefs
             self.subroom_id = subroom_id
             self.jpsClass = jpsClass
             self.jpsCaption = jpsCaption
+            self.jpsC_z = jpsC_z
             print(jps.Subroom, room_id, subroom_id, nodeRefs)
 
     class Transition():
