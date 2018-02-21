@@ -121,12 +121,13 @@ class Input(object):
         try: jpsClass
         except NameError: jpsClass=jps.Subroom
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
-            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption)
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption, room_id=room_id)
             if room_id in Output.subroomDic:
                 Output.subroomDic[room_id].append(subroom)
             else:
                 Output.subroomDic[room_id] = [subroom]
         else:
+            print(room_id, subroom_id)
             raise Exception
 
     def translateCrossing(self, elem, nodeRefs):
@@ -273,12 +274,12 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption):
+        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption, room_id):
             self.nodeRefs = nodeRefs
             self.subroom_id = subroom_id
             self.jpsClass = jpsClass
             self.jpsCaption = jpsCaption
-            print('Subroom', subroom_id, nodeRefs)
+            print(jps.Subroom, room_id, subroom_id, nodeRefs)
 
     class Transition():
         '''
@@ -292,7 +293,7 @@ class Output(object):
             self.subroom1_id = subroom1_id
             self.subroom2_id = subroom2_id
             self.transition_id = transition_id
-            print('Transition', room1_id, room2_id, geometry)
+            print(jps.Transition, room1_id, room2_id, geometry)
 
     class Crossing():
         '''
@@ -304,7 +305,7 @@ class Output(object):
             self.crossing_id = crossing_id
             self.subroom1_id = subroom1_id
             self.subroom2_id = subroom2_id
-            print('Crossing', room_id, subroom1_id, subroom2_id, geometry)
+            print(jps.Crossing, room_id, subroom1_id, subroom2_id, geometry)
 
     class Goal():
         '''
@@ -313,6 +314,7 @@ class Output(object):
         def __init__(self, nodeRefs, tags):
             self.nodeRefs = nodeRefs
             self.tags = tags
+            print(jps.Goal, tags)
 
     def storeElement(self, osmId, elem, poly):
         '''
