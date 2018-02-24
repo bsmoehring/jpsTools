@@ -35,10 +35,17 @@ class Input(object):
     def readOSM(self, handle = False):
 
         for node in self.tree.iter(tag=osm.Node):
-            key = node.attrib.get(osm.Id)
+            key = node.attrib[osm.Id]
             x, y = self.config.transform.WGS2XY(node)
             node.attrib[jps.PX] = x
             node.attrib[jps.PY] = y
+            for child in node.iter(tag=osm.Tag):
+                try:
+                    if child.attrib[osm.Key] == osm.Level:
+                        node.attrib[jps.PZ] = self.config.levelAltsDic[child.attrib[osm.Value]]
+                except KeyError:
+                    pass
+            print(node.attrib)
             self.nodes[key] = node
 
         for elem in self.tree.iter(tag=osm.Way):
@@ -106,12 +113,12 @@ class Input(object):
                 pass
             try:
                 if child.attrib[osm.Key] == jps.Class:
-                    jpsCaption = child.attrib[osm.Value]
+                    jpsClass = child.attrib[osm.Value]
             except KeyError:
                 pass
             try:
                 if child.attrib[osm.Key] == jps.Caption:
-                    jpsClass = child.attrib[osm.Value]
+                    jpsCaption = child.attrib[osm.Value]
             except KeyError:
                 pass
             try:
@@ -126,10 +133,7 @@ class Input(object):
         try: jpsClass
         except NameError: jpsClass=jps.Subroom
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
-            try: jpsC_z = str(self.config.levelAltsDic[level])
-            except KeyError: jpsC_z = ''
-            except  UnboundLocalError: jpsC_z = ''
-            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption, jpsC_z=jpsC_z, room_id=room_id)
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption, level=level, room_id=room_id)
             if room_id in Output.subroomDic:
                 Output.subroomDic[room_id].append(subroom)
             else:
@@ -282,12 +286,12 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption, jpsC_z, room_id):
+        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption, level, room_id):
             self.nodeRefs = nodeRefs
             self.subroom_id = subroom_id
             self.jpsClass = jpsClass
             self.jpsCaption = jpsCaption
-            self.jpsC_z = jpsC_z
+            self.level = level
             print(jps.Subroom, room_id, subroom_id, nodeRefs)
 
     class Transition():

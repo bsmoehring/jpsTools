@@ -5,17 +5,18 @@ Created on 07.11.2017
 '''
 from constants import jps, osm
 from data import Output, Input
-from lxml.etree import SubElement, Element
-from lxml.etree import tostring 
+from lxml.etree import SubElement, Element, tostring
+import numpy as np
 
 class JPSBuilder(object):
     
-    def __init__(self, outputPath):
+    def __init__(self, config):
+        self.levelAltsDic = config.levelAltsDic
         self.translate2jps()
         outGeometry = self.buildJPSGEOtree()
-        self.tree2xml(outGeometry, outputPath+'jps_geo.xml')
+        self.tree2xml(outGeometry, config.path+'jps_geo.xml')
         outIni = self.buildJPSINItree()
-        self.tree2xml(outIni, outputPath+'jps_ini.xml')
+        self.tree2xml(outIni, config.path+'jps_ini.xml')
     
     def translate2jps(self):
         print('---')
@@ -56,6 +57,9 @@ class JPSBuilder(object):
                     for vertex in polygon.vertices:
                         SubElement(outPoly, jps.Vertex, vertex.attribs)
                         #print vertex.attribs
+                if subroom.attribs[jps.Class] == jps.Stair:
+                    SubElement(outSubroom, jps.Down, {jps.PX:subroom.downPX, jps.PY:subroom.downPY})
+                    SubElement(outSubroom, jps.Up, {jps.PX:subroom.upPX, jps.PY:subroom.upPY})
             if room.crossings:
                 outCrossings = SubElement(outRoom, jps.Crossings)
                 for crossing in room.crossings:
@@ -101,7 +105,8 @@ class JPSBuilder(object):
         except KeyError: pass
         Geometry().addRoom(room_id, jpsRoom)
         for subroom in subroomLst:
-            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, subroom.jpsCaption, subroom.jpsC_z)
+            ax, by, cz, upPX, upPY, downPX, downPY = self.getPlaneEquation(subroom)
+            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, subroom.jpsCaption, ax, by, cz, upPX, upPY, downPX, downPY)
             index = 0
             while index < len(subroom.nodeRefs) - 1:
                 jpsVertex1 = Vertex(Input.nodes[subroom.nodeRefs[index]].attrib[jps.PX], Input.nodes[subroom.nodeRefs[index]].attrib[jps.PY])
@@ -109,9 +114,58 @@ class JPSBuilder(object):
                 jpsWall = Polygon([jpsVertex1, jpsVertex2])
                 jpsSubroom.addPolygon(jpsWall, room_id, [subroom.nodeRefs[index], subroom.nodeRefs[index + 1]])
                 index += 1
+
             Geometry().rooms[room_id].addSubroom(jpsSubroom)
 
-        
+    def getPlaneEquation(self, subroom):
+        if subroom.jpsClass != jps.Stair:
+            cz = str(self.levelAltsDic[subroom.level])
+            return str(0), str(0), str(cz), None, None, None, None
+        pxDic = {}
+        pyDic = {}
+        for nodeRef in list(set(subroom.nodeRefs)):
+            n = Input.nodes[nodeRef]
+            if n.attrib[jps.PZ] in pxDic:
+                pxDic[n.attrib[jps.PZ]].append(n.attrib[jps.PX])
+            else:
+                pxDic[n.attrib[jps.PZ]] =  [n.attrib[jps.PX]]
+            if n.attrib[jps.PZ] in pyDic:
+                pyDic[n.attrib[jps.PZ]].append(n.attrib[jps.PY])
+            else:
+                pyDic[n.attrib[jps.PZ]] =  [n.attrib[jps.PY]]
+        if len(pxDic) != 2 or len(pyDic) != 2:
+            raise Exception
+        downZ = min(pxDic, key=pxDic.get)
+        upZ = max(pxDic, key=pxDic.get)
+        upPX = sum(pxDic[upZ]) / len(pxDic[upZ])
+        upPY = sum(pyDic[upZ]) / len(pyDic[upZ])
+        downPX = sum(pxDic[downZ]) / len(pxDic[downZ])
+        downPY = sum(pyDic[downZ]) / len(pyDic[downZ])
+
+        n = Input.nodes[subroom.nodeRefs[0]]
+        p1 = np.array([n.attrib[jps.PX], n.attrib[jps.PY], n.attrib[jps.PZ]])
+        n = Input.nodes[subroom.nodeRefs[1]]
+        p2 = np.array([n.attrib[jps.PX], n.attrib[jps.PY], n.attrib[jps.PZ]])
+        n = Input.nodes[subroom.nodeRefs[2]]
+        p3 = np.array([n.attrib[jps.PX], n.attrib[jps.PY], n.attrib[jps.PZ]])
+
+        # These two vectors are in the plane
+        v1 = p3 - p1
+        v2 = p2 - p1
+
+        # the cross product is a vector normal to the plane
+        cp = np.cross(v1, v2)
+        ax, by, cz = cp
+
+        # This evaluates a * x3 + b * y3 + c * z3 which equals d
+        d = np.dot(cp, p3)
+
+        ax = -ax / cz
+        by = -by / cz
+        cz = d / cz
+
+        return str(round(ax, 2)), str(round(by, 2)), str(round(cz, 2)), str(round(upPX, 2)), str(round(upPY, 2)), str(round(downPX, 2)), str(round(downPY, 2))
+
     def transition2jps(self, transition):
         '''
         '''
@@ -277,15 +331,19 @@ class Subroom:
     '''
     tag = jps.Subroom
     
-    def __init__(self, subroom_id, jpsClass, caption, jpsC_z):
+    def __init__(self, subroom_id, jpsClass, caption, ax, by, cz, upPX, upPY, downPX, downPY):
         self.polygons = []
         self.attribs = {}
         self.attribs[jps.Id] = subroom_id
         self.attribs[jps.Caption] = caption
         self.attribs[jps.Class] = jpsClass
-        self.attribs[jps.A_x] = '0'
-        self.attribs[jps.B_y] = '0'
-        self.attribs[jps.C_z] = jpsC_z
+        self.attribs[jps.A_x] = ax
+        self.attribs[jps.B_y] = by
+        self.attribs[jps.C_z] = cz
+        self.upPX = upPX
+        self.upPY = upPY
+        self.downPX = downPX
+        self.downPY = downPY
         
     def addPolygon(self, p, room_id, nodeRefs = []):
         if isinstance(p, Polygon) and len(p.vertices) == 2:

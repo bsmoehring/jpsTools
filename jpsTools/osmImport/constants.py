@@ -51,6 +51,7 @@ class jps(object):
     Caption = 'caption'
     PX = 'px'
     PY = 'py'
+    PZ = 'pz'
     Wall = 'wall'
     OriginalId = 'originalId'
     Transitions = 'transitions'
@@ -65,7 +66,10 @@ class jps(object):
     OutsideTransitionRef = '-1'
     Goal = 'goal'
     Class = 'class'
+    Stair = 'stair'
     A_x = 'A_x'
     B_y = 'B_y'
     C_z = 'C_z'
+    Up = 'up'
+    Down = 'down'
 

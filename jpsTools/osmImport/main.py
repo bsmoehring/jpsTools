@@ -18,6 +18,7 @@ def main():
     levelAltsDic = {}
     levelAltsDic['1'] = 4.2
     levelAltsDic['0'] = 0.0
+    levelAltsDic['0;-1'] = -1.3
     levelAltsDic['-1'] = -2.6
     levelAltsDic['-2'] = -3.8
     levelAltsDic['-3'] = -5.7
@@ -44,7 +45,7 @@ def main():
     
     #OSMBuilder(config)
     
-    JPSBuilder(config.path)
+    JPSBuilder(config)
     
     #ElementPlotter(config.transform).plotOutput()
 
