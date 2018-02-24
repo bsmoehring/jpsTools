@@ -101,6 +101,7 @@ class Input(object):
 
     def translateSubroom(self, elem, nodeRefs):
         for child in elem.iter(tag=osm.Tag):
+            print(child.attrib)
             try:
                 if child.attrib[osm.Key] == jps.Room:
                     room_id = child.attrib[osm.Value]
@@ -128,12 +129,10 @@ class Input(object):
                 pass
         try: subroom_id
         except NameError: subroom_id='0'
-        try: jpsCaption
-        except NameError: jpsCaption=''
         try: jpsClass
         except NameError: jpsClass=jps.Subroom
         if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
-            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, jpsCaption=jpsCaption, level=level, room_id=room_id)
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, level=level, room_id=room_id)
             if room_id in Output.subroomDic:
                 Output.subroomDic[room_id].append(subroom)
             else:
@@ -286,11 +285,10 @@ class Output(object):
         '''
 
         '''
-        def __init__(self, nodeRefs, subroom_id, jpsClass, jpsCaption, level, room_id):
+        def __init__(self, nodeRefs, subroom_id, jpsClass, level, room_id):
             self.nodeRefs = nodeRefs
             self.subroom_id = subroom_id
             self.jpsClass = jpsClass
-            self.jpsCaption = jpsCaption
             self.level = level
             print(jps.Subroom, room_id, subroom_id, nodeRefs)
 

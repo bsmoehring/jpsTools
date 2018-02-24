@@ -106,7 +106,7 @@ class JPSBuilder(object):
         Geometry().addRoom(room_id, jpsRoom)
         for subroom in subroomLst:
             ax, by, cz, upPX, upPY, downPX, downPY = self.getPlaneEquation(subroom)
-            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, subroom.jpsCaption, ax, by, cz, upPX, upPY, downPX, downPY)
+            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, ax, by, cz, upPX, upPY, downPX, downPY)
             index = 0
             while index < len(subroom.nodeRefs) - 1:
                 jpsVertex1 = Vertex(Input.nodes[subroom.nodeRefs[index]].attrib[jps.PX], Input.nodes[subroom.nodeRefs[index]].attrib[jps.PY])
@@ -331,11 +331,10 @@ class Subroom:
     '''
     tag = jps.Subroom
     
-    def __init__(self, subroom_id, jpsClass, caption, ax, by, cz, upPX, upPY, downPX, downPY):
+    def __init__(self, subroom_id, jpsClass, ax, by, cz, upPX, upPY, downPX, downPY):
         self.polygons = []
         self.attribs = {}
         self.attribs[jps.Id] = subroom_id
-        self.attribs[jps.Caption] = caption
         self.attribs[jps.Class] = jpsClass
         self.attribs[jps.A_x] = ax
         self.attribs[jps.B_y] = by
