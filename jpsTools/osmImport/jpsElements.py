@@ -5,7 +5,8 @@ Created on 07.11.2017
 '''
 from constants import jps, osm
 from data import Output, Input
-from lxml.etree import SubElement, Element, tostring
+from io import StringIO
+from lxml.etree import SubElement, Element, tostring, parse, XMLParser
 import numpy as np
 
 class JPSBuilder(object):
@@ -218,7 +219,10 @@ class JPSBuilder(object):
         # attribs['xml:nsxsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
         # attribs['xsi:noNamespaceSchemaLocation'] = '../../xsd/jps_geometry.xsd'
 
-        outIni = Element(IniFile().tag, attribs)
+        parser = XMLParser(remove_blank_text=True)
+        outIni = parse('resources/example_ini.xml', parser).getroot()
+
+        #outIni = Element(IniFile().tag, attribs)
         outRouting = SubElement(outIni, 'routing')
         outGoals = SubElement(outRouting, 'goals')
         for goal in IniFile().goals:
