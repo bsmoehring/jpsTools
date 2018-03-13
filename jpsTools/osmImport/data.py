@@ -53,6 +53,7 @@ class Input(object):
             transition = False
             crossing = False
             goal = False
+            obstacle = False
             convert = False
             area = False
             if elem.tag in [osm.Way, osm.Relation]:
@@ -72,6 +73,8 @@ class Input(object):
                         transition = True
                     if k == jps.JuPedSim and v == jps.Goal:
                         goal = True
+                    if k == jps.JuPedSim and v == jps.Obstacle:
+                        obstacle = True
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
@@ -92,6 +95,8 @@ class Input(object):
                 self.translateTransition(elem, nodeRefs)
             elif goal:
                 self.translateGoal(elem, nodeRefs)
+            elif obstacle:
+                self.translateObstacle(elem, nodeRefs)
             if not handle:
                 continue
             elif area:
@@ -235,9 +240,40 @@ class Input(object):
                         tags[jps.Subroom_ID] = tag.attrib[osm.Value]
                 except KeyError:
                     pass
+                try:
+                    if tag.attrib[osm.Key] == osm.TransitStopFacility:
+                        tags[osm.TransitStopFacility] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
             Output.goalLst.append(Output.Goal(nodeRefs, tags))
         else:
             raise Exception
+
+    def translateObstacle(self, elem, nodeRefs):
+
+        if len(nodeRefs) > 2:
+            tags = {}
+            tags['closed'] = '1'
+            for tag in elem.iter(tag=osm.Tag):
+                try:
+                    if tag.attrib[osm.Key] == jps.Room:
+                        tags[jps.Room_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Subroom:
+                        tags[jps.Subroom_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Caption:
+                        tags[jps.Caption] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+            Output.obstacleLst.append(Output.Obstacle(nodeRefs, tags))
+        else:
+            raise Exception
+
 
     def translateArea(self, elem, XYList):
 
@@ -260,7 +296,6 @@ class Output(object):
     #osmId Way = [osmId Node]
     wayNodes = {}
 
-
     #room_id = [Subroom]
     subroomDic = {}
     #roomId = [Crossing]
@@ -269,6 +304,8 @@ class Output(object):
     transitionlst = []
     #[goal]
     goalLst = []
+    #[obstacle]
+    obstacleLst = []
 
     def getCrossTransId(self):
         '''
@@ -326,6 +363,15 @@ class Output(object):
             self.nodeRefs = nodeRefs
             self.tags = tags
             print(jps.Goal, tags)
+
+    class Obstacle():
+        '''
+
+        '''
+        def __init__(self, nodeRefs, tags):
+            self.nodeRefs = nodeRefs
+            self.tags = tags
+
 
     def storeElement(self, osmId, elem, poly):
         '''

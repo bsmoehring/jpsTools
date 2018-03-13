@@ -33,11 +33,13 @@ class osm(object):
     Value = 'v'
     Tag = 'tag'
     Width = 'width'
+    TransitStopFacility = 'TransitStopFacility'
 
 class jps(object):
     '''
     This class aims to store required strings for the jps input files
     '''
+    Obstacle = 'obstacle'
     JuPedSim = 'jupedsim'
     Geometry = 'geometry'
     Rooms = 'rooms'

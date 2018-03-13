@@ -27,6 +27,8 @@ class JPSBuilder(object):
         for room_id, subroomLst in Output.subroomDic.items():
             self.room2jps(room_id, subroomLst)
         print ('---')
+        for way in Output.obstacleLst:
+            self.obstacle2jps(way)
         #for way in OSMOut.ways:
         #    self.way2jps(way)
         print('---')
@@ -51,7 +53,7 @@ class JPSBuilder(object):
         outRooms = SubElement(outGeometry, jps.Rooms)
         for  room_id, room in Geometry().rooms.items():
             outRoom = SubElement(outRooms, room.tag, room.attribs)
-            for subroom in room.subrooms:
+            for id, subroom in room.subrooms.items():
                 outSubroom = SubElement(outRoom, subroom.tag, subroom.attribs)
                 for polygon in subroom.polygons:
                     outPoly = SubElement(outSubroom, polygon.tag, polygon.attribs)
@@ -61,6 +63,12 @@ class JPSBuilder(object):
                 if subroom.attribs[jps.Class] == jps.Stair:
                     SubElement(outSubroom, jps.Down, {jps.PX:subroom.downPX, jps.PY:subroom.downPY})
                     SubElement(outSubroom, jps.Up, {jps.PX:subroom.upPX, jps.PY:subroom.upPY})
+                if subroom.obstacles:
+                    for obstacle in subroom.obstacles:
+                        outObstacle = SubElement(outSubroom, jps.Obstacle, obstacle.attribs)
+                        outPoly = SubElement(outObstacle, jps.Polygon)
+                        for vertex in obstacle.vertices:
+                            SubElement(outPoly, jps.Vertex, vertex.attribs)
             if room.crossings:
                 outCrossings = SubElement(outRoom, jps.Crossings)
                 for crossing in room.crossings:
@@ -198,12 +206,20 @@ class JPSBuilder(object):
 
     def goal2jps(self, goal):
         '''
-        translate osm way to jps Elements with required attributes
         '''
         vertices = []
         for nodeRef in goal.nodeRefs:
             vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
         IniFile().addGoal(Goal(vertices, goal.tags))
+
+    def obstacle2jps(self, obstacle):
+        '''
+        '''
+        vertices = []
+        for nodeRef in obstacle.nodeRefs:
+            vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
+        jpsObstacle = Obstacle(vertices, obstacle.tags)
+        Geometry().getRoomById(obstacle.tags[jps.Room_ID]).getSubroomById(obstacle.tags[jps.Subroom_ID]).addObstacle(jpsObstacle)
 
     def buildJPSINItree(self):
         '''
@@ -242,6 +258,7 @@ class JPSBuilder(object):
 
         outAgents = SubElement(outIni, 'agents', {'operational_model_id':'3'})
         outAgentsDistribution = SubElement(outAgents, 'agents_distribution')
+        
         group_id = 1
         for goalFrom in IniFile().goals:
             for goalTo in IniFile().goals:
@@ -305,6 +322,9 @@ class Geometry:
     def addTransition(self, transition):
         self.transitions.append(transition)
 
+    def getRoomById(self, room_id):
+        return self.rooms[room_id]
+
 class Room:
     '''
     The geometry contains at least one room and one transition.
@@ -317,12 +337,14 @@ class Room:
         self.attribs = {}
         self.attribs[jps.Id] = osmId
         self.attribs[jps.Caption] = caption
-        self.subrooms = []
+        self.subrooms = {}
         self.crossings = []
     
     def addSubroom(self, subroom):
-        subroom.attribs[jps.Id] = subroom.attribs[jps.Id]
-        self.subrooms.append(subroom)
+        self.subrooms[subroom.attribs[jps.Id]] = subroom
+
+    def getSubroomById(self, subroom_id):
+        return self.subrooms[subroom_id]
 
     def addCrossing(self, crossing):
         self.crossings.append(crossing)
@@ -347,6 +369,7 @@ class Subroom:
         self.upPY = upPY
         self.downPX = downPX
         self.downPY = downPY
+        self.obstacles = []
         
     def addPolygon(self, p, room_id, nodeRefs = []):
         if isinstance(p, Polygon) and len(p.vertices) == 2:
@@ -358,6 +381,9 @@ class Subroom:
                 if set(crossing.nodeRefs) == set(nodeRefs):
                     return
         self.polygons.append(p)
+
+    def addObstacle(self, obstacle):
+        self.obstacles.append(obstacle)
     
 class Polygon:
     '''
@@ -429,6 +455,16 @@ class Goal:
     tag = jps.Goal
 
     def __init__(self, vertices = [], tags = {}):
+        self.attribs = tags
+        self.vertices = vertices
+
+class Obstacle:
+    '''
+    obstacle
+    '''
+    tag = jps.Obstacle
+
+    def __init__(self, vertices = [], tags ={}):
         self.attribs = tags
         self.vertices = vertices
         
