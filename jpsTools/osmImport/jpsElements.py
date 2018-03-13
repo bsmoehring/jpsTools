@@ -218,6 +218,7 @@ class JPSBuilder(object):
         vertices = []
         for nodeRef in obstacle.nodeRefs:
             vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
+
         jpsObstacle = Obstacle(vertices, obstacle.tags)
         Geometry().getRoomById(obstacle.tags[jps.Room_ID]).getSubroomById(obstacle.tags[jps.Subroom_ID]).addObstacle(jpsObstacle)
 

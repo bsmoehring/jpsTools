@@ -270,6 +270,7 @@ class Input(object):
                         tags[jps.Caption] = tag.attrib[osm.Value]
                 except KeyError:
                     pass
+            tags[jps.Id] = str(len(Output.obstacleLst))
             Output.obstacleLst.append(Output.Obstacle(nodeRefs, tags))
         else:
             raise Exception
