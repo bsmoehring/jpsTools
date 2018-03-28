@@ -3,7 +3,7 @@ Created on 07.11.2017
 
 @author: bsmoehring
 '''
-from constants import jps, osm
+from constants import jps, osm, jpsReport
 from data import Output, Input
 from io import StringIO
 from lxml.etree import SubElement, Element, tostring, parse, XMLParser
@@ -18,7 +18,9 @@ class JPSBuilder(object):
         self.tree2xml(outGeometry, config.path+'jps_geo.xml')
         outIni = self.buildJPSINItree()
         self.tree2xml(outIni, config.path+'jps_ini.xml')
-    
+        outJPSReportIni = self.buildJPSReportINItree()
+        self.tree2xml(outJPSReportIni, config.path+'jpsreport_ini.xml')
+
     def translate2jps(self):
         print('---')
         for way in Output.transitionlst:
@@ -34,6 +36,12 @@ class JPSBuilder(object):
         print('---')
         for goal in Output.goalLst:
             self.goal2jps(goal)
+        print('---')
+        for measurementB in Output.measurementBLst:
+            self.measurementB2jps(measurementB)
+        print('---')
+        for measurementL in Output.measurementLLst:
+            self.measurementL2jps(measurementL)
                     
     def buildJPSGEOtree(self):
         '''
@@ -187,7 +195,7 @@ class JPSBuilder(object):
                                    transition.room1_id, transition.subroom1_id,
                                    transition.room2_id, transition.subroom2_id, [nodeRef1, nodeRef2])
         Geometry().addTransition(jpsTransition)
-        IniFile().addTransition(jpsTransition)
+        JPScoreIni().addTransition(jpsTransition)
 
     def crossing2jps(self, crossing):
         '''
@@ -206,14 +214,20 @@ class JPSBuilder(object):
 
     def goal2jps(self, goal):
         '''
+
+        :param goal:
+        :return:
         '''
         vertices = []
         for nodeRef in goal.nodeRefs:
             vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
-        IniFile().addGoal(Goal(vertices, goal.tags))
+        JPScoreIni().addGoal(Goal(vertices, goal.tags))
 
     def obstacle2jps(self, obstacle):
         '''
+
+        :param obstacle:
+        :return:
         '''
         vertices = []
         for nodeRef in obstacle.nodeRefs:
@@ -221,6 +235,30 @@ class JPSBuilder(object):
 
         jpsObstacle = Obstacle(vertices, obstacle.tags)
         Geometry().getRoomById(obstacle.tags[jps.Room_ID]).getSubroomById(obstacle.tags[jps.Subroom_ID]).addObstacle(jpsObstacle)
+
+    def measurementB2jps(self, measurementB):
+        '''
+
+        :param measurementB:
+        :return:
+        '''
+        vertices = []
+        for nodeRef in measurementB.nodeRefs:
+            vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
+        zPos = str(self.levelAltsDic[measurementB.level])
+        JPSreportIni().addAreaB(AreaB(measurementB.measurement_id, zPos, vertices))
+
+    def measurementL2jps(self, measurementL):
+        '''
+
+        :param measurementL:
+        :return:
+        '''
+        vertices = []
+        for nodeRef in measurementL.nodeRefs:
+            vertices.append(Vertex(Input.nodes[nodeRef].attrib[jps.PX], Input.nodes[nodeRef].attrib[jps.PY]))
+        zPos = str(self.levelAltsDic[measurementL.level])
+        JPSreportIni().addAreaL(AreaL(measurementL.measurement_id, zPos, vertices))
 
     def buildJPSINItree(self):
         '''
@@ -242,7 +280,7 @@ class JPSBuilder(object):
         #outIni = Element(IniFile().tag, attribs)
         outRouting = SubElement(outIni, 'routing')
         outGoals = SubElement(outRouting, 'goals')
-        for goal in IniFile().goals:
+        for goal in JPScoreIni().goals:
             outGoal = SubElement(outGoals, 'goal', goal.attribs)
             outPolygon = SubElement(outGoal, jps.Polygon)
             for vertex in goal.vertices:
@@ -250,7 +288,7 @@ class JPSBuilder(object):
                 # print vertex.attribs
         outTrafficConstraints = SubElement(outIni, 'traffic_constraints')
         outDoors = SubElement(outTrafficConstraints, 'doors')
-        for transition in IniFile().transitions:
+        for transition in JPScoreIni().transitions:
             attribs = {}
             attribs['trans_id']=transition.attribs[jps.Id]
             attribs[jps.Caption]=transition.attribs[jps.Caption]
@@ -261,8 +299,8 @@ class JPSBuilder(object):
         outAgentsDistribution = SubElement(outAgents, 'agents_distribution')
         
         group_id = 1
-        for goalFrom in IniFile().goals:
-            for goalTo in IniFile().goals:
+        for goalFrom in JPScoreIni().goals:
+            for goalTo in JPScoreIni().goals:
                 attribs = {}
                 attribs['group_id'] = str(group_id)
                 attribs['agent_parameter_id'] = '1'
@@ -287,7 +325,30 @@ class JPSBuilder(object):
         f.close()
         print ('output written to %s' % outputFile)
 
-class IniFile:
+    def buildJPSReportINItree(self):
+        '''
+        form an xml string from all jpsreport objects
+        '''
+        print('---')
+
+        parser = XMLParser(remove_blank_text=True)
+        outJPSReportIni = parse('resources/example_jpsreport_ini.xml', parser).getroot()
+
+        outMeasurementAreas = SubElement(outJPSReportIni, 'measurement_areas', {'unit':'m'})
+        for measurementB in JPSreportIni.measurementAreasB:
+            measurementAreaB = SubElement(outMeasurementAreas, measurementB.tag, measurementB.attribs)
+            for vertex in measurementB.vertices:
+                SubElement(measurementAreaB, jps.Vertex, vertex.attribsJPSReport)
+            SubElement(measurementAreaB, jpsReport.length_in_movement_direction, {jpsReport.Distance:'1.0'})
+        for measurementL in JPSreportIni.measurementAreasL:
+            measurementAreaL = SubElement(outMeasurementAreas, measurementL.tag, measurementL.attribs)
+            vertex = measurementL.vertices[0]
+            SubElement(measurementAreaL, jpsReport.Start, vertex.attribsJPSReport)
+            vertex = measurementL.vertices[0]
+            SubElement(measurementAreaL, jpsReport.End, vertex.attribsJPSReport)
+        return outJPSReportIni
+
+class JPScoreIni:
     tag = 'JuPedSim'
     goals = []
     transitions = []
@@ -307,6 +368,58 @@ class IniFile:
         :return:
         '''
         self.transitions.append(transition)
+
+class JPSreportIni:
+    tag = 'JPSreport'
+    measurementAreasB = []
+    measurementAreasL = []
+    methodAList = []
+    methodBList = []
+    methodCList = []
+    methodDList = []
+
+    def addAreaB(self, areaB):
+        '''
+
+        :param areaB:
+        :return:
+        '''
+        self.measurementAreasB.append(areaB)
+
+    def addAreaL(self, areaL):
+        '''
+
+        :param areaL:
+        :return:
+        '''
+
+        self.measurementAreasL.append(areaL)
+
+class AreaB:
+    tag = jpsReport.AreaB
+    vertices = []
+
+    def __init__(self, area_id, zPos, vertices):
+        self.attribs = {}
+        self.attribs[jpsReport.Id] = area_id
+        self.attribs[jpsReport.Type] = jpsReport.BoundingBox
+        self.attribs[jpsReport.ZPos] = zPos
+        self.vertices.append(vertices[0])
+        self.vertices.append(vertices[1])
+        self.vertices.append(vertices[2])
+        self.vertices.append(vertices[3])
+
+class AreaL:
+    tag = jpsReport.AreaL
+    vertices = []
+
+    def __init__(self, area_id, zPos, vertices):
+        self.attribs = {}
+        self.attribs[jpsReport.Id] = area_id
+        self.attribs[jpsReport.Type] = jpsReport.Line
+        self.attribs[jpsReport.ZPos] = zPos
+        self.vertices.append(vertices[0])
+        self.vertices.append(vertices[1])
 
 class Geometry:
     tag = jps.Geometry 
@@ -409,8 +522,11 @@ class Vertex:
         self.x = str(round(x, 2))
         self.y = str(round(y, 2))        
         self.attribs[jps.PX] = self.x
-        self.attribs[jps.PY] = self.y 
-        
+        self.attribs[jps.PY] = self.y
+        self.attribsJPSReport = {}
+        self.attribsJPSReport[jpsReport.X] = self.x
+        self.attribsJPSReport[jpsReport.Y] = self.y
+
     def getOriginalId(self):
         return self.attribs[jps.OriginalId]
     

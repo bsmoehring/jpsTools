@@ -24,6 +24,14 @@ def main():
     levelAltsDic['-3'] = -5.7
     levelAltsDic['-4'] = -8.2
     levelAltsDic['-5'] = -11.0
+#    levelAltsDic['1'] = 10
+#    levelAltsDic['0'] = 0.0
+#    levelAltsDic['0;-1'] = -5
+#    levelAltsDic['-1'] = -10
+#    levelAltsDic['-2'] = -20
+#    levelAltsDic['-3'] = -30
+#    levelAltsDic['-4'] = -40
+#    levelAltsDic['-5'] = -50
 
     try:
         if str(sys.argv[3]) == 'handle':

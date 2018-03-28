@@ -75,3 +75,25 @@ class jps(object):
     Up = 'up'
     Down = 'down'
 
+class jpsReport(object):
+    '''
+    storing required strings for jpsReport input files
+    '''
+    MeasurementB = 'measurementB'
+    MeasurementL = 'measurementL'
+    Id = 'id'
+    AreaB = 'area_B'
+    AreaL = 'area_L'
+    Type = 'type'
+    BoundingBox = 'BoundingBox'
+    Line = 'Line'
+    ZPos = 'zPos'
+    Measurement = 'measurement'
+    X = 'x'
+    Y = 'y'
+    length_in_movement_direction = 'length_in_movement_direction'
+    Distance = 'distance'
+    Start = 'start'
+    End = 'end'
+
+

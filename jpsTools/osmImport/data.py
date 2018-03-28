@@ -5,7 +5,7 @@ Created on 21.11.2017
 '''
 import logging
 from xml.etree import ElementTree as ET
-from constants import osm, jps
+from constants import osm, jps, jpsReport
 from coords import Transformation
 from shapely import geometry
 
@@ -54,6 +54,8 @@ class Input(object):
             crossing = False
             goal = False
             obstacle = False
+            measurementB = False
+            measurementL = False
             convert = False
             area = False
             if elem.tag in [osm.Way, osm.Relation]:
@@ -73,8 +75,12 @@ class Input(object):
                         transition = True
                     if k == jps.JuPedSim and v == jps.Goal:
                         goal = True
-                    if k == jps.JuPedSim and v == jps.Obstacle:
-                        obstacle = True
+                    #if k == jps.JuPedSim and v == jps.Obstacle:
+                    #    obstacle = True
+                    if k == jps.JuPedSim and v == jpsReport.MeasurementB:
+                        measurementB = True
+                    if k == jps.JuPedSim and v == jpsReport.MeasurementL:
+                        measurementL = True
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
@@ -97,6 +103,10 @@ class Input(object):
                 self.translateGoal(elem, nodeRefs)
             elif obstacle:
                 self.translateObstacle(elem, nodeRefs)
+            elif measurementB:
+                self.translateMeasurementB(elem, list(set(nodeRefs)))
+            elif measurementL:
+                self.translateMeasurementL(elem, list(set(nodeRefs)))
             if not handle:
                 continue
             elif area:
@@ -275,6 +285,39 @@ class Input(object):
         else:
             raise Exception
 
+    def translateMeasurementB(self, elem, nodeRefs):
+        if len(nodeRefs) == 4:
+            for child in elem.iter(tag=osm.Tag):
+                try:
+                    if child.attrib[osm.Key] == osm.Level:
+                        level = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if child.attrib[osm.Key] == jpsReport.Measurement:
+                        measurement_id = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+            Output.measurementBLst.append(Output.MeasurementB(nodeRefs, measurement_id, level))
+        else:
+            raise Exception
+
+    def translateMeasurementL(self, elem, nodeRefs):
+        if len(nodeRefs) == 2:
+            for child in elem.iter(tag=osm.Tag):
+                try:
+                    if child.attrib[osm.Key] == osm.Level:
+                        level = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if child.attrib[osm.Key] == jpsReport.Measurement:
+                        measurement_id = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+            Output.measurementLLst.append(Output.MeasurementL(nodeRefs, measurement_id, level))
+        else:
+            raise Exception
 
     def translateArea(self, elem, XYList):
 
@@ -307,6 +350,11 @@ class Output(object):
     goalLst = []
     #[obstacle]
     obstacleLst = []
+
+    #[measurementB]
+    measurementBLst = []
+    #[measurementL]
+    measurementLLst = []
 
     def getCrossTransId(self):
         '''
@@ -373,6 +421,29 @@ class Output(object):
             self.nodeRefs = nodeRefs
             self.tags = tags
 
+    class MeasurementB():
+        '''
+
+        '''
+        tag = jpsReport.AreaB
+
+        def __init__(self, nodeRefs, measurement_id, level):
+            self.nodeRefs = nodeRefs
+            self.measurement_id = measurement_id
+            self.level = level
+            print(jpsReport.AreaB, measurement_id, level)
+
+    class MeasurementL():
+        '''
+
+        '''
+        tag = jpsReport.AreaL
+
+        def __init__(self, nodeRefs, measurement_id, level):
+            self.nodeRefs = nodeRefs
+            self.measurement_id = measurement_id
+            self.level = level
+            print(jpsReport.AreaB, measurement_id, level)
 
     def storeElement(self, osmId, elem, poly):
         '''
