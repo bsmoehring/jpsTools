@@ -252,7 +252,7 @@ class Input(object):
                     pass
                 try:
                     if tag.attrib[osm.Key] == osm.TransitStopFacility:
-                        tags[osm.TransitStopFacility] = tag.attrib[osm.Value]
+                        tags[jps.Caption] = tag.attrib[osm.Value]
                 except KeyError:
                     pass
             Output.goalLst.append(Output.Goal(nodeRefs, tags))
