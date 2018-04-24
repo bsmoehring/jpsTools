@@ -19,7 +19,7 @@ class JPSBuilder(object):
         outIni = self.buildJPSINItree()
         self.tree2xml(outIni, config.path+'jps_ini.xml')
         outJPSReportIni = self.buildJPSReportINItree()
-        self.tree2xml(outJPSReportIni, config.path+'jpsreport_ini.xml')
+        self.tree2xml(outJPSReportIni, config.path+'jps_report_ini.xml')
 
     def translate2jps(self):
         print('---')
