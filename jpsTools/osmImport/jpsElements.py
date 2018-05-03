@@ -68,9 +68,9 @@ class JPSBuilder(object):
                     for vertex in polygon.vertices:
                         SubElement(outPoly, jps.Vertex, vertex.attribs)
                         #print vertex.attribs
-                if subroom.attribs[jps.Class] == jps.Stair:
-                    SubElement(outSubroom, jps.Down, {jps.PX:subroom.downPX, jps.PY:subroom.downPY})
-                    SubElement(outSubroom, jps.Up, {jps.PX:subroom.upPX, jps.PY:subroom.upPY})
+                if subroom.attribs[jps.Class] == jps.Stair or subroom.attribs[jps.Class].startswith(jps.Escalator):
+                    SubElement(outSubroom, jps.Down, {jps.PX:subroom.downPX, jps.PY:subroom.downPY, jps.PZ:subroom.downPZ})
+                    SubElement(outSubroom, jps.Up, {jps.PX:subroom.upPX, jps.PY:subroom.upPY, jps.PZ:subroom.upPZ})
                 if subroom.obstacles:
                     for obstacle in subroom.obstacles:
                         outObstacle = SubElement(outSubroom, jps.Obstacle, obstacle.attribs)
@@ -122,8 +122,8 @@ class JPSBuilder(object):
         except KeyError: pass
         Geometry().addRoom(room_id, jpsRoom)
         for subroom in subroomLst:
-            ax, by, cz, upPX, upPY, downPX, downPY = self.getPlaneEquation(subroom)
-            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, ax, by, cz, upPX, upPY, downPX, downPY)
+            ax, by, cz, upPX, upPY, upPZ, downPX, downPY, downPZ = self.getPlaneEquation(subroom)
+            jpsSubroom = Subroom(subroom.subroom_id, subroom.jpsClass, ax, by, cz, upPX, upPY, upPZ, downPX, downPY, downPZ)
             index = 0
             while index < len(subroom.nodeRefs) - 1:
                 jpsVertex1 = Vertex(Input.nodes[subroom.nodeRefs[index]].attrib[jps.PX], Input.nodes[subroom.nodeRefs[index]].attrib[jps.PY])
@@ -137,7 +137,7 @@ class JPSBuilder(object):
     def getPlaneEquation(self, subroom):
         if subroom.jpsClass != jps.Stair and not subroom.jpsClass.startswith(jps.Escalator):
             cz = str(self.levelAltsDic[subroom.level])
-            return str(0), str(0), str(cz), None, None, None, None
+            return str(0), str(0), str(cz), None, None, None, None, None, None
         pxDic = {}
         pyDic = {}
         for nodeRef in list(set(subroom.nodeRefs)):
@@ -181,7 +181,7 @@ class JPSBuilder(object):
         by = -by / cz
         cz = d / cz
 
-        return str(round(ax, 2)), str(round(by, 2)), str(round(cz, 2)), str(round(upPX, 2)), str(round(upPY, 2)), str(round(downPX, 2)), str(round(downPY, 2))
+        return str(round(ax, 2)), str(round(by, 2)), str(round(cz, 2)), str(round(upPX, 2)), str(round(upPY, 2)), str(round(upZ, 2)), str(round(downPX, 2)), str(round(downPY, 2)), str(round(downZ, 2))
 
     def transition2jps(self, transition):
         '''
@@ -472,7 +472,7 @@ class Subroom:
     '''
     tag = jps.Subroom
     
-    def __init__(self, subroom_id, jpsClass, ax, by, cz, upPX, upPY, downPX, downPY):
+    def __init__(self, subroom_id, jpsClass, ax, by, cz, upPX, upPY, upPZ, downPX, downPY, downPZ):
         self.polygons = []
         self.attribs = {}
         self.attribs[jps.Id] = subroom_id
@@ -482,8 +482,10 @@ class Subroom:
         self.attribs[jps.C_z] = cz
         self.upPX = upPX
         self.upPY = upPY
+        self.upPZ = upPZ
         self.downPX = downPX
         self.downPY = downPY
+        self.downPZ = downPZ
         self.obstacles = []
         
     def addPolygon(self, p, room_id, nodeRefs = []):
