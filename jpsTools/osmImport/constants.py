@@ -74,6 +74,7 @@ class jps(object):
     C_z = 'C_z'
     Up = 'up'
     Down = 'down'
+    Escalator = 'escalator'
 
 class jpsReport(object):
     '''

@@ -135,7 +135,7 @@ class JPSBuilder(object):
             Geometry().rooms[room_id].addSubroom(jpsSubroom)
 
     def getPlaneEquation(self, subroom):
-        if subroom.jpsClass != jps.Stair:
+        if subroom.jpsClass != jps.Stair and not subroom.jpsClass.startswith(jps.Escalator):
             cz = str(self.levelAltsDic[subroom.level])
             return str(0), str(0), str(cz), None, None, None, None
         pxDic = {}
@@ -347,6 +347,7 @@ class JPSBuilder(object):
             vertex = measurementL.vertices[0]
             SubElement(measurementAreaL, jpsReport.End, vertex.attribsJPSReport)
         return outJPSReportIni
+
 
 class JPScoreIni:
     tag = 'JuPedSim'

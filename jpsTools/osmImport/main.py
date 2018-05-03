@@ -50,7 +50,6 @@ def main():
     if handle:
         ElementHandler(config, handle).runHandler()
 
-    
     #OSMBuilder(config)
     
     JPSBuilder(config)
