@@ -398,13 +398,13 @@ class JPSreportIni:
 
 class AreaB:
     tag = jpsReport.AreaB
-    vertices = []
 
     def __init__(self, area_id, zPos, vertices):
         self.attribs = {}
         self.attribs[jpsReport.Id] = area_id
         self.attribs[jpsReport.Type] = jpsReport.BoundingBox
         self.attribs[jpsReport.ZPos] = zPos
+        self.vertices = []
         self.vertices.append(vertices[0])
         self.vertices.append(vertices[1])
         self.vertices.append(vertices[2])
@@ -412,13 +412,13 @@ class AreaB:
 
 class AreaL:
     tag = jpsReport.AreaL
-    vertices = []
 
     def __init__(self, area_id, zPos, vertices):
         self.attribs = {}
         self.attribs[jpsReport.Id] = area_id
         self.attribs[jpsReport.Type] = jpsReport.Line
         self.attribs[jpsReport.ZPos] = zPos
+        self.vertices = []
         self.vertices.append(vertices[0])
         self.vertices.append(vertices[1])
 

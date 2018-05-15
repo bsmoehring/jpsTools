@@ -104,9 +104,9 @@ class Input(object):
             elif obstacle:
                 self.translateObstacle(elem, nodeRefs)
             elif measurementB:
-                self.translateMeasurementB(elem, list(set(nodeRefs)))
+                self.translateMeasurementB(elem, nodeRefs[:-1])
             elif measurementL:
-                self.translateMeasurementL(elem, list(set(nodeRefs)))
+                self.translateMeasurementL(elem, nodeRefs)
             if not handle:
                 continue
             elif area:
