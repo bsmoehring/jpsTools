@@ -344,7 +344,7 @@ class JPSBuilder(object):
             measurementAreaL = SubElement(outMeasurementAreas, measurementL.tag, measurementL.attribs)
             vertex = measurementL.vertices[0]
             SubElement(measurementAreaL, jpsReport.Start, vertex.attribsJPSReport)
-            vertex = measurementL.vertices[0]
+            vertex = measurementL.vertices[1]
             SubElement(measurementAreaL, jpsReport.End, vertex.attribsJPSReport)
         return outJPSReportIni
 
