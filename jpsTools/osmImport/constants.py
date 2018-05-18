@@ -39,6 +39,13 @@ class jps(object):
     '''
     This class aims to store required strings for the jps input files
     '''
+    FrameRate = 'frameRate'
+    Agent = 'agent'
+    Frame = 'frame'
+    Time = 'time'
+    Agent_ID = 'agent_id'
+    Source = 'source'
+    Group = 'group'
     Obstacle = 'obstacle'
     JuPedSim = 'jupedsim'
     Geometry = 'geometry'
@@ -75,6 +82,10 @@ class jps(object):
     Up = 'up'
     Down = 'down'
     Escalator = 'escalator'
+    Group_ID = 'group_id'
+    Goal_ID = 'goal_id'
+    Traj_ID = 'ID'
+
 
 class jpsReport(object):
     '''
