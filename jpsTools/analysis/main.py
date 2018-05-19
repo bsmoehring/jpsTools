@@ -10,9 +10,6 @@ def main():
     inputTrajectory = inputfolder + 'jps_traj.xml'
     inputIni = inputfolder + 'jps_ini.xml'
 
-    outputCsv = inputfolder + 'changeTimes.csv'
-
-
     # xMin = 175.0
     # yMin = 122.5
     # xMax = 180.2
@@ -26,7 +23,8 @@ def main():
 
     StopsManager().assignPlatforms(agents)
 
-    printToCsv(agents.agents_sources.sourcesDic, outputCsv)
+    printSourcesToCsv(agents.agents_sources.sourcesDic, inputfolder+'changeTimes.csv')
+    printFrameStatisticsToCsv(agents.frame_statistics, inputfolder+'frameStatistics.csv')
 
     print(len(agents.agents_sources.sourcesDic))
     print(lastFrame)
@@ -46,7 +44,7 @@ def cleanAndCalcAgents(fps, lastFrame, agents = {}):
         agent.frames = agent.lastFrame-agent.firstFrame
         agent.secondsInSim = agent.frames / fps
 
-def printToCsv(sourcesDic, file):
+def printSourcesToCsv(sourcesDic, file):
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerow([jps.Agent_ID, 'firstFrame', 'lastFrame', 'frames', 'seconds',
@@ -55,6 +53,14 @@ def printToCsv(sourcesDic, file):
         for agent in sourcesDic.values():
             writer.writerow([agent.agent_id, agent.firstFrame, agent.lastFrame, agent.frames, agent.secondsInSim,
                              agent.caption, agent.platformFrom, agent.platformTo])
+
+def printFrameStatisticsToCsv(frame_statistics, file):
+    with open(file, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow([jps.Frame, 'agentsInSim'])
+
+        for frameID, agents in frame_statistics.agentsPerFrameDic.items():
+            writer.writerow([frameID, agents])
 
 class StopsManager():
 

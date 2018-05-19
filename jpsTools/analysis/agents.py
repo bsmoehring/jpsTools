@@ -7,6 +7,7 @@ class Agents():
 
         self.agents_distribution = Agents_Distribution()
         self.agents_sources = Agents_Sources()
+        self.frame_statistics = Frame_Statistics()
 
         file = open(inifile)
         for event, elem in ET.iterparse(file, ['start', 'end']):
@@ -32,6 +33,10 @@ class Agents():
 
         print('groups: ', len(self.agents_distribution.groupsDic))
         print('agents: ', len(self.agents_sources.sourcesDic))
+
+class Frame_Statistics:
+
+    agentsPerFrameDic = {}
 
 class Agents_Distribution:
 
