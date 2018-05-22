@@ -47,12 +47,12 @@ def cleanAndCalcAgents(fps, lastFrame, agents = {}):
 def printSourcesToCsv(sourcesDic, file):
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([jps.Agent_ID, 'firstFrame', 'lastFrame', 'frames', 'seconds',
+        writer.writerow([jps.Agent_ID, jps.Group_ID, 'firstFrame', 'lastFrame', 'frames', 'seconds',
                          jps.Caption, 'from', 'to'])
 
-        for agent in sourcesDic.values():
-            writer.writerow([agent.agent_id, agent.firstFrame, agent.lastFrame, agent.frames, agent.secondsInSim,
-                             agent.caption, agent.platformFrom, agent.platformTo])
+        for source in sourcesDic.values():
+            writer.writerow([source.agent_id, source.group_id ,source.firstFrame, source.lastFrame, source.frames, source.secondsInSim,
+                             source.caption, source.platformFrom, source.platformTo])
 
 def printFrameStatisticsToCsv(frame_statistics, file):
     with open(file, 'w', newline='') as csvfile:
