@@ -29,8 +29,8 @@ class Trajectory():
                 elem.clear()
 
                 #ability to test this on short runs
-                if frameId == '1000':
-                    break
+                #if frameId == '1000':
+                #    break
             elif elem.tag == jps.FrameRate:
                 frameRate = float(elem.text)
 
