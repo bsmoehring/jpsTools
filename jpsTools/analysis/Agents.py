@@ -52,13 +52,27 @@ class Agents_Sources:
     def addSource(self, source):
         self.sourcesDic[source.agent_id] = source
 
-    def addOccurence(self, agent_id, frame):
+    def addOccurence(self, agent_id, frame, z):
 
         source = self.sourcesDic[agent_id]
+        assert isinstance(source, Source)
         if source.firstFrame == None:
             source.firstFrame = frame
-        if source.lastFrame < frame:
             source.lastFrame = frame
+            #get frist z
+            source.firstZ = z
+        elif source.lastFrame < frame:
+            source.lastFrame = frame
+            source.lastZ = z
+        #get first change in z
+        if source.firstChangeZ == None and source.firstZ != z:
+            source.firstChangeZ = z
+            source.firstChangeZFrame = frame
+        #keep last z change
+        elif source.lastZ != z:
+            source.lastChangeZ = z
+            source.lastChangeZFrame = frame
+
 
 class Group:
 
@@ -95,11 +109,18 @@ class Source:
         self.agent_id = attribDic[jps.Agent_ID]
         self.time = attribDic[jps.Time]
         self.firstFrame = None
-        self.lastFrame = 0
+        self.lastFrame = None
         self.frames = None
         self.secondsInSim = None
         self.platformFrom = None
         self.platformTo = None
+        self.firstZ = None
+        self.firstChangeZ = None
+        self.firstChangeZFrame = None
+        self.lastChangeZ = None
+        self.lastChangeZFrame = None
+        self.lastZ = None
+        self.secondsBetweenZChange = None
 
     def getGroup(self):
         '''
@@ -108,3 +129,24 @@ class Source:
         '''
 
         return Agents_Distribution().groupsDic[self.group_id]
+
+    def getAttribDic(self):
+        attribDic = {}
+        attribDic[jps.Group_ID]     = self.group_id
+        attribDic[jps.Agent_ID]     = self.agent_id
+        attribDic[jps.Time]         = self.time
+        attribDic['firstFrame'] = self.firstFrame
+        attribDic['lastFrame'] = self.lastFrame
+        attribDic['frames'] = self.frames
+        attribDic['secondsInSim'] = self.secondsInSim
+        attribDic['platformFrom'] = self.platformFrom
+        attribDic['platformTo'] = self.platformTo
+        attribDic['firstZ'] = self.firstZ
+        attribDic['firstChangeZ'] = self.firstChangeZ
+        attribDic['firstChangeZFrame'] = self.firstChangeZFrame
+        attribDic['lastChangeZ'] = self.lastChangeZ
+        attribDic['lastChangeZFrame'] = self.lastChangeZFrame
+        attribDic['lastZ'] = self.lastZ
+        attribDic['secondsBetweenZChange'] = self.secondsBetweenZChange
+
+        return attribDic

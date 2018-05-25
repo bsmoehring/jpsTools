@@ -1,33 +1,35 @@
 import csv
 
-from agents import Agents
+from Agents import Agents, Source
 from constants import jps
-from trajectory import Trajectory
+from coords import Transformation
+from TrajectoryOperations import TrajectoryOperations
 
 def main():
 
+    #inputfolder = '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic_15130/'
     inputfolder = '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/'
     inputTrajectory = inputfolder + 'jps_traj.xml'
     inputIni = inputfolder + 'jps_ini.xml'
 
-    # xMin = 175.0
-    # yMin = 122.5
-    # xMax = 180.2
-    # yMax = 128.0
-    # z = -1.3
+    xmin = 799093.3516501468
+    ymin = 5828024.700676445
 
     agents = Agents(inputIni)
-    fps, lastFrame = Trajectory().getAgentsOccurences(inputTrajectory, agents)
+    traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin))
+    fps, lastFrame = traj.getAgentsOccurences(inputTrajectory, agents)
 
-    cleanAndCalcAgents(fps, lastFrame, agents.agents_sources.sourcesDic)
+    agentsRemoved = cleanAndCalcAgents(fps, lastFrame, agents.agents_sources.sourcesDic)
+    print(agentsRemoved, 'agents were removed because they hadnt left the simulation at the last frame')
 
     StopsManager().assignPlatforms(agents)
+    traj.agents2geojson(inputTrajectory, inputfolder+'traj_shape', agents, 8, 10)
 
-    printSourcesToCsv(agents.agents_sources.sourcesDic, inputfolder+'changeTimes.csv')
-    printFrameStatisticsToCsv(agents.frame_statistics, inputfolder+'frameStatistics.csv')
+    #printSourcesToCsv(agents.agents_sources.sourcesDic, inputfolder+'changeTimes.csv')
+    #printFrameStatisticsToCsv(agents.frame_statistics, inputfolder+'frameStatistics.csv')
 
-    print(len(agents.agents_sources.sourcesDic))
-    print(lastFrame)
+    print(len(agents.agents_sources.sourcesDic), 'agents are considered')
+    print(lastFrame, 'last frame of the simulation')
 
 def cleanAndCalcAgents(fps, lastFrame, agents = {}):
 
@@ -41,18 +43,27 @@ def cleanAndCalcAgents(fps, lastFrame, agents = {}):
 
     # calculate time in simulation
     for agent_id, agent in agents.items():
+        assert isinstance(agent, Source)
         agent.frames = agent.lastFrame-agent.firstFrame
         agent.secondsInSim = agent.frames / fps
+        if agent.lastChangeZFrame != None and agent.firstChangeZFrame != None and agent.lastChangeZFrame != agent.firstChangeZFrame:
+            agent.frames = agent.lastChangeZFrame-agent.firstChangeZFrame
+            agent.secondsBetweenZChange = agent.frames / fps
+        else:
+            agent.secondsBetweenZChange = 0
+
+    return len(removeIds)
 
 def printSourcesToCsv(sourcesDic, file):
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerow([jps.Agent_ID, jps.Group_ID, 'firstFrame', 'lastFrame', 'frames', 'seconds',
-                         jps.Caption, 'from', 'to'])
+                         jps.Caption, 'from', 'to', 'firstChangeZFrame', 'lastChangeZFrame', 'secondsBetweenZChange'])
 
         for source in sourcesDic.values():
             writer.writerow([source.agent_id, source.group_id ,source.firstFrame, source.lastFrame, source.frames, source.secondsInSim,
-                             source.caption, source.platformFrom, source.platformTo])
+                             source.caption, source.platformFrom, source.platformTo, source.firstChangeZFrame, source.lastChangeZFrame,
+                             source.secondsBetweenZChange])
 
 def printFrameStatisticsToCsv(frame_statistics, file):
     with open(file, 'w', newline='') as csvfile:
