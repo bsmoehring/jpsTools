@@ -17,29 +17,33 @@ class Transformation(object):
     maxx = 0
     maxy = 0
 
-    def __init__(self, tree):
+    def __init__(self, tree=None, minx=None, miny=None):
         print('---')
-        try:
-            bounds = tree.find(osm.Bounds)
-            minlat = float(bounds.attrib.get(osm.MinLat))
-            minlon = float(bounds.attrib.get(osm.MinLon))
-            maxlat = float(bounds.attrib.get(osm.MaxLat))
-            maxlon = float(bounds.attrib.get(osm.MaxLon))
-        except (AttributeError):
-            minlat, minlon = float('+inf'), float('+inf')
-            maxlat, maxlon = float('-inf'), float('-inf')
-            for node in tree.iter(tag=osm.Node):
-                lat, lon = float(node.attrib[osm.Lat]), float(node.attrib[osm.Lon])
-                if lat > maxlat:
-                    maxlat = lat
-                if lat < minlat:
-                    minlat = lat
-                if lon > maxlon:
-                    maxlon = lon
-                if lon < minlon:
-                    minlon = lon
-        self.minx, self.miny = self.projection(minlon, minlat)
-        self.maxx, self.maxy = self.projection(maxlon, maxlat)
+        if tree != None:
+            try:
+                bounds = tree.find(osm.Bounds)
+                minlat = float(bounds.attrib.get(osm.MinLat))
+                minlon = float(bounds.attrib.get(osm.MinLon))
+                maxlat = float(bounds.attrib.get(osm.MaxLat))
+                maxlon = float(bounds.attrib.get(osm.MaxLon))
+            except (AttributeError):
+                minlat, minlon = float('+inf'), float('+inf')
+                maxlat, maxlon = float('-inf'), float('-inf')
+                for node in tree.iter(tag=osm.Node):
+                    lat, lon = float(node.attrib[osm.Lat]), float(node.attrib[osm.Lon])
+                    if lat > maxlat:
+                        maxlat = lat
+                    if lat < minlat:
+                        minlat = lat
+                    if lon > maxlon:
+                        maxlon = lon
+                    if lon < minlon:
+                        minlon = lon
+            self.minx, self.miny = self.projection(minlon, minlat)
+            self.maxx, self.maxy = self.projection(maxlon, maxlat)
+        elif minx != None and miny != None:
+            self.minx = minx
+            self.miny = miny
         print('Boundaries (reference point x,y=0,0):', self.minx, self.miny)
 
     def WGS2XY(self, node):
