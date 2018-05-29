@@ -176,6 +176,10 @@ class Input(object):
             crossing_id = 0
             for crossinglst in Output.crossingDic.values():
                 crossing_id += len(crossinglst)
+
+        if len(nodeRefs) != 2 or nodeRefs[0] == nodeRefs[-1]:
+            raise Exception
+
         crossing = Output.Crossing(nodeRefs, str(crossing_id), room_id, subroom1_id, subroom2_id)
         if room_id in Output.crossingDic:
             Output.crossingDic[room_id].append(crossing)
