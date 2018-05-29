@@ -5,10 +5,8 @@ from constants import jps
 from coords import Transformation
 from TrajectoryOperations import TrajectoryOperations
 
-def main():
+def main(inputfolder):
 
-    #inputfolder = '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic_15130/'
-    inputfolder = '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/'
     inputTrajectory = inputfolder + 'jps_traj.xml'
     inputIni = inputfolder + 'jps_ini.xml'
 
@@ -23,11 +21,12 @@ def main():
     print(agentsRemoved, 'agents were removed because they hadnt left the simulation at the last frame')
 
     StopsManager().assignPlatforms(agents)
-    traj.agents2geojson(inputTrajectory, inputfolder+'traj_shape', agents, 8, 10)
 
-    #printSourcesToCsv(agents.agents_sources.sourcesDic, inputfolder+'changeTimes.csv')
-    #printFrameStatisticsToCsv(agents.frame_statistics, inputfolder+'frameStatistics.csv')
+    traj.agents2geojson(inputTrajectory, inputfolder+'traj_shape', agents, 8, 1)
+    printSourcesToCsv(agents.agents_sources.sourcesDic, inputfolder+'changeTimes.csv')
+    printFrameStatisticsToCsv(agents.frame_statistics, inputfolder+'frameStatistics.csv')
 
+    print(inputfolder)
     print(len(agents.agents_sources.sourcesDic), 'agents are considered')
     print(lastFrame, 'last frame of the simulation')
 
@@ -139,4 +138,9 @@ class StopsManager():
 
 
 if __name__ == "__main__":
-    main()
+    input = []
+    input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/')
+    input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/')
+    input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/')
+    for s in input:
+        main(s)
