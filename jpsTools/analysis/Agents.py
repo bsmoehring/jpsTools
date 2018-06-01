@@ -7,7 +7,7 @@ class Agents():
 
         self.agents_distribution = Agents_Distribution()
         self.agents_sources = Agents_Sources()
-        self.frame_statistics = Frame_Statistics()
+        self.counts = Counts()
 
         file = open(inifile)
         for event, elem in ET.iterparse(file, ['start', 'end']):
@@ -28,15 +28,22 @@ class Agents():
                     assert isinstance(sourceElem, ET.Element)
                     self.agents_sources.addSource(Source(sourceElem.attrib))
                 elem.clear()
-
+            if elem.tag == 'trajectories':
+                fps = int(elem.attrib['fps'])
+                print(event, elem.tag, fps)
+                self.fps = fps
+                elem.clear()
         file.close()
 
         print('groups: ', len(self.agents_distribution.groupsDic))
         print('agents: ', len(self.agents_sources.sourcesDic))
 
-class Frame_Statistics:
-
-    agentsPerFrameDic = {}
+    def clear(self):
+        self.agents_distribution.groupsDic.clear()
+        self.agents_sources.sourcesDic.clear()
+        self.counts.area_list.clear()
+        self.counts.agentsPerFrameDic.clear()
+        self.counts.time_area_agents_dic.clear()
 
 class Agents_Distribution:
 
@@ -58,12 +65,7 @@ class Agents_Sources:
         assert isinstance(source, Source)
         if source.firstFrame == None:
             source.firstFrame = frame
-            source.lastFrame = frame
-            #get frist z
             source.firstZ = z
-        elif source.lastFrame < frame:
-            source.lastFrame = frame
-            source.lastZ = z
         #get first change in z
         if source.firstChangeZ == None and source.firstZ != z:
             source.firstChangeZ = z
@@ -72,6 +74,8 @@ class Agents_Sources:
         elif source.lastZ != z:
             source.lastChangeZ = z
             source.lastChangeZFrame = frame
+        source.lastFrame = frame
+        source.lastZ = z
 
 
 class Group:
@@ -146,7 +150,48 @@ class Source:
         attribDic['firstChangeZFrame'] = self.firstChangeZFrame
         attribDic['lastChangeZ'] = self.lastChangeZ
         attribDic['lastChangeZFrame'] = self.lastChangeZFrame
+        attribDic['framesZ'] = self.zframes
         attribDic['lastZ'] = self.lastZ
         attribDic['secondsBetweenZChange'] = self.secondsBetweenZChange
+        for area in Counts.area_list:
+            passes_area = 'false'
+            if self.agent_id in area.agents_list:
+                passes_area = 'true'
+            attribDic['area_'+area.area_id] = passes_area
 
         return attribDic
+
+class Counts():
+    area_list = []
+    time_area_agents_dic = {}
+    agentsPerFrameDic = {}
+
+    def add_area(self, area):
+        self.area_list.append(area)
+
+    def add_frame(self, frame):
+        self.time_area_agents_dic[frame] = {}
+        for area in self.area_list:
+            self.time_area_agents_dic[frame][area.area_id] = []
+        self.time_area_agents_dic[frame]['agentsInSim'] = 0
+
+    def add_area_agent_frame(self, frame, area_id, agent_id=None, countAgents = None):
+        if frame not in self.time_area_agents_dic:
+            self.add_frame(frame)
+        if agent_id:
+            self.time_area_agents_dic[frame][area_id].append(agent_id)
+        elif countAgents:
+            self.time_area_agents_dic[frame]['agentsInSim'] = countAgents
+
+
+class Area():
+    def __init__(self, area_id, xmin, ymin, xmax, ymax, z):
+        self.area_id = area_id
+        self.xmin = xmin
+        self.ymin = ymin
+        self.xmax = xmax
+        self.ymax = ymax
+        self.z = z
+        self.agents_list = []
+
+

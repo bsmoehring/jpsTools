@@ -1,11 +1,14 @@
 import csv
 
-from Agents import Agents, Source
+from Agents import Agents, Source, Counts, Area
 from constants import jps
 from coords import Transformation
 from TrajectoryOperations import TrajectoryOperations
 
 def main(inputfolder):
+
+    print('###')
+    print(inputfolder)
 
     inputTrajectory = inputfolder + 'jps_traj.xml'
     inputIni = inputfolder + 'jps_ini.xml'
@@ -13,24 +16,36 @@ def main(inputfolder):
     xmin = 799093.3516501468
     ymin = 5828024.700676445
 
-    agents = Agents(inputIni)
-    traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin))
-    fps, lastFrame = traj.getAgentsOccurences(inputTrajectory, agents)
+    timestampInterval = 1
 
+    counts = Counts()
+    counts.add_area(Area('11', 197.16, 115.59, 213.44, 131.75, -2.6))
+    counts.add_area(Area('21', 208.23, 100.94, 254.87, 147.81, -2.6))
+    counts.add_area(Area('31', 305.04, 177.52, 350.95, 223.8, -5.7))
+
+    agents = Agents(inputIni)
+    traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin), timestampInterval=timestampInterval, fps=agents.fps)
+    fps, lastFrame = traj.getAgentsOccurences(trajfile=inputTrajectory, agents=agents)
     agentsRemoved = cleanAndCalcAgents(fps, lastFrame, agents.agents_sources.sourcesDic)
     print(agentsRemoved, 'agents were removed because they hadnt left the simulation at the last frame')
-
     StopsManager().assignPlatforms(agents)
 
-    traj.agents2geojson(inputTrajectory, inputfolder+'traj_shape', agents, 8, 1)
-    printSourcesToCsv(agents.agents_sources.sourcesDic, inputfolder+'changeTimes.csv')
-    printFrameStatisticsToCsv(agents.frame_statistics, inputfolder+'frameStatistics.csv')
+    traj.assign_areas(
+        trajfile=inputTrajectory, agents=agents, counts=agents.counts
+    )
+
+    #traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
+    printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
+    printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
 
     print(inputfolder)
     print(len(agents.agents_sources.sourcesDic), 'agents are considered')
     print(lastFrame, 'last frame of the simulation')
 
+    agents.clear()
+
 def cleanAndCalcAgents(fps, lastFrame, agents = {}):
+    print('cleanAndCalcAgents')
 
     # remove agents that haven't appeared or didn't leave the simulation yet
     removeIds = []
@@ -38,7 +53,7 @@ def cleanAndCalcAgents(fps, lastFrame, agents = {}):
         if agent.firstFrame == None or agent.lastFrame == int(float(lastFrame)):
             removeIds.append(agent_id)
     for agent_id in removeIds:
-        del agents[agent_id]
+       del agents[agent_id]
 
     # calculate time in simulation
     for agent_id, agent in agents.items():
@@ -46,31 +61,54 @@ def cleanAndCalcAgents(fps, lastFrame, agents = {}):
         agent.frames = agent.lastFrame-agent.firstFrame
         agent.secondsInSim = agent.frames / fps
         if agent.lastChangeZFrame != None and agent.firstChangeZFrame != None and agent.lastChangeZFrame != agent.firstChangeZFrame:
-            agent.frames = agent.lastChangeZFrame-agent.firstChangeZFrame
-            agent.secondsBetweenZChange = agent.frames / fps
+            agent.zframes = agent.lastChangeZFrame-agent.firstChangeZFrame
+            agent.secondsBetweenZChange = agent.zframes / fps
         else:
-            agent.secondsBetweenZChange = 0
+            agent.secondsBetweenZChange = None
+            agent.zframes = None
 
     return len(removeIds)
 
-def printSourcesToCsv(sourcesDic, file):
+def printSourcesToCsv(agents, file):
+    print('printSourcesToCsv', file)
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([jps.Agent_ID, jps.Group_ID, 'firstFrame', 'lastFrame', 'frames', 'seconds',
-                         jps.Caption, 'from', 'to', 'firstChangeZFrame', 'lastChangeZFrame', 'secondsBetweenZChange'])
+        columns = [jps.Group_ID, jps.Agent_ID, jps.Time, 'firstFrame',
+                'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo',
+                'firstZ', 'firstChangeZ', 'firstChangeZFrame', 'lastChangeZ',
+                'lastChangeZFrame', 'lastZ', 'framesZ', 'secondsBetweenZChange']
+        for area in agents.counts.area_list:
+            columns.append('area_'+area.area_id)
+        writer.writerow(columns)
+        for source in agents.agents_sources.sourcesDic.values():
+            attribDic = source.getAttribDic()
+            row = []
+            for column in columns:
+                row.append(attribDic[column])
+            writer.writerow(row)
 
-        for source in sourcesDic.values():
-            writer.writerow([source.agent_id, source.group_id ,source.firstFrame, source.lastFrame, source.frames, source.secondsInSim,
-                             source.caption, source.platformFrom, source.platformTo, source.firstChangeZFrame, source.lastChangeZFrame,
-                             source.secondsBetweenZChange])
+def printFrameStatisticsToCsv(counts, file):
 
-def printFrameStatisticsToCsv(frame_statistics, file):
+    print('printFrameStatisticsToCsv', file)
+
+    assert isinstance(counts, Counts)
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([jps.Frame, 'agentsInSim'])
+        columns = [jps.Frame, 'agentsInSim']
+        for area in counts.area_list:
+            columns.append(area.area_id)
+        writer.writerow(columns)
 
-        for frameID, agents in frame_statistics.agentsPerFrameDic.items():
-            writer.writerow([frameID, agents])
+        for frameId, area_agents_dic in sorted(counts.time_area_agents_dic.items()):
+            row = []
+            for column in columns:
+                if column == jps.Frame:
+                    row.append(frameId)
+                elif column == 'agentsInSim':
+                    row.append(area_agents_dic[column])
+                else:
+                    row.append(len(area_agents_dic[column]))
+            writer.writerow(row)
 
 class StopsManager():
 
@@ -142,5 +180,7 @@ if __name__ == "__main__":
     input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/')
     input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/')
     input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/')
+    #input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/tests/report/smalltraj/')
+
     for s in input:
         main(s)
