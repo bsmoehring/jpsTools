@@ -5,10 +5,11 @@ from constants import jps
 from coords import Transformation
 from TrajectoryOperations import TrajectoryOperations
 
-def main(inputfolder):
+def main(input):
 
     print('###')
-    print(inputfolder)
+    print(input[0])
+    inputfolder = input[0]
 
     inputTrajectory = inputfolder + 'jps_traj.xml'
     inputIni = inputfolder + 'jps_ini.xml'
@@ -22,6 +23,8 @@ def main(inputfolder):
     counts.add_area(Area('11', 197.16, 115.59, 213.44, 131.75, -2.6))
     counts.add_area(Area('21', 208.23, 100.94, 254.87, 147.81, -2.6))
     counts.add_area(Area('31', 305.04, 177.52, 350.95, 223.8, -5.7))
+    counts.area_polygon_dic['11'] = [(207.38, 108.62), (213.04, 114.38), (219.7, 112.47), (213.65, 124.4), (209.54, 120.23), (198.69, 125.03), (206.88, 117.53), (205.39, 116.01), (194.59, 120.6), (202.66, 113.23)]
+
 
     agents = Agents(inputIni)
     traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin), timestampInterval=timestampInterval, fps=agents.fps)
@@ -34,13 +37,15 @@ def main(inputfolder):
         trajfile=inputTrajectory, agents=agents, counts=agents.counts
     )
 
-    #traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
+    #traj.frames2pointlayers(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
+
+    traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
     printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
     printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
 
     print(inputfolder)
     print(len(agents.agents_sources.sourcesDic), 'agents are considered')
-    print(lastFrame, 'last frame of the simulation')
+    #print(lastFrame, 'last frame of the simulation')
 
     agents.clear()
 
@@ -74,9 +79,7 @@ def printSourcesToCsv(agents, file):
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         columns = [jps.Group_ID, jps.Agent_ID, jps.Time, 'firstFrame',
-                'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo',
-                'firstZ', 'firstChangeZ', 'firstChangeZFrame', 'lastChangeZ',
-                'lastChangeZFrame', 'lastZ', 'framesZ', 'secondsBetweenZChange']
+                'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo']
         for area in agents.counts.area_list:
             columns.append('area_'+area.area_id)
         writer.writerow(columns)
@@ -177,10 +180,12 @@ class StopsManager():
 
 if __name__ == "__main__":
     input = []
-    input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/')
-    input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/')
-    input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/')
-    #input.append('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/tests/report/smalltraj/')
+    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/', {'10344': '11', '10544': '21', '6784': '31'}))
+    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12824': '11', '12544': '21', '2904': '31'}))
+    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/'), {})
+    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/tests/report/smalltraj/', {}))
 
     for s in input:
         main(s)
+
+

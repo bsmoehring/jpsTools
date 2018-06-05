@@ -145,24 +145,16 @@ class Source:
         attribDic['secondsInSim'] = self.secondsInSim
         attribDic['platformFrom'] = self.platformFrom
         attribDic['platformTo'] = self.platformTo
-        attribDic['firstZ'] = self.firstZ
-        attribDic['firstChangeZ'] = self.firstChangeZ
-        attribDic['firstChangeZFrame'] = self.firstChangeZFrame
-        attribDic['lastChangeZ'] = self.lastChangeZ
-        attribDic['lastChangeZFrame'] = self.lastChangeZFrame
-        attribDic['framesZ'] = self.zframes
-        attribDic['lastZ'] = self.lastZ
-        attribDic['secondsBetweenZChange'] = self.secondsBetweenZChange
         for area in Counts.area_list:
             passes_area = 'false'
             if self.agent_id in area.agents_list:
                 passes_area = 'true'
             attribDic['area_'+area.area_id] = passes_area
-
         return attribDic
 
 class Counts():
     area_list = []
+    area_polygon_dic = {}
     time_area_agents_dic = {}
     agentsPerFrameDic = {}
 

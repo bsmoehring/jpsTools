@@ -1,6 +1,5 @@
 import xml.etree.ElementTree as ET
 
-from shutil import copyfile
 
 from Agents import Agents, Source, Counts, Area
 from constants import jps
@@ -56,9 +55,7 @@ class TrajectoryOperations():
         assert isinstance(agents, Agents)
         properties = {
                 jps.Group_ID:'str', jps.Agent_ID:'str', jps.Time:'str', 'firstFrame':'str',
-                'lastFrame':'str', 'frames':'str', 'secondsInSim':'float', 'platformFrom':'str', 'platformTo':'str',
-                'firstZ':'str', 'firstChangeZ':'str', 'firstChangeZFrame':'str', 'lastChangeZ':'str',
-                'lastChangeZFrame':'str', 'lastZ':'str', 'framesZ':'str', 'secondsBetweenZChange':'float'}
+                'lastFrame':'str', 'frames':'str', 'secondsInSim':'float', 'platformFrom':'str', 'platformTo':'str'}
         for area in Counts.area_list:
             properties['area_'+area.area_id] = 'str'
         schema = {
@@ -127,9 +124,6 @@ class TrajectoryOperations():
                 if frame > lastFrame:
                     break
         file.close()
-        firstFrames.clear()
-        lastFrames.clear()
-        agent_traj_dic.clear()
 
         for agent_id2, traj in agent_traj_dic.items():
             if len(traj.points) == 0:
@@ -207,12 +201,102 @@ class TrajectoryOperations():
                         elem.clear()
                 f.write('</trajectories>'.encode())
 
+    def frames2pointlayers(self, framesAreaDic, trajfile, agents, path):
 
-    def getelements(self, filename_or_file):
+        print(self.__class__.__name__, 'frames2pointlayers', framesAreaDic)
+        assert isinstance(agents, Agents)
 
-        for event, elem in ET.iterparse(filename_or_file, events=('start', 'end')):
-            yield event, elem
-            elem.clear()  # free memory
+        file = open(trajfile)
+
+        for event, elem in ET.iterparse(file, ['end']):
+            assert isinstance(elem, ET.Element)
+            if elem.tag == jps.Frame:
+                frameId = elem.attrib[jps.Traj_ID]
+                if frameId in framesAreaDic.keys():
+                    frame = int(float(frameId))
+                    seconds = frame / self.fps
+
+                    area_id = framesAreaDic[frameId]
+                    area = None
+                    for area1 in agents.counts.area_list:
+                        if area1.area_id == area_id:
+                            area = area1
+                    if area == None:
+                        continue
+
+                    print(self.__class__.__name__, 'frames2pointlayers', frameId, area_id)
+                    points = {}
+
+                    # print(frame)
+                    for agentElem in elem.iter(jps.Agent):
+                        agent_id = agentElem.attrib[jps.Traj_ID]
+                        x = float(agentElem.attrib['x'])
+                        y = float(agentElem.attrib['y'])
+                        z = float(agentElem.attrib['z'])
+
+                        if z == area.z and x > area.xmin and x < area.xmax and y > area.ymin and y < area.ymax:
+                            #counts.add_area_agent_frame(frame=frame, area_id=area.area_id, agent_id=agent_id,
+                            #                            countAgents=None)
+
+                            point = (x, y, z)
+                            points[agent_id] = point
+                        agentElem.clear()
+                    print(len(points))
+
+                    #points in area to shape
+                    properties = {
+                        jps.Group_ID: 'str', jps.Agent_ID: 'str', jps.Time: 'str', 'firstFrame': 'str',
+                        'lastFrame': 'str', 'frames': 'str', 'secondsInSim': 'float', 'platformFrom': 'str',
+                        'platformTo': 'str'
+                    }
+                    for area in Counts.area_list: properties['area_' + area.area_id] = 'str'
+                    schema = {
+                        'geometry': 'Point',
+                        'properties': properties
+                    }
+                    with fiona.open(path+'points_area_'+area_id+'_frame_'+frameId, 'w', 'ESRI Shapefile', schema) as f:
+
+                        for agent_id, point in points.items():
+                            lat, lon = self.transform.XY2WGS(
+                                point[0],
+                                point[1]
+                            )
+                            f.write({
+                                'properties': agents.agents_sources.sourcesDic[agent_id].getAttribDic(),
+                                'geometry': mapping(Point(lon, lat, point[2]))
+                            })
+
+                    #union of all buffered points to shape
+                    schema = {
+                        'geometry': 'Polygon',
+                        'properties': {jps.Agent_ID: 'str'}
+                    }
+                    with fiona.open(path + 'points_area_' + area_id + '_frame_' + frameId + '_buffer_1m', 'w', 'ESRI Shapefile',
+                                    schema) as f:
+                        for agent_id, point in points.items():
+                            #raduis around agent
+                            buffer = Point(point[0], point[1]).buffer(1.0)
+                            #check if radius intersects room
+                            if buffer.intersects(Polygon(agents.counts.area_polygon_dic[area_id])):
+                                buffer = buffer.intersection(Polygon(agents.counts.area_polygon_dic[area_id]))
+                            else:
+                                continue
+                            coords = []
+
+                            for coord in buffer.exterior.coords:
+                                print(coord)
+                                lat, lon = self.transform.XY2WGS(coord[0], coord[1])
+                                coords.append((lon, lat, point[2]))
+                            print(coords)
+                            f.write({
+                                'properties': {jps.Agent_ID: agent_id},
+                                'geometry': mapping(Polygon(coords))
+                            })
+                # do something with each polygon
+
+                elem.clear()
+        file.close()
+
 
 class AgentTraj:
 
@@ -222,4 +306,4 @@ class AgentTraj:
         self.points = []
 
     def addPoint(self, lat, lon, z, seconds):
-        self.points.append((lon, lat, z, seconds))
+        self.points.append((lon, lat, z))
