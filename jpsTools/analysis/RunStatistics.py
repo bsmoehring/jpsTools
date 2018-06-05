@@ -78,33 +78,41 @@ def plotAverage(plt, column, changes, color, offset):
     #          color=color,
     #          bbox=dict(facecolor='white', alpha=0.9))
 
-def plotFrameAreaAgents(output, area, fps, input_list = []):
-    for input in input_list:
+def plotFrameAreaAgents(output, area, fps, group_seconds, input_list = []):
+    for inputDic in input_list:
 
-        file = input[0]+'frameStatistics.csv'
-        label = input[1]
-        color = input[2]
+        file = inputDic['file']+'frameStatistics.csv'
+        label = inputDic['label']
+        color = inputDic['color']
         frames = pd.read_csv(file, sep=';', converters={0:int, 1:int, 2:int, 3:int, 4:int, 5:int})
         selectedFrames = frames.loc[
-            (frames['frame']%(fps*15) == 0)
+            (frames['frame']%(fps) == 0)
         ]
+        selectedFramesMeans = selectedFrames.groupby(
+            pd.cut(selectedFrames['frame'], np.arange(0, 14000+(group_seconds*fps), group_seconds*fps))
+        ).mean()
 
-        plt.plot(selectedFrames['frame']/fps, selectedFrames[str(area)], color=color, label=label, alpha=0.9)
-        plotMax(plt, selectedFrames, area, color, fps)
+        #print(selectedFramesMeans)
 
-    plt.legend()
+        plt.plot(selectedFramesMeans['frame']/fps, selectedFramesMeans[str(area)], color=color, label=label, alpha=0.9)
+        maxagents_frame = plotMax(plt, selectedFramesMeans, area, color, fps)
+        inputDic['maxagents_frame_area_'+str(area)] = str(int(maxagents_frame))
 
-    plt.title('Bereich '+str(area)[0])
-    plt.xlabel("Zeit in Sekunden")
-    plt.ylabel("Anzahl Agenten im Bereich")
-    #plt.show()
-    #plt.draw()
-    plt.savefig(output)
-    plt.close()
+
+    # plt.legend()
+    #
+    # #plt.title('Bereich '+str(area)[0])
+    # plt.xlabel('Zeit in Sekunden')
+    # plt.xticks(np.arange(0, 1801, 300))
+    # plt.ylabel('Anzahl an Agenten im Bereich')
+    # #plt.show()
+    # #plt.draw()
+    # plt.savefig(output)
+    # plt.close()
 
 def plotMax(plt, df, area, color, fps):
 
-    maxY = df[str(area)].max()
+    maxY = int(df[str(area)].max())
     maxY_X = df.loc[df[str(area)].idxmax()]['frame']
     ylim = plt.axes().get_ylim()[1]
     plt.axvline(x=maxY_X / fps, ymax=maxY/ylim*ylim, color=color, linestyle='dashed')
@@ -131,36 +139,45 @@ def plotMax(plt, df, area, color, fps):
              color=color,
              bbox=dict(facecolor='white', alpha=1.0)
     )
+    return maxY_X
 
 if __name__ == "__main__":
 
     platforms=['S', 'Regio', 'U2', 'U5', 'U8']
 
     input= '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/'
-    inputBasis = (input + '0_ipfDemandBasic/', 'Basis', 'grey', 0.5)
-    inputProg1 = (input + '1_ipfDemandProg1/', 'Prognose 1', 'blue', 0.25)
-    inputProg2 = (input + '2_ipfDemandProg2/', 'Prognose 2', 'orange', 0.4)
+    inputBasis = {'file':input + '0_ipfDemandBasic/', 'label':'Basis', 'color':'grey', 'opacity':0.5}
+    inputProg1 = {'file':input + '1_ipfDemandProg1/', 'label':'Prognose', 'color':'blue', 'opacity':0.25}
+    inputProg2 = {'file':input + '2_ipfDemandProg2/', 'label':'Prognose 2', 'color':'orange', 'opacity':0.4}
     input_list = [inputBasis, inputProg1]
     #
     #plotTimeVariationForGroup(outputFolder=input + 'analysis/', platformFrom='Dircksenstr.', platformTo='U8', inputCsvBase=inputCsvBasis,
     #                          inputCsvProg1=inputCsvProg1, inputCsvProg2=None)
 
-    for platformFrom, platformTo in itertools.combinations(platforms, 2):
-        if platformFrom == 'S' and platformTo == 'Regio':
-            continue
-        plotTimeVariationForGroup(
-            outputFolder=input+'analysis/', column='secondsInSim',
-            platformFrom=platformFrom, platformTo=platformTo,
-            input_list=input_list
-        )
+    # for platformFrom, platformTo in itertools.combinations(platforms, 2):
+    #     if platformFrom == 'S' and platformTo == 'Regio':
+    #         continue
+    #     plotTimeVariationForGroup(
+    #         outputFolder=input+'analysis/', column='secondsInSim',
+    #         platformFrom=platformFrom, platformTo=platformTo,
+    #         input_list=input_list
+    #     )
 
     areas = [11, 21, 31]
     for area in areas:
         plotFrameAreaAgents(
-            input+'analysis/area_'+str(area)+'.png',
-            area, 8,
+            input+'analysis/agentsinarea'+str(area)+'.png',
+            area, 8, 5,
             input_list=input_list
         )
+
+    framesDic = {}
+    for input in input_list:
+        for area in areas:
+            framesDic[input['maxagents_frame_area_'+str(area)]] = input['label']+'_area_'+str(area)
+
+    print(framesDic)
+
 
 
 
