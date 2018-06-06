@@ -20,11 +20,6 @@ def main(input):
     timestampInterval = 1
 
     counts = Counts()
-    counts.add_area(Area('11', 197.16, 115.59, 213.44, 131.75, -2.6))
-    counts.add_area(Area('21', 208.23, 100.94, 254.87, 147.81, -2.6))
-    counts.add_area(Area('31', 305.04, 177.52, 350.95, 223.8, -5.7))
-    counts.area_polygon_dic['11'] = [(207.38, 108.62), (213.04, 114.38), (219.7, 112.47), (213.65, 124.4), (209.54, 120.23), (198.69, 125.03), (206.88, 117.53), (205.39, 116.01), (194.59, 120.6), (202.66, 113.23)]
-
 
     agents = Agents(inputIni)
     traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin), timestampInterval=timestampInterval, fps=agents.fps)
@@ -37,7 +32,7 @@ def main(input):
         trajfile=inputTrajectory, agents=agents, counts=agents.counts
     )
 
-    #traj.frames2pointlayers(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
+    #traj.frames2Points_Voronois(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
 
     traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
     printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
@@ -180,9 +175,9 @@ class StopsManager():
 
 if __name__ == "__main__":
     input = []
-    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/', {'10344': '11', '10544': '21', '6784': '31'}))
-    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12824': '11', '12544': '21', '2904': '31'}))
-    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/'), {})
+    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/', {'10344': '11', '10544': '21', '6784': '31'}))
+    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12824': '11', '12544': '21', '2904': '31'}))
+    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/', {}))
     #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/tests/report/smalltraj/', {}))
 
     for s in input:
