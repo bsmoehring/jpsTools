@@ -1,5 +1,8 @@
 import xml.etree.ElementTree as ET
 
+from scipy.spatial import Voronoi, voronoi_plot_2d
+from shapely import ops
+from shapely.ops import cascaded_union
 
 from Agents import Agents, Source, Counts, Area
 from constants import jps
@@ -201,9 +204,9 @@ class TrajectoryOperations():
                         elem.clear()
                 f.write('</trajectories>'.encode())
 
-    def frames2pointlayers(self, framesAreaDic, trajfile, agents, path):
+    def frames2Points_Voronois(self, framesAreaDic, trajfile, agents, path):
 
-        print(self.__class__.__name__, 'frames2pointlayers', framesAreaDic)
+        print(self.__class__.__name__, 'frames2Points_Voronois', framesAreaDic)
         assert isinstance(agents, Agents)
 
         file = open(trajfile)
@@ -223,9 +226,11 @@ class TrajectoryOperations():
                             area = area1
                     if area == None:
                         continue
+                    area_poly = Polygon(area.coord_list)
 
                     print(self.__class__.__name__, 'frames2pointlayers', frameId, area_id)
                     points = {}
+                    buffers = {}
 
                     # print(frame)
                     for agentElem in elem.iter(jps.Agent):
@@ -239,9 +244,10 @@ class TrajectoryOperations():
                             #                            countAgents=None)
 
                             point = (x, y, z)
-                            points[agent_id] = point
+                            if area_poly.contains(Point(point)):
+                                points[agent_id] = point
                         agentElem.clear()
-                    print(len(points))
+                    print(self.__class__.__name__, 'frames2Points_Voronois', len(points), 'points in area', area_id)
 
                     #points in area to shape
                     properties = {
@@ -254,6 +260,7 @@ class TrajectoryOperations():
                         'geometry': 'Point',
                         'properties': properties
                     }
+                    #write points
                     with fiona.open(path+'points_area_'+area_id+'_frame_'+frameId, 'w', 'ESRI Shapefile', schema) as f:
 
                         for agent_id, point in points.items():
@@ -271,28 +278,61 @@ class TrajectoryOperations():
                         'geometry': 'Polygon',
                         'properties': {jps.Agent_ID: 'str'}
                     }
+                    #write buffers
                     with fiona.open(path + 'points_area_' + area_id + '_frame_' + frameId + '_buffer_1m', 'w', 'ESRI Shapefile',
                                     schema) as f:
                         for agent_id, point in points.items():
                             #raduis around agent
-                            buffer = Point(point[0], point[1]).buffer(1.0)
-                            #check if radius intersects room
-                            if buffer.intersects(Polygon(agents.counts.area_polygon_dic[area_id])):
-                                buffer = buffer.intersection(Polygon(agents.counts.area_polygon_dic[area_id]))
-                            else:
-                                continue
+                            bufferPoly = Point(point).buffer(1.0)
+                            #check if radius intersects room:
+                            bufferPoly = bufferPoly.intersection(Polygon(area_poly))
+                            buffers[agent_id] = bufferPoly
                             coords = []
-
-                            for coord in buffer.exterior.coords:
-                                print(coord)
+                            for coord in bufferPoly.exterior.coords:
                                 lat, lon = self.transform.XY2WGS(coord[0], coord[1])
                                 coords.append((lon, lat, point[2]))
-                            print(coords)
                             f.write({
                                 'properties': {jps.Agent_ID: agent_id},
                                 'geometry': mapping(Polygon(coords))
                             })
-                # do something with each polygon
+                    buffers = cascaded_union(buffers.values())
+                    # Voronoi
+                    points_for_vor = [[-1000, -1000], [-1000, 1000], [1000, -1000], [1000, 1000]]
+                    for agent_id, point in points.items():
+                        points_for_vor.append([point[0], point[1]])
+                    vor = Voronoi(points_for_vor)
+                    print(vor)
+                    lines = [
+                        LineString(vor.vertices[line])
+                        for line in vor.ridge_vertices
+                        if -1 not in line
+                        ]
+
+                    # write voronois
+                    schema = {
+                        'geometry': 'Polygon',
+                        'properties': {jps.Agent_ID: 'str'}
+                    }
+                    with fiona.open(path + 'voronoi' + area_id + '_frame_' + frameId, 'w', 'ESRI Shapefile', schema) as f:
+                        for poly in ops.polygonize(lines):
+                            #search agent_id by intersecting point
+                            properties = {jps.Agent_ID: ''}
+                            # for agent_id, point in points.items():
+                            #     if poly.contains(Point(point)):
+                            #         properties[jps.Agent_ID] = agent_id
+                            #         break
+                            poly = poly.intersection(buffers)
+                            coords = []
+                            for coord in poly.exterior.coords:
+                                lat, lon = self.transform.XY2WGS(coord[0], coord[1])
+                                coords.append((lon, lat, area.z))
+                            poly = Polygon(coords)
+                            f.write({
+                                'properties': properties,
+                                'geometry': mapping(poly)
+                            })
+
+
 
                 elem.clear()
         file.close()
