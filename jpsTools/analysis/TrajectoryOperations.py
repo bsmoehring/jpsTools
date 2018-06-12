@@ -1,12 +1,11 @@
 import xml.etree.ElementTree as ET
 
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from shapely import ops
+from shapely import ops, geometry
 from shapely.ops import cascaded_union
 
 from Agents import Agents, Source, Counts, Area
 from constants import jps
-from coords import Transformation
 from shapely.geometry import *
 import fiona
 
@@ -57,8 +56,10 @@ class TrajectoryOperations():
 
         assert isinstance(agents, Agents)
         properties = {
-                jps.Group_ID:'str', jps.Agent_ID:'str', jps.Time:'str', 'firstFrame':'str',
-                'lastFrame':'str', 'frames':'str', 'secondsInSim':'float', 'platformFrom':'str', 'platformTo':'str'}
+            jps.Group_ID:'str', jps.Agent_ID:'str', jps.Time:'str', 'firstFrame':'str',
+            'lastFrame':'str', 'frames':'str', 'secondsInSim':'float', 'platformFrom':'str', 'platformTo':'str',
+            'length':'float'
+        }
         for area in Counts.area_list:
             properties['area_'+area.area_id] = 'str'
         schema = {
@@ -134,8 +135,10 @@ class TrajectoryOperations():
             elif len(traj.points) == 1:
                 traj.points.append(traj.points[0])
             linestring = LineString(traj.points)
+            properties = agents.agents_sources.sourcesDic[agent_id2].getAttribDic()
+            properties['length'] = linestring.length
             f.write({
-                'properties': agents.agents_sources.sourcesDic[agent_id2].getAttribDic(),
+                'properties': properties,
                 'geometry': mapping(linestring)
             })
             # print(agent_id2, linestring)
@@ -283,7 +286,7 @@ class TrajectoryOperations():
                                     schema) as f:
                         for agent_id, point in points.items():
                             #raduis around agent
-                            bufferPoly = Point(point).buffer(1.0)
+                            bufferPoly = Point(point).buffer(1.02)
                             #check if radius intersects room:
                             bufferPoly = bufferPoly.intersection(Polygon(area_poly))
                             buffers[agent_id] = bufferPoly
@@ -311,17 +314,19 @@ class TrajectoryOperations():
                     # write voronois
                     schema = {
                         'geometry': 'Polygon',
-                        'properties': {jps.Agent_ID: 'str'}
+                        'properties': {jps.Agent_ID: 'str', 'sqm':'float'}
                     }
                     with fiona.open(path + 'voronoi' + area_id + '_frame_' + frameId, 'w', 'ESRI Shapefile', schema) as f:
                         for poly in ops.polygonize(lines):
                             #search agent_id by intersecting point
                             properties = {jps.Agent_ID: ''}
-                            # for agent_id, point in points.items():
-                            #     if poly.contains(Point(point)):
-                            #         properties[jps.Agent_ID] = agent_id
-                            #         break
+                            for agent_id, point in points.items():
+                                 if poly.contains(Point(point)):
+                                     properties[jps.Agent_ID] = agent_id
+                                     break
                             poly = poly.intersection(buffers)
+                            print(poly.area)
+                            properties['sqm'] = poly.area
                             coords = []
                             for coord in poly.exterior.coords:
                                 lat, lon = self.transform.XY2WGS(coord[0], coord[1])
