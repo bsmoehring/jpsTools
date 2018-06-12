@@ -3,37 +3,38 @@ from constants import jps
 
 class Agents():
 
-    def __init__(self, inifile):
+    def __init__(self, inifile=None):
 
         self.agents_distribution = Agents_Distribution()
         self.agents_sources = Agents_Sources()
         self.counts = Counts()
 
-        file = open(inifile)
-        for event, elem in ET.iterparse(file, ['start', 'end']):
-            assert isinstance(elem, ET.Element)
+        if isinstance(inifile, str):
+            file = open(inifile)
+            for event, elem in ET.iterparse(file, ['start', 'end']):
+                assert isinstance(elem, ET.Element)
 
-            if event == 'start':
-                continue
+                if event == 'start':
+                    continue
 
-            if elem.tag == 'agents_distribution':
-                for groupElem in elem.iter(jps.Group):
-                    assert isinstance(groupElem, ET.Element)
-                    self.agents_distribution.addGroup(Group(groupElem.attrib))
-                elem.clear()
+                if elem.tag == 'agents_distribution':
+                    for groupElem in elem.iter(jps.Group):
+                        assert isinstance(groupElem, ET.Element)
+                        self.agents_distribution.addGroup(Group(groupElem.attrib))
+                    elem.clear()
 
-            if elem.tag == 'agents_sources':
-                print(event, elem.tag)
-                for sourceElem in elem.iter(jps.Source):
-                    assert isinstance(sourceElem, ET.Element)
-                    self.agents_sources.addSource(Source(sourceElem.attrib))
-                elem.clear()
-            if elem.tag == 'trajectories':
-                fps = int(elem.attrib['fps'])
-                print(event, elem.tag, fps)
-                self.fps = fps
-                elem.clear()
-        file.close()
+                if elem.tag == 'agents_sources':
+                    print(event, elem.tag)
+                    for sourceElem in elem.iter(jps.Source):
+                        assert isinstance(sourceElem, ET.Element)
+                        self.agents_sources.addSource(Source(sourceElem.attrib))
+                    elem.clear()
+                if elem.tag == 'trajectories':
+                    fps = int(elem.attrib['fps'])
+                    print(event, elem.tag, fps)
+                    self.fps = fps
+                    elem.clear()
+            file.close()
 
         print('groups: ', len(self.agents_distribution.groupsDic))
         print('agents: ', len(self.agents_sources.sourcesDic))
