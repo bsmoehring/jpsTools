@@ -148,6 +148,58 @@ def plotMax(plt, df, area, color, offset, fps):
     )
     return maxY_X
 
+def plotAreaDensity(input_list, areas, fps):
+    column = '31_avgA'
+    plt.title('Detail '+column)
+    plt.xlabel('Zeit in Sekunden')
+    plt.xticks(np.arange(300, 1801, 300))
+    plt.ylabel('Durchschnittliche Fläche / Person')
+
+    for input in input_list:
+        color = input['color']
+        label = input['label']
+        file = input['file']+'areaLoS.csv'
+        converters = {'frame': int}
+        for area in areas:
+            converters[str(area)+'_numb'] = int
+            converters[str(area)+'_minA'] = float
+            converters[str(area)+'_maxA'] = float
+            converters[str(area)+'_avgA'] = float
+        frames = pd.read_csv(file, sep=';', converters=converters)
+        selectedFrames = frames.loc[
+            ((frames['frame'] % (fps) == 0)) & (frames['frame']>300*fps) & (frames['31_numb'] > 10)
+        ]
+        selectedFramesMeans = selectedFrames.groupby(
+            pd.cut(selectedFrames['frame'], np.arange(0, 14000 + (20 * fps), 20 * fps))
+        ).mean()
+        plt.plot(selectedFramesMeans['frame'] / fps, selectedFramesMeans[column], color=color, label=label, alpha=0.9)
+        ylim = plt.axes().get_ylim()[1]
+        mean = selectedFrames[column].mean()
+        plt.axhline(y=mean, color=color)
+        plt.text(
+            x=300., y= 1.0*(mean/ylim*ylim),
+            s='\u2205: '+str(round(mean,2)),
+            horizontalalignment='center',
+            verticalalignment='center',
+            color=color,
+            bbox=dict(facecolor='white', alpha=1.0)
+        )
+        minY = int(selectedFrames[column].min())
+        minY_X = selectedFrames.loc[selectedFrames[column].idxmin()]['frame']
+        plt.axvline(x=minY_X/fps, color=color)
+        plt.text(
+            x=minY_X/fps, y=1*plt.axes().get_ylim()[0],
+            s='Sek: \n' + str(int(round(minY_X / fps, 0))),
+            horizontalalignment='center',
+            verticalalignment='center',
+            color=color,
+            bbox=dict(facecolor='white', alpha=1.0)
+        )
+    plt.legend()
+
+    plt.show()
+    plt.close()
+
 def runAggregateStatistics(input_csv, label):
     changes = pd.read_csv(input_csv, sep=';', converters={'secondsInSim': float, 'time': int})
     mean = round(changes['secondsInSim'].mean(), 2)
@@ -205,8 +257,10 @@ if __name__ == "__main__":
     #
     # print(framesDic)
 
-    for input in input_list:
-        runAggregateStatistics(input['file']+'changeTimes.csv', input['label'])
+    plotAreaDensity(input_list, areas, 8)
+
+    #for input in input_list:
+    #    runAggregateStatistics(input['file']+'changeTimes.csv', input['label'])
 
 
 
