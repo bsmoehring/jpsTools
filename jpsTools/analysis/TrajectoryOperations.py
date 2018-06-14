@@ -1,13 +1,15 @@
+import csv
 import xml.etree.ElementTree as ET
 
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from shapely import ops, geometry
 from shapely.ops import cascaded_union
-
+import pandas as pd
 from Agents import Agents, Source, Counts, Area
 from constants import jps
 from shapely.geometry import *
 import fiona
+import matplotlib.pyplot as plt
 
 class TrajectoryOperations():
 
@@ -48,7 +50,7 @@ class TrajectoryOperations():
 
         file.close()
 
-        return frameRate, frameId
+        return frameRate, frameId, countFrameAgents
 
     def agents2shape(self, trajfile, geoJsonFile, agents):
 
@@ -88,8 +90,6 @@ class TrajectoryOperations():
             self.traj2points(
                 trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f
             )
-
-
 
     def traj2points(self, trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f):
 
@@ -341,6 +341,102 @@ class TrajectoryOperations():
 
                 elem.clear()
         file.close()
+
+    def area_statistics(self, trajfile, agents, path):
+
+        print(self.__class__.__name__, 'area_statistics', trajfile)
+
+        assert isinstance(agents, Agents)
+
+        file = open(trajfile)
+
+        with open(path+'areaLoS.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            columns = ['frame']
+            for area in agents.counts.area_list:
+                columns.append(area.area_id+'_numb')
+                columns.append(area.area_id+'_minA')
+                columns.append(area.area_id+'_maxA')
+                columns.append(area.area_id+'_avgA')
+
+                area.area_poly = Polygon(area.coord_list)
+                area.frame_agent_points = {}
+            writer.writerow(columns)
+
+            for event, elem in ET.iterparse(file, ['end']):
+                assert isinstance(elem, ET.Element)
+
+                if elem.tag == jps.Frame:
+                    frameId = elem.attrib[jps.Traj_ID]
+                    frame = int(float(frameId))
+                    seconds = frame / self.fps
+
+                    if frame % self.frameDivisor == 0:
+                        print(frame)
+                        # check if any agent is in one of the areas
+                        for agentElem in elem.iter(jps.Agent):
+
+                            agent_id = agentElem.attrib[jps.Traj_ID]
+                            handle = False
+                            x = float(agentElem.attrib['x'])
+                            y = float(agentElem.attrib['y'])
+                            z = float(agentElem.attrib['z'])
+
+                            for area in agents.counts.area_list:
+
+                                if z == area.z and x > area.xmin and x < area.xmax and y > area.ymin and y < area.ymax:
+                                    p = Point(x, y)
+                                    if area.area_poly.contains(p):
+                                        area.frame_agent_points[agent_id] = p
+                            agentElem.clear()
+                        elem.clear()
+
+                        row = [frameId]
+                        for area in agents.counts.area_list:
+                            buffers = []
+                            for p in area.frame_agent_points.values():
+                                buffers.append(p.buffer(1.02))
+                            buffers = cascaded_union(buffers)
+                            buffers = buffers.intersection(area.area_poly)
+                            # Voronoi
+                            points_for_vor = [[-1000, -1000], [-1000, 1000], [1000, -1000], [1000, 1000]]
+                            for agent_id, point in area.frame_agent_points.items():
+                                points_for_vor.append([point.x, point.y])
+                            vor = Voronoi(points_for_vor)
+                            lines = [
+                                LineString(vor.vertices[line])
+                                for line in vor.ridge_vertices
+                                if -1 not in line
+                                ]
+                            voronoi_area_list = []
+                            for poly in ops.polygonize(lines):
+                                # search agent_id by intersecting point
+                                poly = poly.intersection(buffers)
+                                voronoi_area_list.append(poly.area)
+                                #x, y = poly.exterior.xy
+                                #plt.plot(x, y, color='#6699cc', alpha=0.7, linewidth=1, solid_capstyle='round', zorder=2)
+                            if voronoi_area_list:
+                                row.append(len(voronoi_area_list))
+                                row.append(round(min(voronoi_area_list),2))
+                                row.append(round(max(voronoi_area_list),2))
+                                row.append(round(sum(voronoi_area_list) / float(len(voronoi_area_list)),2))
+                                #x, y = area.area_poly.exterior.xy
+                                #plt.plot(x, y, color='#6699cc', alpha=0.7,
+                                #         linewidth=3, solid_capstyle='round', zorder=2)
+                                #plt.show()
+                                #plt.close()
+                            else:
+                                row.append(0)
+                                row.append('NaN')
+                                row.append('NaN')
+                                row.append('NaN')
+                            area.frame_agent_points.clear()
+
+                        writer.writerow(row)
+
+                    elem.clear()
+
+            file.close()
 
 
 class AgentTraj:

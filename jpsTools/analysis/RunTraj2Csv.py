@@ -19,24 +19,24 @@ def main(input):
 
     timestampInterval = 1
 
-    counts = Counts()
-
     agents = Agents(inputIni)
     traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin), timestampInterval=timestampInterval, fps=agents.fps)
-    fps, lastFrame = traj.getAgentsOccurences(trajfile=inputTrajectory, agents=agents)
-    agentsRemoved = cleanAndCalcAgents(fps, lastFrame, agents.agents_sources.sourcesDic)
-    print(agentsRemoved, 'agents were removed because they hadnt left the simulation at the last frame')
-    StopsManager().assignPlatforms(agents)
-
-    traj.assign_areas(
-        trajfile=inputTrajectory, agents=agents, counts=agents.counts
-    )
+    #fps, lastFrame, agentsInLastFrame = traj.getAgentsOccurences(trajfile=inputTrajectory, agents=agents)
+    #agentsRemoved = cleanAndCalcAgents(fps, lastFrame, agents.agents_sources.sourcesDic)
+    #print(agentsRemoved, 'agents were removed because they hadnt left the simulation at the last frame', lastFrame)
+    #print(agentsInLastFrame, 'agents in last frame')
+    # StopsManager().assignPlatforms(agents)
+    #
+    # traj.assign_areas(
+    #     trajfile=inputTrajectory, agents=agents, counts=agents.counts
+    # )
+    # printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
+    # printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
+    # traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
 
     #traj.frames2Points_Voronois(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
 
-    traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
-    printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
-    printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
+    traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
 
     print(inputfolder)
     print(len(agents.agents_sources.sourcesDic), 'agents are considered')
@@ -175,9 +175,9 @@ class StopsManager():
 
 if __name__ == "__main__":
     input = []
-    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/', {'10344': '11', '10544': '21', '6784': '31'}))
-    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12824': '11', '12544': '21', '2904': '31'}))
-    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/', {}))
+    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/', {'10344': '11', '10544': '21', '6784': '31'}))
+    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12824': '11', '12544': '21', '2904': '31'}))
+    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/', {'3584': '11', '9224': '21', '11104': '31'}))
     #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/tests/report/smalltraj/', {}))
 
     for s in input:
