@@ -95,7 +95,7 @@ def plotFrameAreaAgents(output, area, fps, group_seconds, input_list = []):
             pd.cut(selectedFrames['frame'], np.arange(0, 14000+(group_seconds*fps), group_seconds*fps))
         ).mean()
         plt.plot(selectedFramesMeans['frame'] / fps, selectedFramesMeans[str(area)], color=color, label=label,
-                 alpha=0.9)
+                 alpha=0.9, linewidth=0.7)
 
         #print(selectedFramesMeans)
 
@@ -148,54 +148,71 @@ def plotMax(plt, df, area, color, offset, fps):
     )
     return maxY_X
 
-def plotAreaDensity(input_list, areas, fps):
-    column = '31_avgA'
-    plt.title('Detail '+column)
+def plotAreaDensity(input_list, area, areas, fps):
+    column = area+'_avgA'
+    plt.title('Detail '+area)
     plt.xlabel('Zeit in Sekunden')
     plt.xticks(np.arange(300, 1801, 300))
+    plt.yticks(np.arange(0., 3.5, 0.5))
+    axes = plt.gca()
+    axes.set_ylim(0.5, 3.25)
     plt.ylabel('Durchschnittliche Fläche / Person')
 
     for input in input_list:
         color = input['color']
         label = input['label']
+        offset = input['offset']
         file = input['file']+'areaLoS.csv'
         converters = {'frame': int}
-        for area in areas:
-            converters[str(area)+'_numb'] = int
-            converters[str(area)+'_minA'] = float
-            converters[str(area)+'_maxA'] = float
-            converters[str(area)+'_avgA'] = float
+        for area1 in areas:
+            converters[str(area1)+'_numb'] = int
+            converters[str(area1)+'_minA'] = float
+            converters[str(area1)+'_maxA'] = float
+            converters[str(area1)+'_avgA'] = float
         frames = pd.read_csv(file, sep=';', converters=converters)
         selectedFrames = frames.loc[
             ((frames['frame'] % (fps) == 0)) & (frames['frame']>300*fps) & (frames['31_numb'] > 10)
         ]
         selectedFramesMeans = selectedFrames.groupby(
-            pd.cut(selectedFrames['frame'], np.arange(0, 14000 + (20 * fps), 20 * fps))
+            pd.cut(selectedFrames['frame'], np.arange(0, 14000 + (10 * fps), 10 * fps))
         ).mean()
-        plt.plot(selectedFramesMeans['frame'] / fps, selectedFramesMeans[column], color=color, label=label, alpha=0.9)
+        plt.plot(
+            selectedFramesMeans['frame'] / fps, selectedFramesMeans[column],
+            color=color, label=label, alpha=0.9, linewidth=0.7
+        )
         ylim = plt.axes().get_ylim()[1]
         mean = selectedFrames[column].mean()
-        plt.axhline(y=mean, color=color)
+        plt.axhline(y=mean, color=color, linewidth=1.5)
         plt.text(
-            x=300., y= 1.0*(mean/ylim*ylim),
+            x=320., y= 1.0*(mean/ylim*ylim)-offset/20,
             s='\u2205: '+str(round(mean,2)),
             horizontalalignment='center',
             verticalalignment='center',
             color=color,
             bbox=dict(facecolor='white', alpha=1.0)
         )
-        minY = int(selectedFrames[column].min())
+        minY = selectedFrames[column].min()
         minY_X = selectedFrames.loc[selectedFrames[column].idxmin()]['frame']
-        plt.axvline(x=minY_X/fps, color=color)
-        plt.text(
-            x=minY_X/fps, y=1*plt.axes().get_ylim()[0],
-            s='Sek: \n' + str(int(round(minY_X / fps, 0))),
-            horizontalalignment='center',
-            verticalalignment='center',
-            color=color,
-            bbox=dict(facecolor='white', alpha=1.0)
-        )
-    plt.legend()
+        plt.axvline(x=minY_X/fps, color=color, linewidth=1.5)
+        # plt.text(
+        #     x=minY_X/fps, y=1*plt.axes().get_ylim()[0],
+        #     s='Sek: \n' + str(int(round(minY_X / fps, 0))),
+        #     horizontalalignment='center',
+        #     verticalalignment='center',
+        #     color=color,
+        #     bbox=dict(facecolor='white', alpha=1.0)
+        # )
+        plt.text(x=minY_X / fps, y=(minY / ylim * ylim)-offset/30,
+                 s=str(minY) + ' $m^2$'+'\nSek: ' + str(int(minY_X/fps)),
+                 horizontalalignment='center',
+                 verticalalignment='center',
+                 color=color,
+                 bbox=dict(facecolor='white', alpha=1.0)
+                 )
+        print(area, label, minY, int(minY_X))
+    leg  = plt.legend()
+    for legobj in leg.legendHandles:
+        legobj.set_linewidth(2.0)
 
     plt.show()
     plt.close()
@@ -257,7 +274,8 @@ if __name__ == "__main__":
     #
     # print(framesDic)
 
-    plotAreaDensity(input_list, areas, 8)
+    for area in areas:
+        plotAreaDensity(input_list, str(area), areas, 8)
 
     #for input in input_list:
     #    runAggregateStatistics(input['file']+'changeTimes.csv', input['label'])
