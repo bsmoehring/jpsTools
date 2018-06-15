@@ -72,7 +72,7 @@ class Agents_Sources:
             source.firstChangeZ = z
             source.firstChangeZFrame = frame
         #keep last z change
-        elif source.lastZ != z:
+        elif source.lastChangeZ == None and source.lastZ != z:
             source.lastChangeZ = z
             source.lastChangeZFrame = frame
         source.lastFrame = frame
@@ -146,6 +146,7 @@ class Source:
         attribDic['secondsInSim'] = self.secondsInSim
         attribDic['platformFrom'] = self.platformFrom
         attribDic['platformTo'] = self.platformTo
+        attribDic['secondsBetweenZChange'] = self.secondsBetweenZChange
         for area in Counts.area_list:
             passes_area = 'false'
             if self.agent_id in area.agents_list:

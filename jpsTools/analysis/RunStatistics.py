@@ -148,15 +148,17 @@ def plotMax(plt, df, area, color, offset, fps):
     )
     return maxY_X
 
-def plotAreaDensity(input_list, area, areas, fps):
+def plotAreaDensity(input_list, area, areas, fps, path):
+    plt.rcParams.update({'font.size': 14})
+    outputfile = path + 'densityinarea'+area
     column = area+'_avgA'
-    plt.title('Detail '+area)
+    #plt.title('Detail '+area[0])
     plt.xlabel('Zeit in Sekunden')
     plt.xticks(np.arange(300, 1801, 300))
     plt.yticks(np.arange(0., 3.5, 0.5))
     axes = plt.gca()
     axes.set_ylim(0.5, 3.25)
-    plt.ylabel('Durchschnittliche Fläche / Person')
+    plt.ylabel('$m^2$ / Person')
 
     for input in input_list:
         color = input['color']
@@ -174,7 +176,7 @@ def plotAreaDensity(input_list, area, areas, fps):
             ((frames['frame'] % (fps) == 0)) & (frames['frame']>300*fps) & (frames['31_numb'] > 10)
         ]
         selectedFramesMeans = selectedFrames.groupby(
-            pd.cut(selectedFrames['frame'], np.arange(0, 14000 + (10 * fps), 10 * fps))
+            pd.cut(selectedFrames['frame'], np.arange(0, 14000 + (20 * fps), 20 * fps))
         ).mean()
         plt.plot(
             selectedFramesMeans['frame'] / fps, selectedFramesMeans[column],
@@ -182,9 +184,9 @@ def plotAreaDensity(input_list, area, areas, fps):
         )
         ylim = plt.axes().get_ylim()[1]
         mean = selectedFrames[column].mean()
-        plt.axhline(y=mean, color=color, linewidth=1.5)
+        #plt.axhline(y=mean, color=color, linewidth=1.5)
         plt.text(
-            x=320., y= 1.0*(mean/ylim*ylim)-offset/20,
+            x=280., y= 1.0*(mean/ylim*ylim)-offset/15,
             s='\u2205: '+str(round(mean,2)),
             horizontalalignment='center',
             verticalalignment='center',
@@ -202,7 +204,9 @@ def plotAreaDensity(input_list, area, areas, fps):
         #     color=color,
         #     bbox=dict(facecolor='white', alpha=1.0)
         # )
-        plt.text(x=minY_X / fps, y=(minY / ylim * ylim)-offset/30,
+        y = (minY / ylim * ylim)-(offset/15) -0.1
+        if y < 0.7: y = 0.7
+        plt.text(x=minY_X / fps, y=y,
                  s=str(minY) + ' $m^2$'+'\nSek: ' + str(int(minY_X/fps)),
                  horizontalalignment='center',
                  verticalalignment='center',
@@ -214,6 +218,7 @@ def plotAreaDensity(input_list, area, areas, fps):
     for legobj in leg.legendHandles:
         legobj.set_linewidth(2.0)
 
+    plt.savefig(outputfile)
     plt.show()
     plt.close()
 
@@ -275,7 +280,7 @@ if __name__ == "__main__":
     # print(framesDic)
 
     for area in areas:
-        plotAreaDensity(input_list, str(area), areas, 8)
+        plotAreaDensity(input_list, str(area), areas, 8, input+'analysis/')
 
     #for input in input_list:
     #    runAggregateStatistics(input['file']+'changeTimes.csv', input['label'])
