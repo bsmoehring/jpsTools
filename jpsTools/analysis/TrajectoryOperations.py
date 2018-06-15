@@ -264,7 +264,7 @@ class TrajectoryOperations():
                         'properties': properties
                     }
                     #write points
-                    with fiona.open(path+'points_area_'+area_id+'_frame_'+frameId, 'w', 'ESRI Shapefile', schema) as f:
+                    with fiona.open(path+'points_area_'+area_id, 'w', 'ESRI Shapefile', schema) as f:
 
                         for agent_id, point in points.items():
                             lat, lon = self.transform.XY2WGS(
@@ -281,24 +281,26 @@ class TrajectoryOperations():
                         'geometry': 'Polygon',
                         'properties': {jps.Agent_ID: 'str'}
                     }
-                    #write buffers
-                    with fiona.open(path + 'points_area_' + area_id + '_frame_' + frameId + '_buffer_1m', 'w', 'ESRI Shapefile',
-                                    schema) as f:
-                        for agent_id, point in points.items():
-                            #raduis around agent
-                            bufferPoly = Point(point).buffer(1.02)
-                            #check if radius intersects room:
-                            bufferPoly = bufferPoly.intersection(Polygon(area_poly))
-                            buffers[agent_id] = bufferPoly
-                            coords = []
-                            for coord in bufferPoly.exterior.coords:
-                                lat, lon = self.transform.XY2WGS(coord[0], coord[1])
-                                coords.append((lon, lat, point[2]))
-                            f.write({
-                                'properties': {jps.Agent_ID: agent_id},
-                                'geometry': mapping(Polygon(coords))
-                            })
+                    for agent_id, point in points.items():
+                        # raduis around agent
+                        bufferPoly = Point(point).buffer(1.02)
+                        # check if radius intersects room:
+                        bufferPoly = bufferPoly.intersection(Polygon(area_poly))
+                        buffers[agent_id] = bufferPoly
                     buffers = cascaded_union(buffers.values())
+                    #write buffers
+                    # with fiona.open(path + 'points_area_' + area_id + '_buffer_1m', 'w', 'ESRI Shapefile',
+                    #                 schema) as f:
+                    #     for agent_id, point in points.items():
+                    #         coords = []
+                    #         for coord in bufferPoly.exterior.coords:
+                    #             lat, lon = self.transform.XY2WGS(coord[0], coord[1])
+                    #             coords.append((lon, lat, point[2]))
+                    #         f.write({
+                    #             'properties': {jps.Agent_ID: agent_id},
+                    #             'geometry': mapping(Polygon(coords))
+                    #         })
+
                     # Voronoi
                     points_for_vor = [[-1000, -1000], [-1000, 1000], [1000, -1000], [1000, 1000]]
                     for agent_id, point in points.items():
@@ -316,7 +318,7 @@ class TrajectoryOperations():
                         'geometry': 'Polygon',
                         'properties': {jps.Agent_ID: 'str', 'sqm':'float'}
                     }
-                    with fiona.open(path + 'voronoi' + area_id + '_frame_' + frameId, 'w', 'ESRI Shapefile', schema) as f:
+                    with fiona.open(path + 'voronoi' + area_id, 'w', 'ESRI Shapefile', schema) as f:
                         for poly in ops.polygonize(lines):
                             #search agent_id by intersecting point
                             properties = {jps.Agent_ID: ''}
