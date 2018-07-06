@@ -22,21 +22,21 @@ def main(input):
     agents = Agents(inputIni)
     traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin), timestampInterval=timestampInterval, fps=agents.fps)
     fps, lastFrame, agentsInLastFrame = traj.getAgentsOccurences(trajfile=inputTrajectory, agents=agents)
-    agentsRemoved = cleanAndCalcAgents(fps, int(float(lastFrame)), agents.agents_sources.sourcesDic)
-    #print(agentsRemoved, 'agents were removed because they hadnt left the simulation at the last frame', lastFrame)
+    agentsRemoved = calcAgentsTime(fps, int(float(lastFrame)), agents.agents_sources.sourcesDic)
+    #print(agentsRemoved, 'agents were not calculated because they hadnt left the simulation at the last frame', lastFrame)
     #print(agentsInLastFrame, 'agents in last frame')
-    # StopsManager().assignPlatforms(agents)
-    #
-    # traj.assign_areas(
-    #     trajfile=inputTrajectory, agents=agents, counts=agents.counts
-    # )
-    # printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
-    # printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
-    # traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
+
+    StopsManager().assignPlatforms(agents)
+    traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
+    traj.assign_areas(
+        trajfile=inputTrajectory, agents=agents, counts=agents.counts
+    )
+    printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
+
+    printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
+    traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
 
     #traj.frames2Points_Voronois(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
-
-    #traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
 
     print(inputfolder)
     print(len(agents.agents_sources.sourcesDic), 'agents are considered')
@@ -44,28 +44,31 @@ def main(input):
 
     agents.clear()
 
-def cleanAndCalcAgents(fps, lastFrame, agents = {}):
+def calcAgentsTime(fps, lastFrame, agents = {}):
     print('cleanAndCalcAgents')
 
     # remove agents that haven't appeared or didn't leave the simulation yet
     removeIds = []
     for agent_id, agent in agents.items():
-        if agent.firstFrame == None or agent.lastFrame == lastFrame:
+        if agent.firstFrame == None:
             removeIds.append(agent_id)
-    for agent_id in removeIds:
-       del agents[agent_id]
-
-    # calculate time in simulation
-    for agent_id, agent in agents.items():
-        assert isinstance(agent, Source)
-        agent.frames = agent.lastFrame-agent.firstFrame
-        agent.secondsInSim = agent.frames / fps
-        if agent.lastChangeZFrame != None and agent.firstChangeZFrame != None and agent.lastChangeZFrame != agent.firstChangeZFrame:
-            agent.zframes = agent.lastChangeZFrame-agent.firstChangeZFrame
-            agent.secondsBetweenZChange = agent.zframes / fps
+        elif agent.lastFrame == lastFrame:
+            agent.frames = 'NaN'
+            agent.secondsInSim = 'NaN'
+            agent.zframes = 'NaN'
+            agent.secondsBetweenZChange = 'NaN'
         else:
-            agent.secondsBetweenZChange = None
-            agent.zframes = None
+            assert isinstance(agent, Source)
+            agent.frames = agent.lastFrame-agent.firstFrame
+            agent.secondsInSim = agent.frames / fps
+            if agent.lastChangeZFrame != None and agent.firstChangeZFrame != None and agent.lastChangeZFrame != agent.firstChangeZFrame:
+                agent.zframes = agent.lastChangeZFrame-agent.firstChangeZFrame
+                agent.secondsBetweenZChange = agent.zframes / fps
+            else:
+                agent.secondsBetweenZChange = 'NaN'
+                agent.zframes = 'NaN'
+    for agent_id in removeIds:
+        del agents[agent_id]
 
     return len(removeIds)
 
@@ -74,9 +77,10 @@ def printSourcesToCsv(agents, file):
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         columns = [jps.Group_ID, jps.Agent_ID, jps.Time, 'firstFrame',
-                'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo', 'secondsBetweenZChange']
+                'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo']
         for area in agents.counts.area_list:
             columns.append('area_'+area.area_id)
+            columns.append('minArea'+area.area_id)
         writer.writerow(columns)
         for source in agents.agents_sources.sourcesDic.values():
             attribDic = source.getAttribDic()

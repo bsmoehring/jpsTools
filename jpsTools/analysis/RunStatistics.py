@@ -222,19 +222,119 @@ def plotAreaDensity(input_list, area, areas, fps, path):
     plt.show()
     plt.close()
 
-def runAggregateStatistics(input_csv, label):
-    changes = pd.read_csv(input_csv, sep=';', converters={'secondsInSim': float, 'time': int})
+def runAggregateStatistics(input_csv, label, arealist, area_quality_dic):
+    changes = pd.read_csv(
+        input_csv, sep=';',
+        converters={
+            'secondsInSim': float, 'time': int,
+            'minArea11':float, 'minArea21':float, 'minArea31':float
+        }
+    )
     mean = round(changes['secondsInSim'].mean(), 2)
     selected_changes = changes.loc[
-        (changes['time'] >= 240)
+        (changes['time'] >= 300)
         & ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
     ]
-    selected_changes_mean = round(selected_changes['secondsInSim'].mean(), 2)
+    selected_changes_time_mean = round(selected_changes['secondsInSim'].mean(), 2)
     print(
         label,
         'all:', changes.shape[0], 'mean:', mean, 'deviation', round(changes['secondsInSim'].std(),2),
-        'areas', selected_changes.shape[0], 'mean:', selected_changes_mean, 'var', round(selected_changes['secondsInSim'].std(),2)
+        'areas', selected_changes.shape[0], 'mean:', selected_changes_time_mean, 'var', round(selected_changes['secondsInSim'].std(),2)
     )
+
+    for area in arealist:
+        area_column = 'area_'+str(area)
+        minArea_column = 'minArea'+str(area)
+        selected_changes = changes.loc[
+            (changes['time'] >= 300)
+            & (changes[area_column]==True)
+        ]
+        area_mean = round(selected_changes[minArea_column].mean(), 2)
+
+        area_quality_dic[area]['A'].append(selected_changes.loc[(selected_changes[minArea_column] >= 3.24)].shape[0])
+        area_quality_dic[area]['B'].append(selected_changes.loc[
+            (selected_changes[minArea_column] < 3.24) & (selected_changes[minArea_column] >= 2.32)].shape[0])
+        area_quality_dic[area]['C'].append(selected_changes.loc[
+            (selected_changes[minArea_column] < 2.32) & (selected_changes[minArea_column] >= 1.39)].shape[0])
+        area_quality_dic[area]['D'].append(selected_changes.loc[
+            (selected_changes[minArea_column] < 1.39) & (selected_changes[minArea_column] >= 0.93)].shape[0])
+        area_quality_dic[area]['E'].append(selected_changes.loc[
+            (selected_changes[minArea_column] < 0.93) & (selected_changes[minArea_column] >= 0.46)].shape[0])
+        area_quality_dic[area]['F'].append(selected_changes.loc[(selected_changes[minArea_column] < 0.46)].shape[0])
+
+        print(
+            label, area_column,
+            'N =', selected_changes.shape[0],
+            'areaMean', area_mean,
+            'A', area_quality_dic[area]['A'][-1],
+            'B', area_quality_dic[area]['B'][-1],
+            'C', area_quality_dic[area]['C'][-1],
+            'D', area_quality_dic[area]['D'][-1],
+            'E', area_quality_dic[area]['E'][-1],
+            'F', area_quality_dic[area]['F'][-1]
+        )
+
+def plot_minAreas(areas, input_list, qualities):
+    area_quality_dic = {}
+    for area in areas:
+        area_quality_dic[area] = {}
+        for quality in qualities:
+            area_quality_dic[area][quality] = []
+    for input in input_list:
+        runAggregateStatistics(input['file'] + 'changeTimes.csv', input['label'], areas, area_quality_dic)
+
+    colors = ['#fff5f0', '#fcccb7', '#fb8e6e', '#f34d37', '#c4161b', '#67000d']
+    labels = qualities
+    ind = np.arange(3)
+    width = 0.5
+    f, ax = plt.subplots(1, 3, sharey=True, sharex=True)
+    f.subplots_adjust(bottom=0.2)  # make room for the legend
+    plt.yticks(np.arange(0, 4500, 500))
+    plt.xticks(ind + width / 2., ('Basis', '1', '2'))
+    p = []  # list of bar properties
+
+    def create_subplot(matrix, colors, axis, title):
+        bar_renderers = []
+        ind = np.arange(matrix.shape[1])
+        bottoms = np.cumsum(np.vstack((np.zeros(matrix.shape[1]), matrix)), axis=0)[:-1]
+        for i, row in enumerate(matrix):
+            r = axis.bar(ind, row, width=0.5, color=colors[i], bottom=bottoms[i])
+            bar_renderers.append(r)
+        axis.set_title(title)
+        return bar_renderers
+
+    for area in areas:
+        values = []
+        for quality in qualities:
+            values.append(area_quality_dic[area][quality])
+
+        p.extend(create_subplot(np.array(values), colors, ax[areas.index(area)], 'Detail '+str(area)))
+
+    ax[0].set_ylabel('Instructions Executed')  # add left y label
+    ax[0].set_ybound(0, 4500)  # add buffer at the top of the bars
+    f.legend(((x[0] for x in p)),  # bar properties
+             (labels),
+             bbox_to_anchor=(0.5, 0),
+             loc='lower center',
+             ncol=6)
+    plt.show()
+
+
+def nameEarlyAgents(input_list, platformFrom, platformTo):
+
+    for inputDic in input_list:
+
+        file = inputDic['file']+'changeTimes.csv'
+        label = inputDic['label']
+
+        changes = pd.read_csv(file, sep=';', converters={'secondsInSim':float, 'time':int})
+        selectedChanges = changes.loc[
+            ((changes['platformFrom'] == platformFrom) & (changes['platformTo'] == platformTo))
+            & (changes['secondsInSim'] < 20)
+        ]
+        print(selectedChanges['agent_id'])
+        print(label, selectedChanges.shape[0], 'were early and removed:(')
+
 
 if __name__ == "__main__":
 
@@ -243,6 +343,7 @@ if __name__ == "__main__":
 #        , 'Gontardstr.', 'Dircksenstr.', 'Tram U'
     ]
     areas = [11, 21, 31]
+    qualities = ['A','B','C','D','E','F']
 
     input= '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/'
     inputBasis = {'file':input + '0_ipfDemandBasic/', 'label':'Basis', 'color':'grey', 'opacity':0.4, 'offset':-2}
@@ -279,12 +380,12 @@ if __name__ == "__main__":
     #
     # print(framesDic)
 
-    for area in areas:
-        plotAreaDensity(input_list, str(area), areas, 8, input+'analysis/')
+    #nameEarlyAgents(input_list, 'Dircksenstr.', 'U8')
 
-    #for input in input_list:
-    #    runAggregateStatistics(input['file']+'changeTimes.csv', input['label'])
+    #for area in areas:
+    #    plotAreaDensity(input_list, str(area), areas, 8, input+'analysis/')
 
+    plot_minAreas(areas, input_list, qualities)
 
 
 

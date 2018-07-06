@@ -126,6 +126,19 @@ class Source:
         self.lastChangeZFrame = None
         self.lastZ = None
         self.secondsBetweenZChange = None
+        self.minAreaByArea = {}
+
+    def addArea(self, area_id, area_size):
+        '''
+        stores the minimum area (min LoS) that each agent persceived
+        :param areaSize:
+        :return:
+        '''
+        if area_id in self.minAreaByArea:
+            if area_size < self.minAreaByArea[area_id]:
+                self.minAreaByArea[area_id] = area_size
+        else:
+            self.minAreaByArea[area_id] = area_size
 
     def getGroup(self):
         '''
@@ -146,12 +159,17 @@ class Source:
         attribDic['secondsInSim'] = self.secondsInSim
         attribDic['platformFrom'] = self.platformFrom
         attribDic['platformTo'] = self.platformTo
-        attribDic['secondsBetweenZChange'] = self.secondsBetweenZChange
         for area in Counts.area_list:
+            #passed area?
             passes_area = 'false'
             if self.agent_id in area.agents_list:
                 passes_area = 'true'
             attribDic['area_'+area.area_id] = passes_area
+            #minArea in area
+            if area.area_id in self.minAreaByArea:
+                attribDic['minArea'+area.area_id] = self.minAreaByArea[area.area_id]
+            else:
+                attribDic['minArea'+area.area_id] = 'NaN'
         return attribDic
 
 class Counts():

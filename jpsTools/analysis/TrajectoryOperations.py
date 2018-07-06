@@ -64,6 +64,7 @@ class TrajectoryOperations():
         }
         for area in Counts.area_list:
             properties['area_'+area.area_id] = 'str'
+            properties['minArea'+area.area_id] = 'float'
         schema = {
             'geometry': 'LineString',
             'properties': properties
@@ -360,6 +361,12 @@ class TrajectoryOperations():
                 columns.append(area.area_id+'_minA')
                 columns.append(area.area_id+'_maxA')
                 columns.append(area.area_id+'_avgA')
+                columns.append(area.area_id+'_n_A')
+                columns.append(area.area_id+'_n_B')
+                columns.append(area.area_id+'_n_C')
+                columns.append(area.area_id+'_n_D')
+                columns.append(area.area_id+'_n_E')
+                columns.append(area.area_id+'_n_F')
 
                 area.area_poly = Polygon(area.coord_list)
                 area.frame_agent_points = {}
@@ -414,6 +421,14 @@ class TrajectoryOperations():
                             for poly in ops.polygonize(lines):
                                 # search agent_id by intersecting point
                                 poly = poly.intersection(buffers)
+                                #assignagent
+                                for agent_id, p in area.frame_agent_points.items():
+                                    if poly.contains(p):
+                                        try:
+                                            agents.agents_sources.sourcesDic[agent_id].addArea(area.area_id, round(poly.area, 2))
+                                        except KeyError:
+                                            pass
+                                        break
                                 voronoi_area_list.append(poly.area)
                                 #x, y = poly.exterior.xy
                                 #plt.plot(x, y, color='#6699cc', alpha=0.7, linewidth=1, solid_capstyle='round', zorder=2)
@@ -422,16 +437,22 @@ class TrajectoryOperations():
                                 row.append(round(min(voronoi_area_list),2))
                                 row.append(round(max(voronoi_area_list),2))
                                 row.append(round(sum(voronoi_area_list) / float(len(voronoi_area_list)),2))
+                                row.append(sum(i >= 3.24 for i in voronoi_area_list))
+                                row.append(sum(i >= 2.32 and i < 3.24 for i in voronoi_area_list))
+                                row.append(sum(i >= 1.39 and i < 2.32 for i in voronoi_area_list))
+                                row.append(sum(i >= 0.93 and i < 1.39 for i in voronoi_area_list))
+                                row.append(sum(i >= 0.46 and i < 0.93 for i in voronoi_area_list))
+                                row.append(sum(i < 0.46 for i in voronoi_area_list))
+                            else:
+                                row.extend([0, 'NaN', 'NaN', 'NaN', 0, 0, 0, 0, 0, 0])
+
                                 #x, y = area.area_poly.exterior.xy
                                 #plt.plot(x, y, color='#6699cc', alpha=0.7,
                                 #         linewidth=3, solid_capstyle='round', zorder=2)
                                 #plt.show()
                                 #plt.close()
-                            else:
-                                row.append(0)
-                                row.append('NaN')
-                                row.append('NaN')
-                                row.append('NaN')
+
+                            print(trajfile, seconds, area.area_id, len(area.frame_agent_points.keys()))
                             area.frame_agent_points.clear()
 
                         writer.writerow(row)
