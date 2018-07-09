@@ -1,3 +1,5 @@
+import csv
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -5,6 +7,43 @@ import itertools
 import math
 #from Agents import Agents, Source
 #from constants import jps
+
+def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
+
+    for inputDic in input_list:
+        changeDic = {}
+        label = inputDic['label']
+        file = inputDic['file'] + 'changeTimes.csv'
+        changeDic[label] = {}
+        changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
+        changes = changes.dropna(subset=[column])
+        changes = changes.loc[
+            (changes['time'] >= 300)
+            #            & ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
+        ]
+        for platformFrom, platformTo in itertools.permutations(platforms, 2):
+            selectedChanges = changes.loc[
+                (changes['platformFrom'] == platformFrom) & (changes['platformTo'] == platformTo)
+                ]
+            if platformFrom not in changeDic:
+                changeDic[platformFrom] = {}
+            print( platformFrom, platformTo)
+            changeDic[platformFrom][platformTo]=round(selectedChanges[column].mean(), 2)
+
+        with open('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/analysis/timeChangeMatrix'+label+'.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            columns = [''] + platforms
+            writer.writerow(columns)
+            for platformFrom in platforms:
+                row = [platformFrom]
+                for platformTo in platforms:
+                    print(platformFrom, platformTo)
+                    if platformFrom == platformTo:
+                        row.append(0)
+                    else:
+                        row.append(changeDic[platformFrom][platformTo])
+                writer.writerow(row)
+
 
 def plotTimeVariationForGroup(outputFolder, column, platformFrom = [], platformTo = [],  input_list = []):
 
@@ -76,7 +115,7 @@ def plotTimeVariationForGroup(outputFolder, column, platformFrom = [], platformT
 def plot(column, selectedChanges, color, label, opacity):
 
     countBase, _, _ = plt.hist(
-        selectedChanges[column], bins=np.arange(0, 360, 10), histtype='stepfilled', color=color, alpha=opacity,
+        selectedChanges[column], bins=np.arange(0, 360, 5), histtype='stepfilled', color=color, alpha=opacity,
         label=label+'\nn = '+str(len(selectedChanges.index))+'\n\u2205 = '+str(int(round(selectedChanges[column].mean(),0)))
     )
     return countBase.max()
@@ -400,7 +439,7 @@ if __name__ == "__main__":
 
     platforms=[
         'S', 'Regio', 'U2', 'U5', 'U8'
-#        , 'Gontardstr.', 'Dircksenstr.', 'Tram U'
+        , 'Gontardstr.', 'Dircksenstr.', 'Tram U'
     ]
     areas = [11, 21, 31]
     qualities = ['A','B','C','D','E','F']
@@ -415,20 +454,25 @@ if __name__ == "__main__":
     #        outputFolder=input+'analysis/', column='secondsInSim',
     #        platformFrom='S', platformTo='U2',
     #        input_list=input_list)
-    plotTimeVariationForGroup(
-            outputFolder=input+'analysis/', column='secondsInSim',
-            platformFrom=[], platformTo=[],
-            input_list=input_list
+    #plotTimeVariationForGroup(
+    #        outputFolder=input+'analysis/', column='secondsInSim',
+    #        platformFrom=[], platformTo=[],
+    #        input_list=input_list
+    #)
+    timeChangeMatrixToCSV(
+        outputFile=input + 'analysis/timeChangeMatrix.csv', column='secondsInSim',
+        platforms=platforms,
+        input_list=input_list
     )
 
-    for platformFrom, platformTo in itertools.combinations(platforms, 2):
-        if platformFrom == 'S' and platformTo == 'Regio':
-            continue
-        plotTimeVariationForGroup(
-            outputFolder=input+'analysis/', column='secondsInSim',
-            platformFrom=[platformFrom], platformTo=[platformTo],
-            input_list=input_list
-        )
+    #for platformFrom, platformTo in itertools.combinations(platforms, 2):
+    #    if platformFrom == 'S' and platformTo == 'Regio':
+    #        continue
+    #    plotTimeVariationForGroup(
+    #        outputFolder=input+'analysis/', column='secondsInSim',
+    #        platformFrom=[platformFrom], platformTo=[platformTo],
+    #        input_list=input_list
+    #    )
 
     # for area in areas:
     #     plotFrameAreaAgents(
