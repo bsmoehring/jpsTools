@@ -6,7 +6,7 @@ import math
 #from Agents import Agents, Source
 #from constants import jps
 
-def plotTimeVariationForGroup(outputFolder, column, platformFrom = None, platformTo = None,  input_list = []):
+def plotTimeVariationForGroup(outputFolder, column, platformFrom = [], platformTo = [],  input_list = []):
 
     # assert isinstance(agents, Agents)
     #
@@ -33,13 +33,13 @@ def plotTimeVariationForGroup(outputFolder, column, platformFrom = None, platfor
             (changes['time'] >= 300)
 #            & ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
         ]
-        if platformFrom is not None:
+        if platformFrom:
             selectedChanges = selectedChanges.loc[
-                (changes['platformFrom'] == platformFrom) | (changes['platformTo'] == platformFrom)
+                (changes['platformFrom'].isin(platformFrom)) | (changes['platformTo'].isin(platformFrom))
             ]
-        if platformTo is not None:
+        if platformTo:
             selectedChanges = selectedChanges.loc[
-                (changes['platformTo'] == platformTo) | (changes['platformFrom'] == platformTo)
+                (changes['platformTo'].isin(platformTo)) | (changes['platformFrom'].isin(platformTo))
             ]
         plotAverage(plt, column, selectedChanges, color, 0)
 
@@ -48,6 +48,15 @@ def plotTimeVariationForGroup(outputFolder, column, platformFrom = None, platfor
 
         maximum = plot(column, selectedChanges, color, label, opacity)
         maximum_list.append(maximum)
+
+    if platformFrom:
+        platformFrom = '_'.join(platformFrom)
+    else:
+        platformFrom = 'None'
+    if platformTo:
+        platformTo = '_'.join(platformFrom)
+    else:
+        platformTo = 'None'
 
     plt.legend()
     plt.xlabel("Zeit in Sekunden")
@@ -60,6 +69,7 @@ def plotTimeVariationForGroup(outputFolder, column, platformFrom = None, platfor
     plt.title(column)
     plt.show()
     plt.draw()
+
     plt.savefig(outputFolder + platformFrom + '_' + platformTo + '_' + column + '.png')
     plt.close()
 
@@ -407,18 +417,18 @@ if __name__ == "__main__":
     #        input_list=input_list)
     plotTimeVariationForGroup(
             outputFolder=input+'analysis/', column='secondsInSim',
-            platformFrom=None, platformTo=None,
+            platformFrom=[], platformTo=[],
             input_list=input_list
     )
 
-    # for platformFrom, platformTo in itertools.combinations(platforms, 2):
-    #     if platformFrom == 'S' and platformTo == 'Regio':
-    #         continue
-    #     plotTimeVariationForGroup(
-    #         outputFolder=input+'analysis/', column='secondsInSim',
-    #         platformFrom=platformFrom, platformTo=platformTo,
-    #         input_list=input_list
-    #     )
+    for platformFrom, platformTo in itertools.combinations(platforms, 2):
+        if platformFrom == 'S' and platformTo == 'Regio':
+            continue
+        plotTimeVariationForGroup(
+            outputFolder=input+'analysis/', column='secondsInSim',
+            platformFrom=[platformFrom], platformTo=[platformTo],
+            input_list=input_list
+        )
 
     # for area in areas:
     #     plotFrameAreaAgents(
