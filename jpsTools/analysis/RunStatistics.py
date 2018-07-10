@@ -10,39 +10,76 @@ import math
 
 def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
 
-    for inputDic in input_list:
-        changeDic = {}
-        label = inputDic['label']
-        file = inputDic['file'] + 'changeTimes.csv'
-        changeDic[label] = {}
-        changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
-        changes = changes.dropna(subset=[column])
-        changes = changes.loc[
-            (changes['time'] >= 300)
-            #            & ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
-        ]
-        for platformFrom, platformTo in itertools.permutations(platforms, 2):
-            selectedChanges = changes.loc[
-                (changes['platformFrom'] == platformFrom) & (changes['platformTo'] == platformTo)
-                ]
-            if platformFrom not in changeDic:
-                changeDic[platformFrom] = {}
-            print( platformFrom, platformTo)
-            changeDic[platformFrom][platformTo]=round(selectedChanges[column].mean(), 2)
+    def writeMatrixToCsv(writer, changeDic={}, title='', platforms=[], total=''):
+        columns = [title] + platforms + [total]
+        writer.writerow(columns)
+        for platformFrom in platforms:
+            row = [platformFrom]
+            for platformTo in platforms:
+                if platformFrom == platformTo:
+                    row.append('')
+                else:
+                    row.append(changeDic[platformFrom][platformTo])
+            writer.writerow(row)
+        writer.writerow([])
 
-        with open('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/analysis/timeChangeMatrix'+label+'.csv', 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            columns = [''] + platforms
-            writer.writerow(columns)
-            for platformFrom in platforms:
-                row = [platformFrom]
-                for platformTo in platforms:
-                    print(platformFrom, platformTo)
-                    if platformFrom == platformTo:
-                        row.append(0)
-                    else:
-                        row.append(changeDic[platformFrom][platformTo])
-                writer.writerow(row)
+    with open('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/analysis/timeChangeMatrix.csv',
+              'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+        for inputDic in input_list:
+            changeDicMean = {}
+            changeDicN = {}
+            label = inputDic['label']
+            file = inputDic['file'] + 'changeTimes.csv'
+            changeDicMean[label] = {}
+
+            for platformFrom, platformTo in itertools.permutations(platforms, 2):
+                changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
+                changes = changes.dropna(subset=[column])
+                changes = changes.loc[
+                    (changes['time'] >= 300)
+                    #& ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
+                ]
+                selectedChanges = changes.loc[
+                    (changes['platformFrom'] == platformFrom) & (changes['platformTo'] == platformTo)
+                    ]
+                if platformFrom not in changeDicMean:
+                    changeDicMean[platformFrom] = {}
+                    changeDicN[platformFrom] = {}
+                print( platformFrom, platformTo)
+                changeDicMean[platformFrom][platformTo]=round(selectedChanges[column].mean(), 2)
+                changeDicN[platformFrom][platformTo]=selectedChanges[column].shape[0]
+
+            changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
+            changes = changes.dropna(subset=[column])
+            changes = changes.loc[
+                (changes['time'] >= 300)
+                # & ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
+            ]
+
+            writeMatrixToCsv(writer, changeDic=changeDicMean, title=label+'_mean', platforms=platforms,
+                             total='avg='+str(round(changes[column].mean())))
+            writeMatrixToCsv(writer, changeDic=changeDicN, title=label+'_n', platforms=platforms,
+                             total='n='+str(changes[column].shape[0]))
+
+            writer.writerow(['area', 'n', 'mean'])
+            for area in ['area_11', 'area_21', 'area_31']:
+                changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
+                changes = changes.dropna(subset=[column])
+                changes = changes.loc[
+                    (changes['time'] >= 300)
+                    & (changes[area] == True)
+                ]
+                writer.writerow([area, changes[column].shape[0], round(changes[column].mean(), 2)])
+            changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
+            changes = changes.dropna(subset=[column])
+            changes = changes.loc[
+                (changes['time'] >= 300)
+                & (changes['area_11'] == False) & (changes['area_21'] == False) & (changes['area_31'] == False)
+            ]
+            writer.writerow(['noarea', changes[column].shape[0], round(changes[column].mean(), 2)])
+            writer.writerow([])
 
 
 def plotTimeVariationForGroup(outputFolder, column, platformFrom = [], platformTo = [],  input_list = []):
