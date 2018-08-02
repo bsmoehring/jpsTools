@@ -219,7 +219,8 @@ class TrajectoryOperations():
             assert isinstance(elem, ET.Element)
             if elem.tag == jps.Frame:
                 frameId = elem.attrib[jps.Traj_ID]
-                if frameId in framesAreaDic.keys():
+                if frameId == '14000':
+                #if frameId in framesAreaDic.keys():
                     frame = int(float(frameId))
                     seconds = frame / self.fps
 
@@ -259,7 +260,9 @@ class TrajectoryOperations():
                         'lastFrame': 'str', 'frames': 'str', 'secondsInSim': 'float', 'platformFrom': 'str',
                         'platformTo': 'str'
                     }
-                    for area in Counts.area_list: properties['area_' + area.area_id] = 'str'
+                    for area in Counts.area_list:
+                        properties['area_' + area.area_id] = 'str'
+                        properties['minArea'+area.area_id] = 'float'
                     schema = {
                         'geometry': 'Point',
                         'properties': properties
@@ -319,7 +322,7 @@ class TrajectoryOperations():
                         'geometry': 'Polygon',
                         'properties': {jps.Agent_ID: 'str', 'sqm':'float'}
                     }
-                    with fiona.open(path + 'voronoi' + area_id, 'w', 'ESRI Shapefile', schema) as f:
+                    with fiona.open(path + 'voronoi' + area_id + 'frame' + frameId, 'w', 'ESRI Shapefile', schema) as f:
                         for poly in ops.polygonize(lines):
                             #search agent_id by intersecting point
                             properties = {jps.Agent_ID: ''}

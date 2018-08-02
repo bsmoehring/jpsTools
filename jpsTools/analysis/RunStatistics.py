@@ -482,10 +482,41 @@ if __name__ == "__main__":
     qualities = ['A','B','C','D','E','F']
 
     input= '/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/'
-    inputBasis = {'file':input + '0_ipfDemandBasic/', 'label':'Basis', 'color':'grey', 'opacity':0.4, 'offset':-2}
-    inputProg1 = {'file':input + '1_ipfDemandProg1/', 'label':'Prog 1', 'color':'orange', 'opacity':0.25, 'offset':0}
-    inputProg2 = {'file':input + '2_ipfDemandProg2/', 'label':'Prog 2', 'color':'darkred', 'opacity':0.3, 'offset':+2}
+    inputBasis = {'file':input + '0_ipfDemandBasic/', 'label':'Basis', 'color':'grey', 'opacity':0.4, 'offset':-2, 'lastFrame':14400}
+    inputProg1 = {'file':input + '1_ipfDemandProg1/', 'label':'Prog 1', 'color':'orange', 'opacity':0.25, 'offset':0, 'lastFrame':14400}
+    inputProg2 = {'file':input + '2_ipfDemandProg2/', 'label':'Prog 2', 'color':'darkred', 'opacity':0.3, 'offset':+2, 'lastFrame':14000}
     input_list = [inputBasis, inputProg1, inputProg2]
+
+    for model in input_list:
+        changes = pd.read_csv(model['file']+'changeTimes.csv', sep=';',
+                              converters={'secondsInSim': float, 'time': int, 'lastFrame':int})
+        total = changes.shape[0]
+        selectedChanges = changes.loc[
+            changes['time']<300
+        ]
+        before300 = selectedChanges.shape[0]
+        changes = pd.read_csv(model['file'] + 'changeTimes.csv', sep=';',
+                              converters={'secondsInSim': float, 'time': int, 'lastFrame': int})
+        selectedChanges = changes.loc[
+            (changes['lastFrame'] == model['lastFrame'])
+        ]
+        earliestNoGoal = 905
+        earliestNoGoal = selectedChanges['time'].min()
+        changes = pd.read_csv(model['file'] + 'changeTimes.csv', sep=';',
+                              converters={'secondsInSim': float, 'time': int, 'lastFrame': int})
+        selectedChanges = changes.loc[
+            changes['time']>earliestNoGoal
+        ]
+        afterEarliestNoGoal = selectedChanges.shape[0]
+        changes = pd.read_csv(model['file'] + 'changeTimes.csv', sep=';',
+                              converters={'secondsInSim': float, 'time': int, 'lastFrame': int})
+        selectedChanges = changes.loc[
+            (changes['time']>300) &
+            (changes['time']<earliestNoGoal)
+        ]
+        agentsLeft = selectedChanges.shape[0]
+
+        print(model['label'], '&', total, '&', before300, '&', earliestNoGoal, '&', afterEarliestNoGoal, '&', agentsLeft )
 
     #plotTimeVariationForGroup(
     #        outputFolder=input+'analysis/', column='secondsInSim',
@@ -496,11 +527,12 @@ if __name__ == "__main__":
     #        platformFrom=[], platformTo=[],
     #        input_list=input_list
     #)
-    timeChangeMatrixToCSV(
-        outputFile=input + 'analysis/timeChangeMatrix.csv', column='secondsInSim',
-        platforms=platforms,
-        input_list=input_list
-    )
+
+    #timeChangeMatrixToCSV(
+    #    outputFile=input + 'analysis/timeChangeMatrix.csv', column='secondsInSim',
+    #    platforms=platforms,
+    #    input_list=input_list
+    #)
 
     #for platformFrom, platformTo in itertools.combinations(platforms, 2):
     #    if platformFrom == 'S' and platformTo == 'Regio':
