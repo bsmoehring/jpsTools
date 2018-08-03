@@ -8,7 +8,7 @@ import math
 #from Agents import Agents, Source
 #from constants import jps
 
-def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
+def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = [], minTime=300, maxTime=1800):
 
     def writeMatrixToCsv(writer, changeDic={}, title='', platforms=[], total=''):
         columns = [title] + platforms + [total]
@@ -23,7 +23,7 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
             writer.writerow(row)
         writer.writerow([])
 
-    with open('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/analysis/timeChangeMatrix.csv',
+    with open(outputFile,
               'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
@@ -38,7 +38,8 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
                 changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
                 changes = changes.dropna(subset=[column])
                 changes = changes.loc[
-                    (changes['time'] >= 300)
+                    (changes['time'] >= minTime)
+                    & (changes['time'] < maxTime)
                     #& ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
                 ]
                 selectedChanges = changes.loc[
@@ -54,7 +55,8 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
             changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
             changes = changes.dropna(subset=[column])
             changes = changes.loc[
-                (changes['time'] >= 300)
+                (changes['time'] >= minTime)
+                & (changes['time'] < maxTime)
                 # & ((changes['area_11'] == True) | (changes['area_21'] == True) | (changes['area_31'] == True))
             ]
 
@@ -68,14 +70,16 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = []):
                 changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
                 changes = changes.dropna(subset=[column])
                 changes = changes.loc[
-                    (changes['time'] >= 300)
+                    (changes['time'] >= minTime)
+                    & (changes['time'] < maxTime)
                     & (changes[area] == True)
                 ]
                 writer.writerow([area, changes[column].shape[0], round(changes[column].mean(), 2)])
             changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
             changes = changes.dropna(subset=[column])
             changes = changes.loc[
-                (changes['time'] >= 300)
+                (changes['time'] >= minTime)
+                & (changes['time'] < maxTime)
                 & (changes['area_11'] == False) & (changes['area_21'] == False) & (changes['area_31'] == False)
             ]
             writer.writerow(['noarea', changes[column].shape[0], round(changes[column].mean(), 2)])
@@ -528,11 +532,19 @@ if __name__ == "__main__":
     #        input_list=input_list
     #)
 
-    #timeChangeMatrixToCSV(
-    #    outputFile=input + 'analysis/timeChangeMatrix.csv', column='secondsInSim',
-    #    platforms=platforms,
-    #    input_list=input_list
-    #)
+    timeChangeMatrixToCSV(
+        outputFile=input + 'analysis/timeChangeMatrix_all.csv', column='secondsInSim',
+        platforms=platforms,
+        input_list=input_list,
+        minTime=300
+    )
+    timeChangeMatrixToCSV(
+        outputFile=input + 'analysis/timeChangeMatrix_cleaned905.csv', column='secondsInSim',
+        platforms=platforms,
+        input_list=input_list,
+        minTime=300,
+        maxTime=905
+    )
 
     #for platformFrom, platformTo in itertools.combinations(platforms, 2):
     #    if platformFrom == 'S' and platformTo == 'Regio':
