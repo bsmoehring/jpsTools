@@ -18,7 +18,7 @@ class Config:
     jpsGoalTags = {}
     jpsTransitionTags = {}
 
-    def __init__(self, path, file):
+    def __init__(self, path, file, levelAltsDic = {}):
 
         if not path.endswith('/'):
             path += '/'
@@ -36,6 +36,8 @@ class Config:
         self.addGoalTag('jupedsim', 'goal')
 
         self.addTransitionTag('jupedsim', 'transition')
+
+        self.levelAltsDic = levelAltsDic
 
     def addFilterTag(self, key, value):
         if key in self.filterTags:

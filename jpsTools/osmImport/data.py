@@ -5,7 +5,7 @@ Created on 21.11.2017
 '''
 import logging
 from xml.etree import ElementTree as ET
-from constants import osm, jps
+from constants import osm, jps, jpsReport
 from coords import Transformation
 from shapely import geometry
 
@@ -16,7 +16,7 @@ class Input(object):
     elementsToHandle = {}
     nodes = {}
 
-    def __init__(self, config):
+    def __init__(self, config, handle):
         '''
         Constructor
         '''
@@ -26,23 +26,38 @@ class Input(object):
         source.close()
         self.config.transform = Transformation(self.tree)
 
-        self.readOSM()
+        self.readOSM(handle)
 
         print(self.tree)
         print(self.nodes)
         print('Input parsed!')
 
-    def readOSM(self):
+    def readOSM(self, handle = False):
 
         for node in self.tree.iter(tag=osm.Node):
-            key = node.attrib.get(osm.Id)
+            key = node.attrib[osm.Id]
+            x, y = self.config.transform.WGS2XY(node)
+            node.attrib[jps.PX] = x
+            node.attrib[jps.PY] = y
+            for child in node.iter(tag=osm.Tag):
+                try:
+                    if child.attrib[osm.Key] == osm.Level:
+                        node.attrib[jps.PZ] = self.config.levelAltsDic[child.attrib[osm.Value]]
+                except KeyError:
+                    pass
+            print(node.attrib)
             self.nodes[key] = node
 
-        for elem in self.tree.iter():
-            convert = False
+        for elem in self.tree.iter(tag=osm.Way):
+            subroom = False
             transition = False
-            area = False
+            crossing = False
             goal = False
+            obstacle = False
+            measurementB = False
+            measurementL = False
+            convert = False
+            area = False
             if elem.tag in [osm.Way, osm.Relation]:
                 try:
                     if elem.attrib['action']=='delete':
@@ -52,69 +67,267 @@ class Input(object):
                 for tag in elem.iter(tag=osm.Tag):
                     k = tag.attrib[osm.Key]
                     v = tag.attrib[osm.Value]
+                    if k == jps.JuPedSim and v == jps.Subroom:
+                        subroom = True
+                    if k == jps.JuPedSim and v == jps.Crossing:
+                        crossing = True
+                    if k == jps.JuPedSim and v == jps.Transition:
+                        transition = True
+                    if k == jps.JuPedSim and v == jps.Goal:
+                        goal = True
+                    #if k == jps.JuPedSim and v == jps.Obstacle:
+                    #    obstacle = True
+                    if k == jps.JuPedSim and v == jpsReport.MeasurementB:
+                        measurementB = True
+                    if k == jps.JuPedSim and v == jpsReport.MeasurementL:
+                        measurementL = True
+                    if k in self.config.filterTags and v in self.config.filterTags[k]:
+                        convert = True
                     if k in self.config.filterTags and v in self.config.filterTags[k]:
                         convert = True
                     if k in self.config.areaTags and v == self.config.areaTags[k]:
                         area = True
-                    if k in self.config.jpsTransitionTags and v == self.config.jpsTransitionTags[k]:
-                        transition = True
-                    if k in self.config.jpsGoalTags and v == self.config.jpsGoalTags[k]:
-                        goal = True
-                    if k == jps.Id:
-                        elem.attrib[osm.Id]=v
 
             nodeRefs = []
             for child in elem.iter(tag=osm.NodeRef):
                 nodeRefs.append(child.attrib[osm.Ref])
             XYList = self.config.transform.nodeRefs2XY(nodeRefs, self.nodes)
 
-            if area:
-                self.translateArea(elem, XYList)
+            if subroom:
+                self.translateSubroom(elem, nodeRefs)
+            elif crossing:
+                self.translateCrossing(elem, nodeRefs)
             elif transition:
-                self.translateTransition(elem, XYList)
+                self.translateTransition(elem, nodeRefs)
             elif goal:
-                self.translateGoal(elem, XYList)
+                self.translateGoal(elem, nodeRefs)
+            elif obstacle:
+                self.translateObstacle(elem, nodeRefs)
+            elif measurementB:
+                self.translateMeasurementB(elem, nodeRefs[:-1])
+            elif measurementL:
+                self.translateMeasurementL(elem, nodeRefs)
+            if not handle:
+                continue
+            elif area:
+                self.translateArea(elem, XYList)
             elif convert:
                 self.elementsToHandle[elem.attrib[osm.Id]] = elem
 
+    def translateSubroom(self, elem, nodeRefs):
+        for child in elem.iter(tag=osm.Tag):
+            print(child.attrib)
+            try:
+                if child.attrib[osm.Key] == jps.Room:
+                    room_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom:
+                    subroom_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Class:
+                    jpsClass = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Caption:
+                    jpsCaption = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == osm.Level:
+                    level = child.attrib[osm.Value]
+            except KeyError:
+                pass
+        try: subroom_id
+        except NameError: subroom_id='0'
+        try: jpsClass
+        except NameError: jpsClass=jps.Subroom
+        if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
+            subroom = Output.Subroom(nodeRefs, subroom_id=subroom_id, jpsClass=jpsClass, level=level, room_id=room_id)
+            if room_id in Output.subroomDic:
+                Output.subroomDic[room_id].append(subroom)
+            else:
+                Output.subroomDic[room_id] = [subroom]
+        else:
+            print(room_id, subroom_id)
+            raise Exception
 
-    def translateTransition(self, elem, XYList):
+    def translateCrossing(self, elem, nodeRefs):
+        for child in elem.iter(tag = osm.Tag):
+            try:
+                if child.attrib[osm.Key] == jps.Room:
+                    room_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom1:
+                    subroom1_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom2:
+                    subroom2_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            crossing_id = 0
+            for crossinglst in Output.crossingDic.values():
+                crossing_id += len(crossinglst)
+
+        if len(nodeRefs) != 2 or nodeRefs[0] == nodeRefs[-1]:
+            raise Exception
+
+        crossing = Output.Crossing(nodeRefs, str(crossing_id), room_id, subroom1_id, subroom2_id)
+        if room_id in Output.crossingDic:
+            Output.crossingDic[room_id].append(crossing)
+        else: Output.crossingDic[room_id] = [crossing]
+
+    def translateTransition(self, elem, nodeRefs):
         for child in elem.iter(tag = osm.Tag):
             try:
                 if child.attrib[osm.Key] == jps.Room1:
-                    osmId1 = child.attrib[osm.Value]
+                    room1_id = child.attrib[osm.Value]
             except KeyError:
                 pass
             try:
                 if child.attrib[osm.Key] == jps.Room2:
-                    osmId2 = child.attrib[osm.Value]
+                    room2_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom1:
+                    subroom1_id = child.attrib[osm.Value]
+            except KeyError:
+                pass
+            try:
+                if child.attrib[osm.Key] == jps.Subroom2:
+                    subroom2_id = child.attrib[osm.Value]
             except KeyError:
                 pass
 
-        try: osmId1
+        try:
+            if room1_id == jps.OutsideTransitionRef:
+                subroom1_id = jps.OutsideTransitionRef
         except NameError:
-            osmId1 = '-1'
-        try: osmId2
+            room1_id = jps.OutsideTransitionRef
+            subroom1_id = jps.OutsideTransitionRef
+        try:
+            if room2_id == jps.OutsideTransitionRef:
+                subroom2_id = jps.OutsideTransitionRef
         except NameError:
-            osmId2 = '-1'
+            room2_id = jps.OutsideTransitionRef
+            subroom2_id = jps.OutsideTransitionRef
+        try:
+            subroom1_id
+        except NameError:
+            subroom1_id = '0'
+        try:
+            subroom2_id
+        except NameError:
+            subroom2_id = '0'
 
-        Output.transitionlst.append(Output.Transition(geometry.LineString(XYList), osmId1, osmId2))
+        if len(nodeRefs) != 2 or nodeRefs[0] == nodeRefs[-1]:
+            raise Exception
+
+        Output.transitionlst.append(Output.Transition(nodeRefs[0], nodeRefs[1], str(len(Output.transitionlst)+1), room1_id, room2_id, subroom1_id, subroom2_id))
+
+    def translateGoal(self, elem, nodeRefs):
+        if len(nodeRefs) > 2 and nodeRefs[0] == nodeRefs[-1]:
+            tags = {}
+            tags['final']='True'
+            for tag in elem.iter(tag=osm.Tag):
+                try:
+                    if tag.attrib[osm.Key] == jps.Goal:
+                        tags[jps.Id] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Room:
+                        tags[jps.Room_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Subroom:
+                        tags[jps.Subroom_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == osm.TransitStopFacility:
+                        tags[jps.Caption] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+            Output.goalLst.append(Output.Goal(nodeRefs, tags))
+        else:
+            raise Exception
+
+    def translateObstacle(self, elem, nodeRefs):
+
+        if len(nodeRefs) > 2:
+            tags = {}
+            tags['closed'] = '1'
+            for tag in elem.iter(tag=osm.Tag):
+                try:
+                    if tag.attrib[osm.Key] == jps.Room:
+                        tags[jps.Room_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Subroom:
+                        tags[jps.Subroom_ID] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if tag.attrib[osm.Key] == jps.Caption:
+                        tags[jps.Caption] = tag.attrib[osm.Value]
+                except KeyError:
+                    pass
+            tags[jps.Id] = str(len(Output.obstacleLst))
+            Output.obstacleLst.append(Output.Obstacle(nodeRefs, tags))
+        else:
+            raise Exception
+
+    def translateMeasurementB(self, elem, nodeRefs):
+        if len(nodeRefs) == 4:
+            for child in elem.iter(tag=osm.Tag):
+                try:
+                    if child.attrib[osm.Key] == osm.Level:
+                        level = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if child.attrib[osm.Key] == jpsReport.Measurement:
+                        measurement_id = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+            Output.measurementBLst.append(Output.MeasurementB(nodeRefs, measurement_id, level))
+        else:
+            raise Exception
+
+    def translateMeasurementL(self, elem, nodeRefs):
+        if len(nodeRefs) == 2:
+            for child in elem.iter(tag=osm.Tag):
+                try:
+                    if child.attrib[osm.Key] == osm.Level:
+                        level = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+                try:
+                    if child.attrib[osm.Key] == jpsReport.Measurement:
+                        measurement_id = child.attrib[osm.Value]
+                except KeyError:
+                    pass
+            Output.measurementLLst.append(Output.MeasurementL(nodeRefs, measurement_id, level))
+        else:
+            raise Exception
 
     def translateArea(self, elem, XYList):
 
         if len(XYList) > 2 and XYList[0] == XYList[-1]:
             poly = geometry.Polygon(XYList)
             Output().storeElement(elem.attrib[osm.Id], elem, poly)
-        else:
-            raise Exception
-
-    def translateGoal(self, elem, XYList):
-        if len(XYList) > 2 and XYList[0] == XYList[-1]:
-            poly = geometry.Polygon(XYList)
-            tags = {}
-            for tag in elem.iter(tag=osm.Tag):
-                tags[tag.attrib[osm.Key]] = tag.attrib[osm.Value]
-            Output.goalLst.append(Output.Goal(geometry.Polygon(XYList), tags))
         else:
             raise Exception
 
@@ -130,28 +343,111 @@ class Output(object):
     elements = {}
     #osmId Way = [osmId Node]
     wayNodes = {}
+
+    #room_id = [Subroom]
+    subroomDic = {}
+    #roomId = [Crossing]
+    crossingDic = {}
     #[Transition]
     transitionlst = []
     #[goal]
     goalLst = []
+    #[obstacle]
+    obstacleLst = []
+
+    #[measurementB]
+    measurementBLst = []
+    #[measurementL]
+    measurementLLst = []
+
+    def getCrossTransId(self):
+        '''
+
+        :return:
+        '''
+        crossing_id = 0
+        for crossingLst in self.crossingDic.values():
+            crossing_id += len(crossingLst)
+        crossing_id += len(self.transitionlst)
+        return str(crossing_id)
+
+    class Subroom():
+        '''
+
+        '''
+        def __init__(self, nodeRefs, subroom_id, jpsClass, level, room_id):
+            self.nodeRefs = nodeRefs
+            self.subroom_id = subroom_id
+            self.jpsClass = jpsClass
+            self.level = level
+            print(jps.Subroom, room_id, subroom_id, nodeRefs)
 
     class Transition():
         '''
 
         '''
-        def __init__(self, geometry, osmId1, osmId2):
-            self.geometry = geometry
-            self.osmId1 = osmId1
-            self.osmId2 = osmId2
-            print('Transition', osmId1, osmId2, geometry)
+        def __init__(self, nodeRef1, nodeRef2, transition_id, room1_id, room2_id, subroom1_id, subroom2_id):
+            self.nodeRef1 = nodeRef1
+            self.nodeRef2 = nodeRef2
+            self.room1_id = room1_id
+            self.room2_id = room2_id
+            self.subroom1_id = subroom1_id
+            self.subroom2_id = subroom2_id
+            self.transition_id = transition_id
+            print(jps.Transition, room1_id, room2_id, geometry)
+
+    class Crossing():
+        '''
+
+        '''
+        def __init__(self, nodeRefs, crossing_id, room_id, subroom1_id, subroom2_id):
+            self.nodeRefs = nodeRefs
+            self.room_id = room_id
+            self.crossing_id = crossing_id
+            self.subroom1_id = subroom1_id
+            self.subroom2_id = subroom2_id
+            print(jps.Crossing, room_id, subroom1_id, subroom2_id, geometry)
 
     class Goal():
         '''
 
         '''
-        def __init__(self, geometry, tags):
-            self.geometry = geometry
+        def __init__(self, nodeRefs, tags):
+            self.nodeRefs = nodeRefs
             self.tags = tags
+            print(jps.Goal, tags)
+
+    class Obstacle():
+        '''
+
+        '''
+        def __init__(self, nodeRefs, tags):
+            self.nodeRefs = nodeRefs
+            self.tags = tags
+
+    class MeasurementB():
+        '''
+
+        '''
+        tag = jpsReport.AreaB
+
+        def __init__(self, nodeRefs, measurement_id, level):
+            self.nodeRefs = nodeRefs
+            self.measurement_id = measurement_id
+            self.level = level
+            print(jpsReport.AreaB, measurement_id, level)
+
+    class MeasurementL():
+        '''
+
+        '''
+        tag = jpsReport.AreaL
+
+        def __init__(self, nodeRefs, measurement_id, level):
+            self.nodeRefs = nodeRefs
+            self.measurement_id = measurement_id
+            self.level = level
+            print(jpsReport.AreaB, measurement_id, level)
 
     def storeElement(self, osmId, elem, poly):
         '''
