@@ -1,2 +1,0 @@
-class MatsimReader(object):
-    pass
