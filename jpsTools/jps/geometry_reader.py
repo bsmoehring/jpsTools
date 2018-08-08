@@ -1,5 +1,5 @@
 from xml.etree import ElementTree as ET
-from jps_geometry import *
+from geometry import *
 from jps_constants import *
 
 def read_jps_geometry(filename):
@@ -43,12 +43,17 @@ def read_subroom(subroom_et = ET.Element, room_id = str):
     ax = subroom_et.attrib[jps.A_x]
     by = subroom_et.attrib[jps.B_y]
     cz = subroom_et.attrib[jps.C_z]
+    upPX = upPY = upPZ = downPX = downPY = downPZ = None
 
-    #TODO:
-    #up
-    #down
+    up_et = subroom_et.find(jps.Up)
+    down_et = subroom_et.find(jps.Down)
+    if up_et != None and down_et != None:
+        vertex = read_vertex(up_et)
+        upPX, upPY, upPZ = vertex.x, vertex.y, vertex.z
+        vertex = read_vertex(down_et)
+        downPX, downPY, downPZ = vertex.x, vertex.y, vertex.z
 
-    subroom_obj = Subroom(subroom_id, jpsClass, ax, by, cz)
+    subroom_obj = Subroom(subroom_id, jpsClass, ax, by, cz, upPX, upPY, upPZ, downPX, downPY, downPZ)
 
     for polygon in subroom_et.iter(tag=jps.Polygon):
 
@@ -86,7 +91,7 @@ def read_transition(transition_et = ET.Element):
         vertices.append(read_vertex(vertex_et))
 
     return Transition(
-        vertices[0], vertices[1], transition_id, caption, type, room1_id, subroom1_id, room2_id, subroom2_id
+        vertices[0], vertices[1], transition_id,  caption, 'NaN', room1_id, subroom1_id, room2_id, subroom2_id
     )
 
 

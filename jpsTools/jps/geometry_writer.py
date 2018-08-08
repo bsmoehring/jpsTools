@@ -1,7 +1,15 @@
-from xml.etree.ElementTree import Element, SubElement, tostring
-from jps_geometry import *
+from lxml.etree import SubElement, Element, tostring
+from jps_constants import *
+from geometry import *
 
-def buildJPSGEOtree(self, geometry):
+def write_geometry(geometry, outputfile):
+
+    assert isinstance(geometry, Geometry)
+    assert isinstance(outputfile, str)
+
+    tree2xml(buildJPSGEOtree(geometry), outputfile)
+
+def buildJPSGEOtree(geometry):
     '''
     form an xml string from all geometry objects
     '''
@@ -27,9 +35,9 @@ def buildJPSGEOtree(self, geometry):
                     SubElement(outPoly, jps.Vertex, vertex.attribs)
                     # print vertex.attribs
             if subroom.attribs[jps.Class] == jps.Stair or subroom.attribs[jps.Class].startswith(jps.Escalator):
-                SubElement(outSubroom, jps.Down,
-                           {jps.PX: subroom.downPX, jps.PY: subroom.downPY, jps.PZ: subroom.downPZ})
-                SubElement(outSubroom, jps.Up, {jps.PX: subroom.upPX, jps.PY: subroom.upPY, jps.PZ: subroom.upPZ})
+                if subroom.up and subroom.down:
+                    SubElement(outSubroom, jps.Down, subroom.down)
+                    SubElement(outSubroom, jps.Up, subroom.up)
             if subroom.obstacles:
                 for obstacle in subroom.obstacles:
                     outObstacle = SubElement(outSubroom, jps.Obstacle, obstacle.attribs)
@@ -38,24 +46,24 @@ def buildJPSGEOtree(self, geometry):
                         SubElement(outPoly, jps.Vertex, vertex.attribs)
         if room.crossings:
             outCrossings = SubElement(outRoom, jps.Crossings)
-            for crossing in room.crossings:
+            for crossing in room.crossings.values():
                 outCrossing = SubElement(outCrossings, crossing.tag, crossing.attribs)
                 SubElement(outCrossing, jps.Vertex, crossing.vertex1.attribs)
                 SubElement(outCrossing, jps.Vertex, crossing.vertex2.attribs)
 
     outTransitions = SubElement(outGeometry, jps.Transitions)
-    for transition in geometry.transitions:
+    for transition in geometry.transitions.values():
         outTransition = SubElement(outTransitions, jps.Transition, transition.attribs)
         SubElement(outTransition, jps.Vertex, transition.vertex1.attribs)
         SubElement(outTransition, jps.Vertex, transition.vertex2.attribs)
 
     return outGeometry
 
-def tree2xml(self, tree, outputFile):
+def tree2xml(tree, outputFile):
     '''
     writes the ElementTree geometry to a xml file
     '''
-    out = tostring(tree, pretty_print=True,encoding='unicode')
+    out = tostring(tree, pretty_print=True, encoding='unicode')
     print(out)
 
     f = open(outputFile, 'w')

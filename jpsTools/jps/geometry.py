@@ -1,4 +1,4 @@
-from jps_constants import jps
+from constants import jps
 
 class Geometry:
     tag = jps.Geometry
@@ -73,12 +73,16 @@ class Subroom:
         self.attribs[jps.A_x] = ax
         self.attribs[jps.B_y] = by
         self.attribs[jps.C_z] = cz
-        self.upPX = upPX
-        self.upPY = upPY
-        self.upPZ = upPZ
-        self.downPX = downPX
-        self.downPY = downPY
-        self.downPZ = downPZ
+        self.up = {}
+        if not None in [upPX, upPY, upPZ]:
+            self.up[jps.PX] = str(upPX)
+            self.up[jps.PY] = str(upPY)
+            self.up[jps.PZ] = str(upPZ)
+        self.down = {}
+        if not None in [downPX, downPY, downPZ]:
+            self.down[jps.PX] = str(downPX)
+            self.down[jps.PY] = str(downPY)
+            self.down[jps.PZ] = str(downPZ)
         self.obstacles = []
         self.transition_ids = []
         self.crossing_ids = []
