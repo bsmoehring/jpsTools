@@ -26,8 +26,10 @@ class Geometry:
         subroom1 = transition.attribs[jps.Subroom1]
         room2 = transition.attribs[jps.Room2]
         subroom2 = transition.attribs[jps.Subroom2]
-        self.rooms[room1].subrooms[subroom1].transition_ids.append(transition_id)
-        self.rooms[room2].subrooms[subroom2].transition_ids.append(transition_id)
+        self.rooms[room1].subrooms[subroom1].transitions.append(transition)
+        self.rooms[room2].subrooms[subroom2].transitions.append(transition)
+        # self.rooms[room1].subrooms[subroom1].transition_ids.append(transition_id)
+        # self.rooms[room2].subrooms[subroom2].transition_ids.append(transition_id)
 
 class Room:
     '''
@@ -52,6 +54,10 @@ class Room:
 
     def addCrossing(self, crossing):
         self.crossings[crossing.attribs[jps.Id]] = crossing
+        subroom1 = crossing.attribs[jps.Subroom1]
+        subroom2 = crossing.attribs[jps.Subroom2]
+        self.subrooms[subroom1].crossings.append(crossing)
+        self.subrooms[subroom2].crossings.append(crossing)
 
 
 class Subroom:
@@ -84,8 +90,8 @@ class Subroom:
             self.down[jps.PY] = str(downPY)
             self.down[jps.PZ] = str(downPZ)
         self.obstacles = []
-        self.transition_ids = []
-        self.crossing_ids = []
+        self.transitions = []
+        self.crossings = []
 
     def addPolygon(self, p, room_id, nodeRefs=[]):
         if nodeRefs:
@@ -101,6 +107,40 @@ class Subroom:
 
     def addObstacle(self, obstacle):
         self.obstacles.append(obstacle)
+
+    def getNumOfTransCross(self):
+        return len(self.transitions) + len(self.crossings)
+
+    def getNeighbouringSubrooms(self, geo = Geometry):
+        neighbours = []
+        for transition in self.transitions:
+            subroom1 = geo.rooms[transition.attribs[jps.Room1]].subrooms[transition.attribs[jps.Subroom1]]
+            subroom2 = geo.rooms[transition.attribs[jps.Room2]].subrooms[transition.attribs[jps.Subroom2]]
+            if subroom1 != self:
+                neighbours.append(subroom1)
+            elif subroom2 != self:
+                neighbours.append(subroom2)
+
+    def getShape4Sumo(self):
+        shape = []
+        for polygon in self.polygons:
+            for vertex in polygon.vertices:
+                assert isinstance(vertex, Vertex)
+                coord = (vertex.x, vertex.y, vertex.z)
+                if not shape or shape[-1] != coord:
+                    shape.append(coord)
+        return shape
+
+    def getCenterCoord(self):
+        x = y = 0
+        for coord in self.getShape4Sumo():
+            x+=coord[0]
+            y+=coord[1]
+        div = len(self.getShape4Sumo())
+        x /= div
+        y /= div
+        return (x, y)
+
 
 
 class Polygon:
