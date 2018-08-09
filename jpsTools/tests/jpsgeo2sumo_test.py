@@ -18,7 +18,7 @@ def jps2sumo_net(inputfile):
             assert isinstance(subroom, Subroom)
             id = room_id+'_'+subroom.attribs[jps.Id]
             coord = subroom.getCenterCoord()
-            sumo_net.addNode(id=id, coord=coord)
+            sumo_net.addNode(id=id, coord=coord, type=subroom.attribs[jps.Class])
 
         for crossing in room.crossings.values():
             assert isinstance(crossing, Crossing)
@@ -36,13 +36,13 @@ def jps2sumo_net(inputfile):
         toID = transition.attribs[jps.Room2]+'_'+transition.attribs[jps.Subroom2]
         id = transition_id+'/'+fromID+'/'+toID
         # no transitions to universe
-        if '-1_' in id:
+        if '-1_-1' in id:
             continue
         sumo_net.addEdge(id=id, fromID=fromID, toID=toID, prio=1, function='walkingarea', name=id)
         edge = sumo_net.getEdge(id)
         sumo_net.addLane(edge=edge, length=0.01, speed=1.39)
 
-    return sumo_net
+    return geo, sumo_net
 
 
             # elif num_transcross == 2:
@@ -54,49 +54,72 @@ def jps2sumo_net(inputfile):
             # else:
             #     raise Exception
 
-def sumo_net2xml(sumo_net=Net(), outputfile=str):
+def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
 
-    with open(outputfile, 'w') as f:
-
-        def write(s):
-            s
+    with open(outputfile+'.nod.xml', 'w') as f:
 
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-        f.write('<net version="0.27" walkingareas="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">\n')
+        f.write('<nodes>\n')
         for node in sumo_net.getNodes():
             assert isinstance(node, Node)
-            incLanes = ''
-            for incEdge in node.getIncoming():
-                assert isinstance(incEdge, Edge)
-                if incLanes != '':
-                    incLanes += ' '
-                for lane in incEdge.getLanes():
-                    assert isinstance(lane, Lane)
-                    incLanes += lane.getID()
             print(node.getID())
             print(node.getCoord())
             f.writelines(
-                '\t<junction id="%s" x="%s" y="%s" incLanes="%s"/>\n'
-                % (node.getID(), node.getCoord()[0], node.getCoord()[1], incLanes)
+                '\t<node id="%s" x="%s" y="%s" type="%s"/>\n'
+                % (node.getID(), node.getCoord()[0], node.getCoord()[1], node.getType())
                 )
+        f.write('</nodes>')
+
+    with open(outputfile+'.edg.xml', 'w') as f:
+
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        f.write('<edges>\n')
 
         for edge in sumo_net.getEdges():
             assert isinstance(edge, Edge)
+            jps_id = edge.getID().split('/')[0]
+            shape = ""
+            if '_' in jps_id:
+                #crossing
+                room_id = jps_id.split('_')[0]
+                crossing_id = jps_id.split('_')[1]
+                crossing = geo.rooms[room_id].crossings[crossing_id]
+                shape = crossing.getShape4Sumo()
+            else:
+                #transition
+                transition = geo.transitions[jps_id]
+                shape = transition.getShape4Sumo()
             f.write(
-                '\t<edge id="%s" from="%s" to="%s">\n'
-                % (edge.getID(), edge.getFromNode().getID(), edge.getToNode().getID())
+                '\t<edge id="%s" from="%s" to="%s" width="%s" numLanes="1" speed="%s" spreadType="%s" length="%s" allow="pedestrian" shape="%s"/>\n'
+                % (edge.getID(), edge.getFromNode().getID(), edge.getToNode().getID(), 2, 1.34, 'center', 0.01, shape)
             )
-            for lane in edge.getLanes():
-                assert isinstance(lane, Lane)
-                f.write(
-                    '\t\t<lane id="%s" index="%s" allow="pedestrian" speed="%s" length="%s" width="%s"/>\n'
-                    % (lane.getID(), lane.getIndex(), lane.getSpeed(), lane.getLength(), 2)
-                )
-            f.write('\t</edge>\n')
-        f.write('</net>\n')
+        f.write('</edges>\n')
+
+    with open(outputfile+'.con.xml', 'w') as f:
+
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        f.write('<connections>\n')
+
+        for node in sumo_net.getNodes():
+            assert isinstance(node, Node)
+            edges = ''
+            for edge in node.getIncoming() + node.getOutgoing():
+                assert isinstance(edge, Edge)
+                if edges != '':
+                    edges += ' '
+                edges += edge.getID()
+            shape = geo.rooms[node.getID().split('_')[0]].subrooms[node.getID().split('_')[1]].getShape4Sumo()
+            f.write(
+                '\t<walkingArea node="%s" type="%s" edges="%s" shape="%s"/>\n'
+                % (node.getID(), node.getType(), edges, shape)
+            )
+
+
+        f.write('</connections>\n')
+
 
 
 if      __name__ == "__main__":
 
-    sumo_net=jps2sumo_net('/media/bsmoehring/Data/stuff/jupedsim/jpsTools/jpsTools/osm2jps/resources/jps_geo.xml')
-    sumo_net2xml(sumo_net, '/media/bsmoehring/Data/stuff/jupedsim/jpsTools/jpsTools/osm2jps/resources/jps2sumo.net.xml')
+    geo, sumo_net=jps2sumo_net('/media/bsmoehring/Data/stuff/jupedsim/jpsTools/jpsTools/osm2jps/resources/jps_geo.xml')
+    sumo_net2plainxml(geo, sumo_net, '/media/bsmoehring/Data/stuff/jupedsim/jpsTools/jpsTools/osm2jps/resources/jps2sumo')
