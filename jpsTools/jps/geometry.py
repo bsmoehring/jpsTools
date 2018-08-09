@@ -122,26 +122,28 @@ class Subroom:
                 neighbours.append(subroom2)
 
     def getShape4Sumo(self):
-        shape = []
+        shape = ''
         for polygon in self.polygons:
             for vertex in polygon.vertices:
                 assert isinstance(vertex, Vertex)
-                coord = (vertex.x, vertex.y, vertex.z)
-                if not shape or shape[-1] != coord:
-                    shape.append(coord)
+                coord = '%s,%s ' % (vertex.x, vertex.y)
+                if vertex.z != None:
+                    coord += ','+str(vertex.z)
+                coord += ''
+                if shape == '' or shape.split(' ')[-1] != coord:
+                    shape += coord
         return shape
 
     def getCenterCoord(self):
-        x = y = 0
-        for coord in self.getShape4Sumo():
-            x+=coord[0]
-            y+=coord[1]
-        div = len(self.getShape4Sumo())
-        x /= div
-        y /= div
-        return (x, y)
-
-
+        x = []
+        y = []
+        for polygon in self.polygons:
+            for vertex in polygon.vertices:
+                x.append(vertex.x)
+                y.append(vertex.y)
+        x = (min(x)+max(x))/2
+        y = (min(y)+max(y))/2
+        return x, y
 
 class Polygon:
     '''
@@ -194,6 +196,19 @@ class Transition:
         self.attribs[jps.Subroom2] = subroom2_id
         self.nodeRefs = nodeRefs
 
+    def getCenterCoord(self):
+        x = []
+        y = []
+        for vertex in [self.vertex1, self.vertex2]:
+            x.append(vertex.x)
+            y.append(vertex.y)
+        x = (min(x)+max(x))/2
+        y = (min(y)+max(y))/2
+        return x, y
+
+    def getShape4Sumo(self):
+        x,y = self.getCenterCoord()
+        return '%s,%s' % (x, y)
 
 class Crossing:
     '''
@@ -210,3 +225,16 @@ class Crossing:
         self.attribs[jps.Subroom2] = subroom2_id
         self.nodeRefs = nodeRefs
 
+    def getCenterCoord(self):
+        x = []
+        y = []
+        for vertex in [self.vertex1, self.vertex2]:
+            x.append(vertex.x)
+            y.append(vertex.y)
+        x = (min(x)+max(x))/2
+        y = (min(y)+max(y))/2
+        return x, y
+
+    def getShape4Sumo(self):
+        x,y = self.getCenterCoord()
+        return '%s,%s' % (x, y)
