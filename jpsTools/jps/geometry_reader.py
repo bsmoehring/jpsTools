@@ -32,7 +32,7 @@ def read_room(room_et = ET.Element):
         room_obj.addSubroom(read_subroom(subroom, room_id))
 
     for crossing_et in room_et.iter(tag=jps.Crossing):
-        room_obj.addCrossing(read_crossing(crossing_et))
+        room_obj.addCrossing(read_crossing(crossing_et, room_id))
 
     return room_obj
 
@@ -67,7 +67,7 @@ def read_subroom(subroom_et = ET.Element, room_id = str):
 
     return subroom_obj
 
-def read_crossing(crossing_et = ET.Element):
+def read_crossing(crossing_et = ET.Element, room_id = str):
 
     crossing_id = crossing_et.attrib[jps.Id]
     subroom1_id = crossing_et.attrib[jps.Subroom1]
@@ -76,7 +76,7 @@ def read_crossing(crossing_et = ET.Element):
     for vertex_et in crossing_et.iter(tag=jps.Vertex):
         vertices.append(read_vertex(vertex_et))
 
-    return Crossing(crossing_id, vertices[0], vertices[1], subroom1_id, subroom2_id)
+    return Crossing(crossing_id, vertices[0], vertices[1], subroom1_id, subroom2_id, room_id)
 
 def read_transition(transition_et = ET.Element):
 

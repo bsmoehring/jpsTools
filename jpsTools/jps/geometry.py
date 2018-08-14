@@ -1,4 +1,5 @@
 from constants import jps
+from scipy.spatial import distance
 
 class Geometry:
     tag = jps.Geometry
@@ -123,27 +124,30 @@ class Subroom:
 
     def getShape4Sumo(self):
         shape = ''
+        #append vertex if last vertex isn't the same
         for polygon in self.polygons:
             for vertex in polygon.vertices:
                 assert isinstance(vertex, Vertex)
-                coord = '%s,%s ' % (vertex.x, vertex.y)
+                coord = '%s,%s' % (vertex.x, vertex.y)
                 if vertex.z != None:
                     coord += ','+str(vertex.z)
-                coord += ''
                 if shape == '' or shape.split(' ')[-1] != coord:
+                    if shape != '':
+                        shape += ' '
                     shape += coord
         return shape
 
     def getCenterCoord(self):
-        x = []
-        y = []
+        x_list = []
+        y_list = []
         for polygon in self.polygons:
-            for vertex in polygon.vertices:
-                x.append(vertex.x)
-                y.append(vertex.y)
-        x = (min(x)+max(x))/2
-        y = (min(y)+max(y))/2
-        return x, y
+            [x_list.append(vertex.x) for vertex in polygon.vertices]
+            [y_list.append(vertex.y) for vertex in polygon.vertices]
+        xlength = len(x_list)
+        ylength = len(y_list)
+        x = round(sum(x_list) / xlength, 2)
+        y = round(sum(y_list) / ylength, 2)
+        return (x, y)
 
 class Polygon:
     '''
@@ -174,7 +178,6 @@ class Vertex:
         if z != None:
             self.attribs[jps.PZ] = str(round(self.z, 2))
 
-
 class Transition:
     '''
     transition
@@ -197,18 +200,32 @@ class Transition:
         self.nodeRefs = nodeRefs
 
     def getCenterCoord(self):
-        x = []
-        y = []
-        for vertex in [self.vertex1, self.vertex2]:
-            x.append(vertex.x)
-            y.append(vertex.y)
-        x = (min(x)+max(x))/2
-        y = (min(y)+max(y))/2
-        return x, y
+        x = round((self.vertex1.x + self.vertex2.x)/2, 2)
+        y = round((self.vertex1.y + self.vertex2.y)/2, 2)
+        return (x, y)
 
-    def getShape4Sumo(self):
-        x,y = self.getCenterCoord()
-        return '%s,%s' % (x, y)
+    def getShape4Sumo(self, geo=Geometry):
+        center_coord = self.getCenterCoord()
+        half_width = self.getWidth()/2
+        x_dif = (center_coord[0]-self.vertex1.x)/half_width/10
+        y_dif = (center_coord[1]-self.vertex1.y)/half_width/10
+        v_line = (x_dif, y_dif)
+        v_perp = (v_line[1], -v_line[0])
+        coord1 = (round(center_coord[0]+v_perp[0],2), round(center_coord[1]+v_perp[1],2))
+        coord2 = (round(center_coord[0]-v_perp[0],2), round(center_coord[1]-v_perp[1],2))
+        #check which coord is closer and append them to shape
+        coord_subroom1 = geo.rooms[self.attribs[jps.Room1]].subrooms[self.attribs[jps.Subroom1]].getCenterCoord()
+        if distance.euclidean(coord1, coord_subroom1)<distance.euclidean(coord2, coord_subroom1):
+            shape = coord1+coord2
+        else:
+            shape = coord2+coord1
+        return '%s,%s %s,%s' % shape
+
+    def getWidth(self):
+        a = (self.vertex1.x, self.vertex1.y)
+        b = (self.vertex2.x, self.vertex2.y)
+        width = round(distance.euclidean(a, b), 2)
+        return width
 
 class Crossing:
     '''
@@ -216,25 +233,40 @@ class Crossing:
     '''
     tag = jps.Crossing
 
-    def __init__(self, crossing_id, vertex_1, vertex_2, subroom1_id, subroom2_id, nodeRefs=[]):
+    def __init__(self, crossing_id, vertex_1, vertex_2, subroom1_id, subroom2_id, room_id, nodeRefs=[]):
         self.vertex1 = vertex_1
         self.vertex2 = vertex_2
         self.attribs = {}
         self.attribs[jps.Id] = crossing_id
         self.attribs[jps.Subroom1] = subroom1_id
         self.attribs[jps.Subroom2] = subroom2_id
+        self.attribs[jps.Room] = room_id
         self.nodeRefs = nodeRefs
 
     def getCenterCoord(self):
-        x = []
-        y = []
-        for vertex in [self.vertex1, self.vertex2]:
-            x.append(vertex.x)
-            y.append(vertex.y)
-        x = (min(x)+max(x))/2
-        y = (min(y)+max(y))/2
-        return x, y
+        x = round((self.vertex1.x + self.vertex2.x)/2, 2)
+        y = round((self.vertex1.y + self.vertex2.y)/2, 2)
+        return (x, y)
 
-    def getShape4Sumo(self):
-        x,y = self.getCenterCoord()
-        return '%s,%s' % (x, y)
+    def getShape4Sumo(self, geo=Geometry):
+        center_coord = self.getCenterCoord()
+        half_width = self.getWidth()/2
+        x_dif = (center_coord[0]-self.vertex1.x)/half_width/10
+        y_dif = (center_coord[1]-self.vertex1.y)/half_width/10
+        v_line = (x_dif, y_dif)
+        v_perp = (v_line[1], -v_line[0])
+        coord1 = (round(center_coord[0]+v_perp[0],2), round(center_coord[1]+v_perp[1],2))
+        coord2 = (round(center_coord[0]-v_perp[0],2), round(center_coord[1]-v_perp[1],2))
+        #check which coord is closer and append them to shape
+        coord_subroom1 = geo.rooms[self.attribs[jps.Room]].subrooms[self.attribs[jps.Subroom1]].getCenterCoord()
+        if distance.euclidean(coord1, coord_subroom1)<distance.euclidean(coord2, coord_subroom1):
+            shape = coord1+coord2
+        else:
+            shape = coord2+coord1
+        return '%s,%s %s,%s' % shape
+
+    def getWidth(self):
+        a = (self.vertex1.x, self.vertex1.y)
+        b = (self.vertex2.x, self.vertex2.y)
+        width = round(distance.euclidean(a, b), 2)
+        return width
