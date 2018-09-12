@@ -22,6 +22,9 @@ def jps2sumo_net(inputfile):
             assert isinstance(subroom, Subroom)
             id = room_id+'_'+subroom.attribs[jps.Id]
             coord = subroom.getCenterCoord()
+            #check if subroom only has exacttly 2 crossings/transitions
+            #if len(subroom.transitions)+len(subroom.crossings)==2:
+
             sumo_net.addNode(id=id, coord=coord, type=subroom.attribs[jps.Class])
 
         #add all crossings as edges
@@ -69,9 +72,10 @@ def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
             assert isinstance(node, Node)
             print(node.getID())
             print(node.getCoord())
+            shape = geo.rooms[node.getID().split('_')[0]].subrooms[node.getID().split('_')[1]].getShape4Sumo()
             f.writelines(
-                '\t<node id="%s" x="%s" y="%s" type="%s"/>\n'
-                % (node.getID(), node.getCoord()[0], node.getCoord()[1], node.getType())
+                '\t<node id="%s" x="%s" y="%s" type="%s" shape="%s"/>\n'
+                % (node.getID(), node.getCoord()[0], node.getCoord()[1], node.getType(), shape)
                 )
         f.write('</nodes>')
 
