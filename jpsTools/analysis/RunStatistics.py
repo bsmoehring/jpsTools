@@ -30,6 +30,7 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = [], 
         for inputDic in input_list:
             changeDicMean = {}
             changeDicN = {}
+            changeDicVar = {}
             label = inputDic['label']
             file = inputDic['file'] + 'changeTimes.csv'
             changeDicMean[label] = {}
@@ -48,9 +49,10 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = [], 
                 if platformFrom not in changeDicMean:
                     changeDicMean[platformFrom] = {}
                     changeDicN[platformFrom] = {}
-                print( platformFrom, platformTo)
+                    changeDicVar[platformFrom] = {}
                 changeDicMean[platformFrom][platformTo]=round(selectedChanges[column].mean(), 2)
                 changeDicN[platformFrom][platformTo]=selectedChanges[column].shape[0]
+                changeDicVar[platformFrom][platformTo]=round(selectedChanges[column].var(), 2)
 
             changes = pd.read_csv(file, sep=';', converters={column: float, 'time': int})
             changes = changes.dropna(subset=[column])
@@ -64,6 +66,8 @@ def timeChangeMatrixToCSV(outputFile, column, platforms = [],  input_list = [], 
                              total='avg='+str(round(changes[column].mean())))
             writeMatrixToCsv(writer, changeDic=changeDicN, title=label+'_n', platforms=platforms,
                              total='n='+str(changes[column].shape[0]))
+            writeMatrixToCsv(writer, changeDic=changeDicVar, title=label + '_var', platforms=platforms,
+                             total='')
 
             writer.writerow(['area', 'n', 'mean'])
             for area in ['area_11', 'area_21', 'area_31']:
@@ -375,7 +379,7 @@ def plotAreaDensity(input_list, areas, fps, path):
                      color=color,
                      bbox=dict(facecolor='white', alpha=1.0)
                      )
-            # print(area, label, minY, int(minY_X))
+            print(area, label, minY, int(minY_X))
 
     for area in areas:
         create_subplot(column = str(area)+'_avgA', axis=ax[areas.index(area)], area=area)
@@ -389,8 +393,8 @@ def plotAreaDensity(input_list, areas, fps, path):
     for legobj in leg.legendHandles:
         legobj.set_linewidth(2.0)
     f.tight_layout()
-    plt.savefig(outputfile)
-    plt.show()
+    #plt.savefig(outputfile)
+    #plt.show()
     plt.close()
 
 def plot_minAreas(areas, input_list, qualities, path):
@@ -491,36 +495,69 @@ if __name__ == "__main__":
     inputProg2 = {'file':input + '2_ipfDemandProg2/', 'label':'Prog 2', 'color':'darkred', 'opacity':0.3, 'offset':+2, 'lastFrame':14000}
     input_list = [inputBasis, inputProg1, inputProg2]
 
+    materialised=[]
+    reached_goal = []
+    between_platforms = []
+    after_300 = []
+    time_avg = []
+    var = []
+    after_300_905 = []
+
     for model in input_list:
         changes = pd.read_csv(model['file']+'changeTimes.csv', sep=';',
-                              converters={'secondsInSim': float, 'time': int, 'lastFrame':int})
-        total = changes.shape[0]
-        selectedChanges = changes.loc[
-            changes['time']<300
-        ]
-        before300 = selectedChanges.shape[0]
-        changes = pd.read_csv(model['file'] + 'changeTimes.csv', sep=';',
-                              converters={'secondsInSim': float, 'time': int, 'lastFrame': int})
-        selectedChanges = changes.loc[
-            (changes['lastFrame'] == model['lastFrame'])
-        ]
-        earliestNoGoal = 905
-        earliestNoGoal = selectedChanges['time'].min()
-        changes = pd.read_csv(model['file'] + 'changeTimes.csv', sep=';',
-                              converters={'secondsInSim': float, 'time': int, 'lastFrame': int})
-        selectedChanges = changes.loc[
-            changes['time']>earliestNoGoal
-        ]
-        afterEarliestNoGoal = selectedChanges.shape[0]
-        changes = pd.read_csv(model['file'] + 'changeTimes.csv', sep=';',
-                              converters={'secondsInSim': float, 'time': int, 'lastFrame': int})
-        selectedChanges = changes.loc[
-            (changes['time']>300) &
-            (changes['time']<earliestNoGoal)
-        ]
-        agentsLeft = selectedChanges.shape[0]
+                              converters={'secondsInSim': float, 'time': int, 'lastFrame':int, 'platformFrom':str, 'platformTo':str})
+        materialised.append(changes.shape[0])
 
-        print(model['label'], '&', total, '&', before300, '&', earliestNoGoal, '&', afterEarliestNoGoal, '&', agentsLeft )
+        changes = changes.dropna(subset=['secondsInSim'])
+        reached_goal.append(changes.shape[0])
+
+        selectedChanges = changes.loc[
+            (changes['platformFrom']!='') &
+            (changes['platformTo']!='')
+        ]
+        between_platforms.append(selectedChanges.shape[0])
+
+        selectedChanges = selectedChanges.loc[
+            (selectedChanges['time']>300)
+        ]
+        after_300.append(selectedChanges.shape[0])
+        time_avg.append(round(selectedChanges['secondsInSim'].mean(),1))
+        var.append(round(selectedChanges['secondsInSim'].var(),1))
+        changes = None
+        selectedChanges = None
+
+        changes = pd.read_csv(model['file']+'changeTimes.csv', sep=';',
+                              converters={'secondsInSim': float, 'time': int, 'lastFrame':int, 'platformFrom':str, 'platformTo':str})
+        changes = changes.dropna(subset=['secondsInSim'])
+        selectedChanges = changes.loc[
+            (changes['platformFrom']!='') &
+            (changes['platformTo']!='')
+        ]
+        selectedChanges = selectedChanges.loc[
+            (selectedChanges['time']>300)  &
+            (selectedChanges['time']<905)
+        ]
+
+        after_300_905.append(selectedChanges.shape[0])
+        time_avg.append(round(selectedChanges['secondsInSim'].mean(),1))
+        var.append(round(selectedChanges['secondsInSim'].var(),1))
+
+    print('Agenten materialisiert', '&', materialised[0], '&', materialised[1], '&', materialised[2])
+    print('... , die ihr Ziel erreicht haben', '&', reached_goal[0], '&', reached_goal[1], '&', reached_goal[2])
+    print('... , zwischen zwei Haltepunkten', '&', between_platforms[0], '&', between_platforms[1], '&', between_platforms[2])
+    print('\hline')
+    print(' \multicolumn{4}{c}{Ziel erreicht und nach Sekunde 300 materialisiert}')
+    print('\hline')
+    print('Agenten', '&', after_300[0], '&', after_300[1], '&', after_300[2])
+    print('Zeit in s (Durchschnitt)', '&', time_avg[0], '&', time_avg[2], '&', time_avg[4])
+    print('Standardabweichung', '&', var[0], '&', var[2], '&', var[4])
+
+    print('\hline')
+    print(' \multicolumn{4}{c}{Ziel erreicht, nach Sekunde 300 und vor Sekunde 905 materialisiert}\\')
+    print('\hline')
+    print('Agenten', '&', after_300_905[0], '&', after_300_905[1], '&', after_300_905[2])
+    print('Zeit in s (Durchschnitt)', '&', time_avg[1], '&', time_avg[3], '&', time_avg[5])
+    print('Standardabweichung', '&', var[1], '&', var[3], '&', var[5])
 
     #plotTimeVariationForGroup(
     #        outputFolder=input+'analysis/', column='secondsInSim',
@@ -532,19 +569,19 @@ if __name__ == "__main__":
     #        input_list=input_list
     #)
 
-    timeChangeMatrixToCSV(
-        outputFile=input + 'analysis/timeChangeMatrix_all.csv', column='secondsInSim',
-        platforms=platforms,
-        input_list=input_list,
-        minTime=300
-    )
-    timeChangeMatrixToCSV(
-        outputFile=input + 'analysis/timeChangeMatrix_cleaned905.csv', column='secondsInSim',
-        platforms=platforms,
-        input_list=input_list,
-        minTime=300,
-        maxTime=905
-    )
+    # timeChangeMatrixToCSV(
+    #     outputFile=input + 'analysis/timeChangeMatrix_300_1800.csv', column='secondsInSim',
+    #     platforms=platforms,
+    #     input_list=input_list,
+    #     minTime=300
+    # )
+    # timeChangeMatrixToCSV(
+    #     outputFile=input + 'analysis/timeChangeMatrix_300_905.csv', column='secondsInSim',
+    #     platforms=platforms,
+    #     input_list=input_list,
+    #     minTime=300,
+    #     maxTime=905
+    # )
 
     #for platformFrom, platformTo in itertools.combinations(platforms, 2):
     #    if platformFrom == 'S' and platformTo == 'Regio':
@@ -571,7 +608,7 @@ if __name__ == "__main__":
 
     #nameEarlyAgents(input_list, 'Dircksenstr.', 'U8')
 
-    #plotAreaDensity(input_list, areas, 8, input+'analysis/')
+    plotAreaDensity(input_list, areas, 8, input+'analysis/')
 
     #plot_minAreas(areas, input_list, qualities, input+'analysis/')
 

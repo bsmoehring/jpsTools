@@ -21,21 +21,21 @@ def main(input):
 
     agents = Agents(inputIni)
     traj = TrajectoryOperations(Transformation(minx=xmin, miny=ymin), timestampInterval=timestampInterval, fps=agents.fps)
-    #fps, lastFrame, agentsInLastFrame = traj.getAgentsOccurences(trajfile=inputTrajectory, agents=agents)
-    #agentsRemoved = calcAgentsTime(fps, int(float(lastFrame)), agents.agents_sources.sourcesDic)
+    fps, lastFrame, agentsInLastFrame = traj.getAgentsOccurences(trajfile=inputTrajectory, agents=agents)
+    agentsRemoved = calcAgentsTime(fps, int(float(lastFrame)), agents.agents_sources.sourcesDic)
 
-    #print(agentsRemoved, 'agents were not calculated because they hadnt left the simulation at the last frame', lastFrame)
-    #print(agentsInLastFrame, 'agents in last frame')
+    print(agentsRemoved, 'agents were not calculated because they hadnt left the simulation at the last frame', lastFrame)
+    print(agentsInLastFrame, 'agents in last frame')
 
-    #StopsManager().assignPlatforms(agents)
-    #traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
-    #traj.assign_areas(
-    #    trajfile=inputTrajectory, agents=agents, counts=agents.counts
-    #)
-    #printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
+    StopsManager().assignPlatforms(agents)
+    traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
+    traj.assign_areas(
+        trajfile=inputTrajectory, agents=agents, counts=agents.counts
+    )
+    printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
 
-    #printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
-    #traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
+    printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
+    traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
 
     traj.frames2Points_Voronois(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
 
