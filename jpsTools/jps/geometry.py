@@ -48,7 +48,7 @@ class Room:
         self.crossings = {}
 
     def addSubroom(self, subroom):
-        self.subrooms[subroom.attribs[jps.Id]] = subroom
+        self.subrooms[subroom.attribs[jps.Subroom]] = subroom
 
     def getSubroomById(self, subroom_id):
         return self.subrooms[subroom_id]
@@ -70,12 +70,13 @@ class Subroom:
     tag = jps.Subroom
 
     def __init__(
-            self, subroom_id, jpsClass, ax, by, cz,
+            self, subroom_id, room_id, jpsClass, ax, by, cz,
             upPX=None, upPY=None, upPZ=None, downPX=None, downPY=None, downPZ=None
     ):
         self.polygons = []
         self.attribs = {}
-        self.attribs[jps.Id] = subroom_id
+        self.attribs[jps.Subroom] = subroom_id
+        self.attribs[jps.Room] = room_id
         self.attribs[jps.Class] = jpsClass
         self.attribs[jps.A_x] = ax
         self.attribs[jps.B_y] = by
@@ -112,15 +113,26 @@ class Subroom:
     def getNumOfTransCross(self):
         return len(self.transitions) + len(self.crossings)
 
-    def getNeighbouringSubrooms(self, geo = Geometry):
-        neighbours = []
+    def getTransCrossLst(self, geo = Geometry):
+        return self.crossings + self.transitions
+
+    def getNeighbouringSubroomLst(self, geo = Geometry):
+        neighbourLst = []
         for transition in self.transitions:
             subroom1 = geo.rooms[transition.attribs[jps.Room1]].subrooms[transition.attribs[jps.Subroom1]]
             subroom2 = geo.rooms[transition.attribs[jps.Room2]].subrooms[transition.attribs[jps.Subroom2]]
             if subroom1 != self:
-                neighbours.append(subroom1)
+                neighbourLst.append(subroom1)
             elif subroom2 != self:
-                neighbours.append(subroom2)
+                neighbourLst.append(subroom2)
+        for crossing in self.crossings:
+            subroom1 = geo.rooms[crossing.attribs[jps.Room]].subrooms[crossing.attribs[jps.Subroom1]]
+            subroom2 = geo.rooms[crossing.attribs[jps.Room]].subrooms[crossing.attribs[jps.Subroom2]]
+            if subroom1 != self:
+                neighbourLst.append(subroom1)
+            elif subroom2 != self:
+                neighbourLst.append(subroom2)
+        return neighbourLst
 
     def getShape4Sumo(self):
         shape = ''
@@ -186,7 +198,6 @@ class Transition:
 
     def __init__(self, vertex_1, vertex_2, transition_id, caption, type, room1_id, subroom1_id,
                  room2_id, subroom2_id, nodeRefs=[]):
-        self.id = id
         self.vertex1 = vertex_1
         self.vertex2 = vertex_2
         self.attribs = {}
@@ -207,8 +218,8 @@ class Transition:
     def getShape4Sumo(self, geo=Geometry):
         center_coord = self.getCenterCoord()
         half_width = self.getWidth()/2
-        x_dif = (center_coord[0]-self.vertex1.x)/half_width/10
-        y_dif = (center_coord[1]-self.vertex1.y)/half_width/10
+        x_dif = (center_coord[0]-self.vertex1.x)/half_width/100
+        y_dif = (center_coord[1]-self.vertex1.y)/half_width/100
         v_line = (x_dif, y_dif)
         v_perp = (v_line[1], -v_line[0])
         coord1 = (round(center_coord[0]+v_perp[0],2), round(center_coord[1]+v_perp[1],2))

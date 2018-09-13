@@ -11,8 +11,9 @@ def read_jps_geometry(filename):
     geo = Geometry()
 
     universe = Room(room_id='-1', caption='Universe')
-    universe.addSubroom(Subroom(subroom_id='-1', jpsClass='Universe', ax=None, by=None, cz=None))
+    universe.addSubroom(Subroom(subroom_id='-1', room_id='-1', jpsClass='Universe', ax=None, by=None, cz=None))
     geo.addRoom(universe)
+
     for room_et in tree.iter(tag=jps.Room):
         geo.addRoom(read_room(room_et))
 
@@ -53,7 +54,7 @@ def read_subroom(subroom_et = ET.Element, room_id = str):
         vertex = read_vertex(down_et)
         downPX, downPY, downPZ = vertex.x, vertex.y, vertex.z
 
-    subroom_obj = Subroom(subroom_id, jpsClass, ax, by, cz, upPX, upPY, upPZ, downPX, downPY, downPZ)
+    subroom_obj = Subroom(subroom_id, room_id, jpsClass, ax, by, cz, upPX, upPY, upPZ, downPX, downPY, downPZ)
 
     for polygon in subroom_et.iter(tag=jps.Polygon):
 

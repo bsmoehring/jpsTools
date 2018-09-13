@@ -2,6 +2,7 @@ import geometry_reader
 from jps_constants import jps
 from geometry import Geometry, Room, Subroom, Crossing, Transition
 from sumolib.net import *
+from scipy.spatial import distance
 
 def jps2sumo_net(inputfile):
 
@@ -20,12 +21,37 @@ def jps2sumo_net(inputfile):
         #add all subrooms as nodes
         for subroom in room.subrooms.values():
             assert isinstance(subroom, Subroom)
-            id = room_id+'_'+subroom.attribs[jps.Id]
+            if room_id != subroom.attribs[jps.Room]:
+                raise Exception
+            id = subroom.attribs[jps.Room]+'_'+subroom.attribs[jps.Subroom]
             coord = subroom.getCenterCoord()
-            #check if subroom only has exacttly 2 crossings/transitions
-            #if len(subroom.transitions)+len(subroom.crossings)==2:
+            #check if subroom has exactly 2 crossings/transitions
+            # if subroom.attribs[jps.Class] in [jps.Stair, jps.Escalator_up, jps.Escalator_down] and subroom.getNumOfTransCross() == 2:
+            if len(subroom.polygons) == 2 and len(subroom.getTransCrossLst()) == 2:
+                neighbours =  subroom.getNeighbouringSubroomLst(geo)
+                fromID = neighbours[0].attribs[jps.Room]+'_'+neighbours[0].attribs[jps.Subroom]
+                toID = neighbours[1].attribs[jps.Room]+'_'+neighbours[1].attribs[jps.Subroom]
 
-            sumo_net.addNode(id=id, coord=coord, type=subroom.attribs[jps.Class])
+                trans_cross_lst = subroom.getTransCrossLst()
+                length = distance.euclidean(trans_cross_lst[0].getCenterCoord(), trans_cross_lst[1].getCenterCoord())
+
+                sumo_net.addEdge(id=id, fromID=fromID, toID=toID, prio=1, function=subroom.attribs[jps.Class], name=jps.Subroom)
+                edge = sumo_net.getEdge(id=id)
+                edge.shape = '%s,%s %s,%s' % (trans_cross_lst[0].getCenterCoord()+trans_cross_lst[1].getCenterCoord())
+                edge.width = sum(trans_cross.getWidth() for trans_cross in trans_cross_lst)/len(trans_cross_lst)
+                sumo_net.addLane(edge=edge, length=length, speed=1.39)
+                #remove the two neighbouring crossings and transitions from future handling
+                for trans_cross in trans_cross_lst:
+                    if isinstance(trans_cross, Crossing):
+                        del room.crossings[trans_cross.attribs[jps.Id]]
+                    elif isinstance(trans_cross, Transition):
+                        del geo.transitions[trans_cross.attribs[jps.Id]]
+                    else:
+                        raise Exception
+            else:
+                sumo_net.addNode(id=id, coord=coord, type=subroom.attribs[jps.Class])
+                node = sumo_net.getNode(id=id)
+                node.shape = subroom.getShape4Sumo()
 
         #add all crossings as edges
         for crossing in room.crossings.values():
@@ -33,8 +59,10 @@ def jps2sumo_net(inputfile):
             id = room_id+'_'+crossing.attribs[jps.Id]+'/'+room_id+'_'+crossing.attribs[jps.Subroom1]+'/'+room_id+'_'+crossing.attribs[jps.Subroom2]
             fromID = room_id+'_'+crossing.attribs[jps.Subroom1]
             toID = room_id+'_'+crossing.attribs[jps.Subroom2]
-            sumo_net.addEdge(id=id, fromID=fromID, toID=toID, prio=1, function='walkingarea', name=id)
+            sumo_net.addEdge(id=id, fromID=fromID, toID=toID, prio=1, function='walkingarea', name=jps.Crossing)
             edge = sumo_net.getEdge(id=id)
+            edge.shape = crossing.getShape4Sumo()
+            edge.width = crossing.getWidth()
             sumo_net.addLane(edge=edge, length=0.01, speed=1.39)
 
     #add all transitions as edges
@@ -43,24 +71,19 @@ def jps2sumo_net(inputfile):
         assert isinstance(transition, Transition)
         fromID = transition.attribs[jps.Room1]+'_'+transition.attribs[jps.Subroom1]
         toID = transition.attribs[jps.Room2]+'_'+transition.attribs[jps.Subroom2]
+        #transition id creation
         id = transition_id+'/'+fromID+'/'+toID
         # no transitions to universe
         if '-1_-1' in id:
             continue
-        sumo_net.addEdge(id=id, fromID=fromID, toID=toID, prio=1, function='walkingarea', name=id)
+        sumo_net.addEdge(id=id, fromID=fromID, toID=toID, prio=1, function='walkingarea', name=jps.Crossing)
         edge = sumo_net.getEdge(id)
+        edge.shape = transition.getShape4Sumo()
+        edge.width = transition.getWidth()
         sumo_net.addLane(edge=edge, length=0.01, speed=1.39)
 
     return geo, sumo_net
 
-            # elif num_transcross == 2:
-            #     #TODO: subroom2edge
-            #     pass
-            # elif num_transcross == 1:
-            #     #TODO: think about it
-            #     pass
-            # else:
-            #     raise Exception
 
 def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
 
@@ -72,10 +95,9 @@ def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
             assert isinstance(node, Node)
             print(node.getID())
             print(node.getCoord())
-            shape = geo.rooms[node.getID().split('_')[0]].subrooms[node.getID().split('_')[1]].getShape4Sumo()
             f.writelines(
                 '\t<node id="%s" x="%s" y="%s" type="%s" shape="%s"/>\n'
-                % (node.getID(), node.getCoord()[0], node.getCoord()[1], node.getType(), shape)
+                % (node.getID(), node.getCoord()[0], node.getCoord()[1], node.getType(), node.shape)
                 )
         f.write('</nodes>')
 
@@ -86,25 +108,15 @@ def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
 
         for edge in sumo_net.getEdges():
             assert isinstance(edge, Edge)
-            jps_id = edge.getID().split('/')[0]
-            shape = ""
-            width = None
-            if '_' in jps_id:
-                #crossing
-                room_id = jps_id.split('_')[0]
-                crossing_id = jps_id.split('_')[1]
-                crossing = geo.rooms[room_id].crossings[crossing_id]
-                shape = crossing.getShape4Sumo(geo)
-                width = crossing.getWidth()
-            else:
-                #transition
-                transition = geo.transitions[jps_id]
-                shape = transition.getShape4Sumo(geo)
-                width = transition.getWidth()
             f.write(
-                '\t<edge id="%s" from="%s" to="%s" width="%s" length="%s" numLanes="1" speed="%s" spreadType="%s" allow="pedestrian" shape="%s"/>\n'
-                % (edge.getID(), edge.getFromNode().getID(), edge.getToNode().getID(), width, 0.1, 1.34, 'center', shape)
+                '\t<edge id="%s" from="%s" to="%s" width="%s" numLanes="1" speed="%s" spreadType="%s" allow="pedestrian" shape="%s">\n'
+                % (edge.getID(), edge.getFromNode().getID(), edge.getToNode().getID(), edge.width, 1.34, 'center', edge.shape)
             )
+            f.write(
+                '\t\t<lane index="0" shape="%s"/>\n'
+                % (edge.shape)
+            )
+            f.write('\t</edge>\n')
         f.write('</edges>\n')
 
     with open(outputfile+'.con.xml', 'w') as f:
@@ -120,10 +132,9 @@ def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
                 if edges != '':
                     edges += ' '
                 edges += edge.getID()
-            shape = geo.rooms[node.getID().split('_')[0]].subrooms[node.getID().split('_')[1]].getShape4Sumo()
             f.write(
                 '\t<walkingArea node="%s" type="%s" edges="%s" shape="%s"/>\n'
-                % (node.getID(), node.getType(), edges, shape)
+                % (node.getID(), node.getType(), edges, node.shape)
             )
 
 

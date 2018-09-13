@@ -45,6 +45,8 @@ class jps(object):
     Up = 'up'
     Down = 'down'
     Escalator = 'escalator'
+    Escalator_up = 'escalator_up'
+    Escalator_down = 'escalator_down'
     Group_ID = 'group_id'
     Goal_ID = 'goal_id'
     Traj_ID = 'ID'
