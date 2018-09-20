@@ -126,6 +126,7 @@ class Source:
         self.lastChangeZFrame = None
         self.lastZ = None
         self.secondsBetweenZChange = None
+        self.length = None
         self.minAreaByArea = {}
 
     def addArea(self, area_id, area_size):
@@ -159,6 +160,7 @@ class Source:
         attribDic['secondsInSim'] = self.secondsInSim
         attribDic['platformFrom'] = self.platformFrom
         attribDic['platformTo'] = self.platformTo
+        attribDic['length'] = self.length
         for area in Counts.area_list:
             #passed area?
             passes_area = 'false'

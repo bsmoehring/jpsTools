@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 
 class TrajectoryOperations():
 
-    def __init__(self, transform, fps, timestampInterval):
-        self.transform = transform
+    def __init__(self, transformation, fps, timestampInterval):
+        self.transform = transformation
         self.fps = fps
         self.frameDivisor = fps*timestampInterval
 
@@ -86,13 +86,13 @@ class TrajectoryOperations():
                 lastFrames.append(source.lastFrame)
                 if len(agent_traj_dic)>=1000:
                     self.traj2points(
-                        trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f
+                        trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f, properties
                     )
             self.traj2points(
-                trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f
+                trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f, properties
             )
 
-    def traj2points(self, trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f):
+    def traj2points(self, trajfile, firstFrames, lastFrames, agents, agent_traj_dic, f, properties):
 
         firstFrame = min(firstFrames)
         lastFrame = max(lastFrames)
@@ -136,10 +136,12 @@ class TrajectoryOperations():
             elif len(traj.points) == 1:
                 traj.points.append(traj.points[0])
             linestring = LineString(traj.points)
-            properties = agents.agents_sources.sourcesDic[agent_id2].getAttribDic()
-            properties['length'] = linestring.length
+            linestring_transformed = ops.transform(self.transform.project, linestring)
+            agents.agents_sources.sourcesDic[agent_id2].length = linestring_transformed.length
+            attribDic = agents.agents_sources.sourcesDic[agent_id2].getAttribDic()
+            agent_properties = {your_key: attribDic[your_key] for your_key in properties.keys()}
             f.write({
-                'properties': properties,
+                'properties': agent_properties,
                 'geometry': mapping(linestring)
             })
             # print(agent_id2, linestring)

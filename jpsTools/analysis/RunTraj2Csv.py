@@ -28,16 +28,29 @@ def main(input):
     print(agentsInLastFrame, 'agents in last frame')
 
     StopsManager().assignPlatforms(agents)
-    traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
-    traj.assign_areas(
-        trajfile=inputTrajectory, agents=agents, counts=agents.counts
-    )
-    printSourcesToCsv(agents, inputfolder+'changeTimes.csv')
+    # traj.area_statistics(agents=agents, trajfile=inputTrajectory, path=inputfolder)
+    # traj.assign_areas(
+    #     trajfile=inputTrajectory, agents=agents, counts=agents.counts
+    # )
 
     printFrameStatisticsToCsv(agents.counts, inputfolder+'frameStatistics.csv')
     traj.agents2shape(inputTrajectory, inputfolder + 'traj_shape', agents)
 
-    traj.frames2Points_Voronois(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
+    # columns = [jps.Group_ID, jps.Agent_ID, jps.Time, 'firstFrame', 'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo']
+    # for area in agents.counts.area_list:
+    #     columns.append('area_' + area.area_id)
+    #     columns.append('minArea' + area.area_id)
+    # printSourcesToCsv(
+    #     agents, inputfolder+'changeTimes.csv',
+    #     columns=columns
+    # )
+
+    printSourcesToCsv(
+        agents, inputfolder+'timedistance.csv',
+        columns=[jps.Agent_ID, jps.Group_ID, 'platformFrom', 'platformTo', jps.Time, 'lastFrame', 'secondsInSim', 'length']
+    )
+
+    #traj.frames2Points_Voronois(agents=agents, path=inputfolder, trajfile=inputTrajectory, framesAreaDic=input[1])
 
     print(inputfolder)
     print(len(agents.agents_sources.sourcesDic), 'agents are considered')
@@ -73,21 +86,17 @@ def calcAgentsTime(fps, lastFrame, agents = {}):
 
     return len(removeIds)
 
-def printSourcesToCsv(agents, file):
+def printSourcesToCsv(agents, file, columns = [jps.Agent_ID]):
     print('printSourcesToCsv', file)
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        columns = [jps.Group_ID, jps.Agent_ID, jps.Time, 'firstFrame',
-                'lastFrame', 'frames', 'secondsInSim', 'platformFrom', 'platformTo']
-        for area in agents.counts.area_list:
-            columns.append('area_'+area.area_id)
-            columns.append('minArea'+area.area_id)
         writer.writerow(columns)
-        for source in agents.agents_sources.sourcesDic.values():
+        for source in sorted(agents.agents_sources.sourcesDic.values(), key = lambda source: int(source.agent_id)):
             attribDic = source.getAttribDic()
             row = []
             for column in columns:
                 row.append(attribDic[column])
+            print(row)
             writer.writerow(row)
 
 def printFrameStatisticsToCsv(counts, file):
@@ -181,8 +190,8 @@ class StopsManager():
 if __name__ == "__main__":
     input = []
     input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/0_ipfDemandBasic/', {'10312': '11', '4760': '21', '9184': '31', '14000': '15'}))
-    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12800': '11', '13840': '21', '8632': '31', '14000': '15'}))
-    input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/', {'3728': '11', '10640': '21', '5824': '31', '14000': '15'}))
+    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/1_ipfDemandProg1/', {'12800': '11', '13840': '21', '8632': '31', '14000': '15'}))
+    #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/runs/2_ipfDemandProg2/', {'3728': '11', '10640': '21', '5824': '31', '14000': '15'}))
     #input.append(('/media/bsmoehring/Data/wichtiges/tuberlin/masterarbeit/tests/report/smalltraj/', {}))
 
     for s in input:
