@@ -27,7 +27,14 @@ def jps2sumo_net(inputfile):
             coord = subroom.getCenterCoord()
             #check if subroom has exactly 2 crossings/transitions
             # if subroom.attribs[jps.Class] in [jps.Stair, jps.Escalator_up, jps.Escalator_down] and subroom.getNumOfTransCross() == 2:
-            if len(subroom.polygons) == 2 and len(subroom.getTransCrossLst()) == 2:
+            if subroom.attribs[jps.Class] in [jps.Escalator_up, jps.Escalator_down]:
+                trans_cross_lst = subroom.getTransCrossLst()
+                for trans_cross in trans_cross_lst:
+                    if isinstance(trans_cross, Transition):
+                        del geo.transitions[trans_cross.attribs[jps.Id]]
+                    else:
+                        raise Exception
+            elif len(subroom.polygons) == 2 and len(subroom.getTransCrossLst()) == 2:
                 neighbours =  subroom.getNeighbouringSubroomLst(geo)
                 fromID = neighbours[0].attribs[jps.Room]+'_'+neighbours[0].attribs[jps.Subroom]
                 toID = neighbours[1].attribs[jps.Room]+'_'+neighbours[1].attribs[jps.Subroom]
@@ -91,6 +98,8 @@ def sumo_net2plainxml(geo=Geometry, sumo_net=Net(), outputfile=str):
 
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         f.write('<nodes>\n')
+        f.write('\t<location netOffset="-392060.63039125846,-5820073.572218239" origBoundary="13.40914476019,52.5200685,13.4155947,52.5225964" convBoundary="0,0,443.77040196873713,271.53244863078" projParameter="+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"/>\n')
+
         for node in sumo_net.getNodes():
             assert isinstance(node, Node)
             print(node.getID())
